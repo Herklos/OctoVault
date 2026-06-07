@@ -1,0 +1,30 @@
+{
+  "name": "octovault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OctoVault — a universal (web + native) Expo knowledge app (Notion/Anytype-style) on Starfish WAL/CRDT, built as a pnpm monorepo.",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "infra:up": "docker compose up -d nats",
+    "infra:down": "docker compose down",
+    "whistlers": "QUEUE_URL=nats://localhost:4222 node infra/whistlers-sse.mjs",
+    "dev": "concurrently --names server,whistlers --prefix-colors cyan,magenta \"NATS_URL=nats://localhost:4222 pnpm --filter @octovault/server dev\" \"pnpm whistlers\"",
+    "dev:server": "pnpm --filter @octovault/server dev",
+    "start": "pnpm --filter @octovault/mobile start",
+    "web": "pnpm --filter @octovault/mobile web",
+    "web:package": "pnpm --filter @octovault/desktop export",
+    "android": "pnpm --filter @octovault/mobile android",
+    "ios": "pnpm --filter @octovault/mobile ios",
+    "desktop": "pnpm --filter @octovault/desktop dev",
+    "desktop:package": "pnpm --filter @octovault/desktop package",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "lint": "pnpm -r --if-present run lint",
+    "test": "pnpm -r --if-present run test"
+  },
+  "dependencies": {
+    "@drakkar.software/whistlers": "^0.6.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "@octovault/tsconfig/base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node", "electron"],
+    "outDir": "dist-electron",
+    "noEmit": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts"]
+}

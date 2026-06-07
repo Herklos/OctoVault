@@ -1,0 +1,41 @@
+appId: software.drakkar.octochat
+productName: OctoChat
+directories:
+  output: release
+  buildResources: build
+# Only the compiled shell + manifest go into the asar. The renderer (Expo web
+# build) ships as an unpacked resource so the app:// handler can stream it.
+files:
+  - dist-electron/**/*
+  - package.json
+extraResources:
+  - from: ../mobile/dist
+    to: web
+# No native modules → skip rebuild; keeps pnpm's hoisted layout happy.
+npmRebuild: false
+# Windows/Linux icons (.ico/.png) are auto-generated from the square
+# build/icon.png (1024x1024). macOS gets build/icon-mac.png — the same mark
+# pre-shaped into the rounded "squircle" with transparent margins that the dock
+# expects (macOS does NOT round icons itself; a full-bleed square shows as a
+# square tile). Regenerate it from build/icon.png with the recipe in README.
+mac:
+  category: public.app-category.productivity
+  icon: build/icon-mac.png
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+linux:
+  target:
+    - AppImage
+  category: Network

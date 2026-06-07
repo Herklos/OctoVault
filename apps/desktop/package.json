@@ -1,0 +1,31 @@
+{
+  "name": "@octovault/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OctoVault desktop shell — renders the Expo web build inside Electron.",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "build:main": "tsup",
+    "dev": "concurrently -k -n expo,electron -c blue,magenta \"pnpm dev:web\" \"pnpm dev:electron\"",
+    "dev:web": "pnpm --filter @octovault/mobile web",
+    "dev:electron": "wait-on tcp:8081 && cross-env NODE_ENV=development tsup --watch --onSuccess \"electron .\"",
+    "export": "node scripts/check-build-env.mjs && pnpm --filter @octovault/mobile export:web && node scripts/gen-update-manifest.mjs",
+    "deploy:web": "pnpm export && wrangler pages deploy --project-name octovault",
+    "package": "pnpm export && pnpm build:main && electron-builder",
+    "package:dir": "pnpm export && pnpm build:main && electron-builder --dir",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@octovault/tsconfig": "workspace:*",
+    "@types/node": "^22.10.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "42.2.0",
+    "electron-builder": "^26.8.1",
+    "tsup": "^8.3.5",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.7",
+    "wait-on": "^9.0.10"
+  }
+}

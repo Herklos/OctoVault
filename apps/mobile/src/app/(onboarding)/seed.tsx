@@ -1,0 +1,86 @@
+import { useMemo, useState } from 'react';
+import { Redirect, router } from 'expo-router';
+import { Platform, StyleSheet, View } from 'react-native';
+
+import { spacing } from '@/theme';
+import { generateSeedWords } from '@/lib/starfish/identity';
+import { useArgon2Progress } from '@/lib/starfish/hash-wasm-shim';
+import { useSession } from '@/lib/session-context';
+import { AppBar } from '@/components/ui/AppBar';
+import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
+import { StackScreen } from '@/components/ui/StackScreen';
+import { SeedBackup } from '@/components/onboarding/SeedBackup';
+
+export default function SeedScreen() {
+  const { signIn, prepareSignIn, session } = useSession();
+  const words = useMemo(() => generateSeedWords(), []);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const argon2 = useArgon2Progress();
+
+  // Already signed in: this screen creates the FIRST account, so running signIn here
+  // would replace the whole vault. Adding accounts goes through /account/* instead.
+  if (session) return <Redirect href="/(tabs)/work" />;
+
+  const confirm = async () => {
+    if (busy) return;
+    // First account on web: the seed must be sealed behind a PIN/passkey before it
+    // touches disk, so route through the lock-setup screen instead of persisting here.
+    if (Platform.OS === 'web') {
+      prepareSignIn(words);
+      router.push('/(onboarding)/lock');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await signIn(words);
+      router.replace('/(tabs)/work');
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <StackScreen
+      scroll
+      contentStyle={styles.content}
+      header={
+        <AppBar
+          title="Backup seed"
+          subtitle="Step 2 of 2"
+          onBack={() => router.back()}
+          right={<IconButton name="x" onPress={() => router.back()} accessibilityLabel="Cancel" />}
+        />
+      }
+      footer={
+        <View style={styles.footer}>
+          <Button
+            label={
+              busy
+                ? argon2 != null
+                  ? `Creating identity… ${Math.round(argon2 * 100)}%`
+                  : 'Creating identity…'
+                : "I've written it down  →"
+            }
+            variant="primary"
+            size="lg"
+            full
+            loading={busy}
+            disabled={busy}
+            onPress={confirm}
+          />
+        </View>
+      }
+    >
+      <SeedBackup words={words} error={error} />
+    </StackScreen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { padding: spacing.screenX, gap: spacing.lg },
+  footer: { paddingHorizontal: spacing.screenX, paddingTop: spacing.md },
+});
