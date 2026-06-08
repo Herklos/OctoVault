@@ -62,6 +62,12 @@ function roomSubtypeIcon(subtype: RoomSubtype | undefined): IconName {
   }
 }
 
+/** A container type holds children but has no content of its own (folder/category) —
+ *  in the tree it toggles open/closed instead of opening a content route. */
+export function isContainerType(type: ObjectType): boolean {
+  return objectDescriptor(type).contentKind === 'none';
+}
+
 /** The effective content sync model for a node: its explicit `contentKind` wins (a
  *  custom type declares its own), else the type descriptor's default. This is the one
  *  function the hook layer needs to pick `useDoc` (merge) vs `useProject` (append). */

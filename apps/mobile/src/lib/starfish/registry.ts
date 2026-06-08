@@ -16,6 +16,7 @@ import type { SealedBlob } from './account-seal';
 import { randomId } from '../ids';
 
 import type { Session } from './identity';
+import { removeMemberCap } from './member-caps';
 import { DEFAULT_CATEGORY } from './objects';
 import { seedSpaceObjectIndex } from './object-index';
 import {
@@ -491,6 +492,50 @@ export async function addSpaceMember(
   // Push replaces the whole access-record doc; thread name/image through so adding a
   // member never drops the shared space identity (see writeRooms).
   await writeRooms(client, spaceId, owner ?? ownerUserId, [...members, memberUserId], hash, { name, image });
+}
+
+/**
+ * Owner-side: remove a member from a space roster → revokes their `space:member`
+ * (read access to the registry + the space keyring). Rewrites `_rooms.members` via
+ * {@link writeRooms}, threading the owner + shared name/image through so the access
+ * record never drops them (the inverse of {@link addSpaceMember}). The keyring epoch
+ * is NOT rotated (out of scope) — a removed member loses fresh access but could still
+ * read history they already decrypted; a true revoke is a separate keyring rotation.
+ * A no-op when the target isn't a member or is the owner (the owner can't self-remove).
+ */
+export async function removeSpaceMember(
+  client: StarfishClient,
+  spaceId: string,
+  memberUserId: string,
+): Promise<void> {
+  const { owner, members, name, image, hash } = await readRooms(client, spaceId);
+  if (!members.includes(memberUserId) || memberUserId === owner) return;
+  await writeRooms(client, spaceId, owner ?? memberUserId, members.filter((m) => m !== memberUserId), hash, {
+    name,
+    image,
+  });
+}
+
+/**
+ * Member-side: leave a space — drop it from this identity's own `_spaces` doc (the
+ * `spaces` list AND its `caps`/`pubAccess` entry, whichever applies) through the
+ * conflict-retrying {@link updateSpacesDoc} funnel, then forget its member cap from
+ * the local cache. Idempotent: a no-op when the space isn't in the list. This is a
+ * LOCAL leave (the user stops syncing/seeing the space) — it does NOT remove the user
+ * from the owner's roster or rotate the keyring; that is the owner's
+ * {@link removeSpaceMember}, and a true keyring revoke is out of scope.
+ */
+export async function leaveSpace(client: StarfishClient, userId: string, spaceId: string): Promise<void> {
+  await updateSpacesDoc(client, userId, (cur) => {
+    if (!cur.spaces.some((s) => s.id === spaceId)) return cur; // not joined — skip the write
+    const caps = { ...cur.caps };
+    delete caps[spaceId];
+    const pubAccess = { ...cur.pubAccess };
+    delete pubAccess[spaceId];
+    return { spaces: cur.spaces.filter((s) => s.id !== spaceId), caps, pubAccess };
+  });
+  // Forget the device-local member cap (no-op for a public space / a cap never cached).
+  removeMemberCap(spaceId);
 }
 
 /** Invitee-side: record a joined space in the identity's own space list. Caps are

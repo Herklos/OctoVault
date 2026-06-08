@@ -14,7 +14,7 @@
 import { bytesToHex } from './paths';
 import type { PasskeyEnrollment } from './storage-types';
 
-const RP_NAME = 'OctoChat';
+const RP_NAME = 'OctoVault';
 const PRF_SECRET_LEN = 32;
 
 /**
@@ -82,7 +82,7 @@ function prfFirst(cred: PublicKeyCredential | null): Uint8Array | null {
 export async function enrollPasskey(displayName: string): Promise<PasskeyEnrollment> {
   if (!passkeySupported()) throw new Error('Passkeys are not supported in this browser.');
   const salt = randomBytes(PRF_SECRET_LEN);
-  const name = displayName.trim() || 'octochat';
+  const name = displayName.trim() || 'octovault';
 
   const created = (await globalThis.navigator.credentials.create({
     publicKey: {

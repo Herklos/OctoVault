@@ -15,13 +15,13 @@ import { pullCache, PULL_CACHE_MAX_AGE_MS } from './pull-cache';
 describe('pullCache', () => {
   beforeEach(() => store.clear());
 
-  it('round-trips a value under the octochat.pullcache.<key> prefix', async () => {
+  it('round-trips a value under the octovault.pullcache.<key> prefix', async () => {
     const cache = pullCache();
-    await cache.set('/v1/octochat/pull/spaces/u/_spaces', '{"hello":1}');
+    await cache.set('/v1/octovault/pull/spaces/u/_spaces', '{"hello":1}');
     // Stored under the prefixed key…
-    expect(store.get('octochat.pullcache./v1/octochat/pull/spaces/u/_spaces')).toBe('{"hello":1}');
+    expect(store.get('octovault.pullcache./v1/octovault/pull/spaces/u/_spaces')).toBe('{"hello":1}');
     // …and read back by the same logical key.
-    expect(await cache.get('/v1/octochat/pull/spaces/u/_spaces')).toBe('{"hello":1}');
+    expect(await cache.get('/v1/octovault/pull/spaces/u/_spaces')).toBe('{"hello":1}');
   });
 
   it('returns null for a missing key', async () => {

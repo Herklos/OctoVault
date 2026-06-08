@@ -9,7 +9,7 @@ interface OctopusProps {
 }
 
 /**
- * OctoChat brand mark — a single-stroke geometric octopus: round head, two
+ * OctoVault brand mark — a single-stroke geometric octopus: round head, two
  * eyes, five tentacle arcs. Drawn on a 32×32 viewBox so it scales crisply at
  * any size on web and native.
  */

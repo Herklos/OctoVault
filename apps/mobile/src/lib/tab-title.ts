@@ -1,5 +1,5 @@
 /**
- * Reflect the unread total in the browser tab title, e.g. "(3) OctoChat".
+ * Reflect the unread total in the browser tab title, e.g. "(3) OctoVault".
  * Web/desktop only: no-ops on native, where there is no `document`. Clears back
  * to the bare title once the count returns to zero.
  *

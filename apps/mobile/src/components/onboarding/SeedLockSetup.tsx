@@ -54,7 +54,7 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
     setBusy(true);
     setError(null);
     try {
-      const passkey = await enrollPasskey('OctoChat');
+      const passkey = await enrollPasskey('OctoVault');
       await submit({ pin, passkey }); // submit owns its own error/busy handling
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
@@ -132,7 +132,7 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
     <View style={styles.block}>
       <Callout tone="accent" iconName="shield">
         Your recovery seed is encrypted with this PIN before it&apos;s saved on this
-        device. You&apos;ll enter it each time you open OctoChat here.
+        device. You&apos;ll enter it each time you open OctoVault here.
       </Callout>
 
       <View style={styles.pinBlock}>

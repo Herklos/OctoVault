@@ -10,8 +10,8 @@ export const SYNC_BASE = process.env.EXPO_PUBLIC_STARFISH_URL ?? 'http://localho
 /**
  * Starfish namespace name. UNSET for the local dev server (apps/server mounts the
  * sync router at root, so paths are /pull, /push, /events). For the deployed
- * multi-tenant drakkar-sync, OctoChat is the `octochat` namespace, so set
- * EXPO_PUBLIC_STARFISH_NAMESPACE=octochat and EXPO_PUBLIC_STARFISH_URL=https://<host>/sync.
+ * multi-tenant drakkar-sync, OctoVault is the `octovault` namespace, so set
+ * EXPO_PUBLIC_STARFISH_NAMESPACE=octovault and EXPO_PUBLIC_STARFISH_URL=https://<host>/sync.
  *
  * The StarfishClient applies this via its `namespace` option, prepending
  * `/v1/<namespace>` to every request path — signed AND sent, including the paths
@@ -30,22 +30,22 @@ export const SYNC_NAMESPACE = _ns || undefined;
  * endpoint, which is signed by a hand-rolled signer OUTSIDE the StarfishClient (see
  * EVENTS_URL + `buildAuthHeaders`) and so needs the literal prefix the client would
  * otherwise add itself. Derived from {@link SYNC_NAMESPACE}. nginx strips the /sync
- * mount, so the deployed server observes exactly /v1/octochat/events = the signed path.
+ * mount, so the deployed server observes exactly /v1/octovault/events = the signed path.
  */
 export const SYNC_PREFIX = SYNC_NAMESPACE ? `/v1/${SYNC_NAMESPACE}` : '';
 
 /**
  * Live change-event SSE endpoint. Served by the authenticated /events proxy on the
- * OctoChat Starfish server (same host as SYNC_BASE) which validates the caller's
+ * OctoVault Starfish server (same host as SYNC_BASE) which validates the caller's
  * cap-cert identity and whitelists only their member spaces before proxying the
  * Whistler NATS→SSE stream. Override with EXPO_PUBLIC_EVENTS_URL.
  */
 export const EVENTS_URL = process.env.EXPO_PUBLIC_EVENTS_URL ?? `${SYNC_BASE}${SYNC_PREFIX}/events`;
 
 /**
- * Public origin of the OctoChat web app — the host that serves shareable invite
+ * Public origin of the OctoVault web app — the host that serves shareable invite
  * links and the universal-/App-Link association files. Set to the universal-links
- * domain, e.g. `https://app.octochat.example`.
+ * domain, e.g. `https://app.octovault.example`.
  *
  * On web, runtime link-building uses `window.location.origin` (the live origin);
  * native has no `window`, so invite links fall back to this. Empty by default,

@@ -1,7 +1,4 @@
-import { router } from 'expo-router';
 import { Linking, Platform } from 'react-native';
-
-import type { Room } from '@/lib/types';
 
 /** A run of message text: plain prose, an external link (`url`), a `#channel`
  *  mention (`room` holds the name without the `#`) or an `@user` mention
@@ -111,9 +108,4 @@ export function openUrl(url: string): void {
     return;
   }
   void Linking.openURL(url);
-}
-
-/** Navigate to a channel from a `#mention`. */
-export function openRoom(room: Room): void {
-  router.push({ pathname: '/room/[id]', params: { id: room.id, name: room.name, kind: room.kind } });
 }

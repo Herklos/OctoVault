@@ -26,7 +26,7 @@ function family(variant: Variant, weight: Weight, mono: boolean): string {
     if (weight === 'medium') return fonts.monoMedium;
     return fonts.mono;
   }
-  if (variant === 'display') return fonts.display;
+  if (variant === 'pageTitle' || variant === 'display') return fonts.display;
   if (variant === 'title' || variant === 'heading') return fonts.heading;
   switch (weight) {
     case 'bold':
@@ -68,7 +68,7 @@ export function Txt({
           fontSize,
           lineHeight,
           color: resolved,
-          letterSpacing: uppercase ? labelTracking : variant === 'display' ? -0.4 : 0,
+          letterSpacing: uppercase ? labelTracking : variant === 'pageTitle' || variant === 'display' ? -0.4 : 0,
           textTransform: uppercase ? 'uppercase' : 'none',
           textAlign: center ? 'center' : 'left',
         },

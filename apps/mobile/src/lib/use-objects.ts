@@ -37,6 +37,9 @@ export interface ObjectsHook {
    *  workspace apart from one still loading. */
   loaded: boolean;
   reload: () => void;
+  /** Pull the latest index from the server into this store (used by the shared
+   *  {@link SpaceObjectsProvider} for live convergence). */
+  pull: () => void;
   create: (input: NewObjectInput) => ID | null;
   rename: (id: ID, patch: { title?: string; emoji?: string }) => void;
   move: (id: ID, parentId: ID | null) => void;
@@ -130,5 +133,5 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   const ancestors = useCallback((id: ID) => ancestorsOf(objects, id), [objects]);
   const get = useCallback((id: ID) => objects.find((n) => n.id === id), [objects]);
 
-  return { tree, nodes, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, create, rename, move, reorder, archive, mutate };
+  return { tree, nodes, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, pull, create, rename, move, reorder, archive, mutate };
 }

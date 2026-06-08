@@ -19,7 +19,7 @@ import { clearMemberCaps, getMemberCap, hydrateMemberCaps } from './member-caps'
 import * as kv from './kv';
 
 const store = (kv as unknown as { __store: Map<string, string> }).__store;
-const KEY = (u: string) => `octochat.membercaps.${u}`;
+const KEY = (u: string) => `octovault.membercaps.${u}`;
 
 beforeEach(() => {
   clearMemberCaps();

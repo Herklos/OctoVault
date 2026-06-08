@@ -16,8 +16,8 @@ import type { CapMap } from '@/lib/types';
 import { kvGet, kvRemove, kvSet } from './kv';
 
 /** Pre-multi-account global blob; adopted once by the first user that hydrates. */
-const LEGACY_KEY = 'octochat.membercaps.v1';
-const keyFor = (userId: string) => `octochat.membercaps.${userId}`;
+const LEGACY_KEY = 'octovault.membercaps.v1';
+const keyFor = (userId: string) => `octovault.membercaps.${userId}`;
 
 let cache: CapMap = {};
 let activeKey: string | null = null;
@@ -59,7 +59,7 @@ export async function hydrateMemberCaps(userId: string, serverCaps: CapMap): Pro
     } catch (e) {
       // Don't fail silently: a corrupt blob drops every joined-space cap. The durable
       // `_spaces` doc re-heals them below (step 2), but surface it so it's diagnosable.
-      console.error('[OctoChat] member-caps: corrupt cache blob, resetting:', e);
+      console.error('[OctoVault] member-caps: corrupt cache blob, resetting:', e);
       cache = {};
     }
   }

@@ -29,7 +29,7 @@ import type { PasskeyEnrollment, PersistedSession, SeedLock, UnlockMethod, Vault
 
 export type { PersistedSession } from './storage-types';
 
-const KEY = 'octochat.session.v1';
+const KEY = 'octovault.session.v1';
 const IV_BYTES = 12;
 const VMK_BYTES = 32;
 

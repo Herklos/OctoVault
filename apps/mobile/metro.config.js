@@ -1,4 +1,4 @@
-// Metro config for the OctoChat monorepo.
+// Metro config for the OctoVault monorepo.
 //
 // The @drakkar.software/starfish-* packages are consumed as pinned npm
 // dependencies, so Metro only needs to watch the workspace root. Package

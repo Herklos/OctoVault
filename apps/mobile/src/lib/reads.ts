@@ -24,10 +24,10 @@ import { updateReadsDoc } from './starfish/registry';
 import { kvGet, kvSet } from './starfish/kv';
 
 const EMPTY: ReadPrefs = { rooms: {} };
-const keyFor = (userId: string) => `octochat.reads.${userId}`;
+const keyFor = (userId: string) => `octovault.reads.${userId}`;
 /** The pre-sync local-only map (`unread-context`'s `lastReadKey`). Folded into the
  *  synced cache on hydrate so existing users keep their marks; superseded thereafter. */
-const legacyKeyFor = (userId: string) => `octochat.lastread.${userId}`;
+const legacyKeyFor = (userId: string) => `octovault.lastread.${userId}`;
 
 /** How long to wait after the last read before pushing the coalesced batch. Room
  *  opens come in bursts (rapid channel switching); one push per burst, not per open. */
@@ -97,8 +97,8 @@ async function loadReadsKv(key: string): Promise<ReadPrefs> {
   }
 }
 
-/** Load this identity's persisted read marks from kv (the synced `octochat.reads` map
- *  max-merged with the legacy `octochat.lastread` map). For the unread provider to seed
+/** Load this identity's persisted read marks from kv (the synced `octovault.reads` map
+ *  max-merged with the legacy `octovault.lastread` map). For the unread provider to seed
  *  its mirror + flip its hydrated gate independent of the async module hydrate. */
 export async function loadReadMarksFromKv(userId: string): Promise<Record<string, number>> {
   const [kvReads, legacy] = await Promise.all([loadReadsKv(keyFor(userId)), loadReadsKv(legacyKeyFor(userId))]);
@@ -110,7 +110,7 @@ export async function loadReadMarksFromKv(userId: string): Promise<Record<string
  * every re-hydrate (navigation / foreground re-pull). `serverPrefs` comes from the SAME
  * `_spaces` read that hydrates caps/mutes, so the doc isn't pulled twice. Unlike mutes
  * (server-authoritative, wholesale replace), reads MAX-MERGE the server copy with the
- * local kv, any un-flushed in-memory marks, AND the legacy `octochat.lastread` map — a
+ * local kv, any un-flushed in-memory marks, AND the legacy `octovault.lastread` map — a
  * mark only ever advances, so the highest wins and an offline read isn't lost to a sync.
  */
 export async function hydrateReads(userId: string, serverPrefs: ReadPrefs): Promise<void> {
@@ -163,7 +163,7 @@ async function flush(): Promise<void> {
     const merged = maxMerge(cur, snapshot);
     return merged === cur ? null : merged;
   }).catch((err) => {
-    console.error('[OctoChat] reads: failed to sync read marks', err);
+    console.error('[OctoVault] reads: failed to sync read marks', err);
   });
 }
 

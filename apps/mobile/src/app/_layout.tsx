@@ -5,6 +5,7 @@ import { registerServiceWorker } from '@/lib/pwa';
 import { ProfileProvider } from '@/lib/profile-context';
 import { RoomsRegistryProvider } from '@/lib/rooms-registry-context';
 import { SessionProvider } from '@/lib/session-context';
+import { SpaceObjectsProvider } from '@/lib/space-objects-context';
 import { SpacesProvider } from '@/lib/spaces-context';
 
 import { useEffect } from 'react';
@@ -52,14 +53,16 @@ export default function RootLayout() {
             <SpacesProvider>
               <RoomsRegistryProvider>
                 <ProfileProvider>
-                  <AppFrame>
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor: palette.canvas },
-                      }}
-                    />
-                  </AppFrame>
+                  <SpaceObjectsProvider>
+                    <AppFrame>
+                      <Stack
+                        screenOptions={{
+                          headerShown: false,
+                          contentStyle: { backgroundColor: palette.canvas },
+                        }}
+                      />
+                    </AppFrame>
+                  </SpaceObjectsProvider>
                 </ProfileProvider>
               </RoomsRegistryProvider>
             </SpacesProvider>

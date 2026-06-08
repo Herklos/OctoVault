@@ -8,5 +8,5 @@ export default function Index() {
   const { session, status } = useSession();
   if (status === 'loading' || status === 'switching') return null;
   if (status === 'locked') return <Redirect href="/(onboarding)/unlock" />;
-  return <Redirect href={session ? '/(tabs)/rooms' : '/(onboarding)/welcome'} />;
+  return <Redirect href={session ? '/(tabs)/work' : '/(onboarding)/welcome'} />;
 }

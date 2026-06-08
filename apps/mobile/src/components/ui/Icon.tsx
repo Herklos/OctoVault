@@ -9,9 +9,8 @@ type IconLib = ComponentType<any>;
 type IconDef = { lib: IconLib; n: string };
 
 /**
- * Curated, semantic icon set for OctoChat. Names mirror the wireframe's icon
- * vocabulary; each maps to a production glyph from @expo/vector-icons so the
- * line-art stays consistent across web and native.
+ * Curated, semantic icon set for OctoVault. Each maps to a production glyph from
+ * @expo/vector-icons so the line-art stays consistent across web and native.
  */
 const ICONS = {
   hash: { lib: Feather, n: 'hash' },
@@ -78,6 +77,20 @@ const ICONS = {
   book: { lib: Feather, n: 'book-open' },
   target: { lib: Feather, n: 'target' },
   layers: { lib: Feather, n: 'layers' },
+  // Block-editor vocabulary (block-type menu / slash menu / gutter handles).
+  text: { lib: Feather, n: 'type' },
+  heading: { lib: MaterialCommunityIcons, n: 'format-header-1' },
+  subheading: { lib: MaterialCommunityIcons, n: 'format-header-2' },
+  list: { lib: Feather, n: 'list' },
+  'list-numbered': { lib: MaterialCommunityIcons, n: 'format-list-numbered' },
+  todo: { lib: Feather, n: 'check-square' },
+  quote: { lib: MaterialCommunityIcons, n: 'format-quote-close' },
+  code: { lib: Feather, n: 'code' },
+  minus: { lib: Feather, n: 'minus' },
+  callout: { lib: MaterialCommunityIcons, n: 'card-text-outline' },
+  palette: { lib: MaterialCommunityIcons, n: 'palette-outline' },
+  grip: { lib: MaterialCommunityIcons, n: 'drag-vertical' },
+  expand: { lib: Feather, n: 'maximize-2' },
 } satisfies Record<string, IconDef>;
 
 export type IconName = keyof typeof ICONS;

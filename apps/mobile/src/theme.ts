@@ -1,15 +1,18 @@
 /**
- * OctoChat design tokens — the SINGLE source of truth for the whole app.
+ * OctoVault design tokens — the SINGLE source of truth for the whole app.
  *
  * Every color, font, size, radius, shadow and motion value lives here.
  * Components must NEVER hardcode a hex / size or compute `rgba()` inline —
  * import from this file (usually via `useTheme()` in `src/lib/use-theme.ts`)
- * so light/dark stay in sync and the marine "paper-on-subaqua" identity holds.
+ * so light/dark stay in sync and the "Ink & Pearl" identity holds.
  *
- * Palette is anchored to the exported OctoChat wireframe tokens (marine accent
- * #0e7090 light / #52b6d4 dark, paper/canvas/ink hierarchy). Following the
- * house style, alpha variants are pre-derived into named tokens (accentBg,
- * accentBorder, surface, rule…) rather than mixed at call sites.
+ * Identity — "Ink & Pearl": a light-first, editorial knowledge-app look. Warm
+ * pearl paper, near-black ink, a single octopus-ink indigo accent (#5847c9), an
+ * editorial serif display (Newsreader) over a quiet grotesk body (Spline Sans).
+ * The document surface is FLAT (no card/subaqua depth — see `editorCanvas`); a
+ * categorical 8-color `swatches` set drives tags / kanban / colored callouts.
+ * Following the house style, alpha variants are pre-derived into named tokens
+ * (accentBg, accentBorder, surface, rule…) rather than mixed at call sites.
  */
 
 export type ColorScheme = 'light' | 'dark';
@@ -18,7 +21,8 @@ export interface Palette {
   // ── Surfaces ────────────────────────────────────────────────────────────
   /** App backdrop, behind everything. */
   canvas: string;
-  /** Subtle gradient stops giving the canvas subaquatic depth. */
+  /** Subtle gradient stops giving the canvas a faint warm depth (kept gentle —
+   *  Ink & Pearl reads as flat paper, not subaqua). */
   depthTop: string;
   depthBottom: string;
   /** Raised surfaces (cards, sheets, headers). */
@@ -31,9 +35,11 @@ export interface Palette {
   /** Translucent ink overlays for layering on top of varied surfaces. */
   surface: string;
   surfaceStrong: string;
-  /** Recessed fill + hairline for inline/fenced code in chat messages. */
+  /** Recessed fill + hairline for inline/fenced code. */
   codeBg: string;
   codeBorder: string;
+  /** Flat document-editor canvas — the page IS the surface (no card elevation). */
+  editorCanvas: string;
 
   // ── Ink (text + icons), strongest → faintest ─────────────────────────────
   ink: string;
@@ -56,18 +62,20 @@ export interface Palette {
   // ── Interaction (web pointer states) ─────────────────────────────────────
   /** Translucent fill painted under a hovered control/row. */
   hover: string;
+  /** Persistent fill under a selected/active nav or tree row (distinct from hover). */
+  selected: string;
   /** Hover wash for already-selected (accentSoft) rows. */
   accentSoftHover: string;
   /** White brightening wash layered over a solid/gradient fill on hover. */
   brightWash: string;
 
-  // ── Marine accent system ─────────────────────────────────────────────────
+  // ── Indigo accent system ─────────────────────────────────────────────────
   accent: string;
   accentStrong: string;
-  /** Gradient stops for primary fills (buttons, send, brand disc): top → bottom. */
+  /** Gradient stops for primary fills (buttons, brand disc): top → bottom. */
   accentGradTop: string;
   accentGradBottom: string;
-  /** Bioluminescent glow color — drives accent glows that read in both schemes. */
+  /** Glow color — drives accent glows that read in both schemes. */
   glow: string;
   /** Solid soft accent (selected rows, highlight blocks). */
   accentSoft: string;
@@ -109,56 +117,58 @@ export interface Palette {
 }
 
 const light: Palette = {
-  canvas: '#e9eef2',
-  depthTop: '#f4f8fb',
-  depthBottom: '#dce7ee',
-  paper: '#ffffff',
-  paperAlt: '#f6f8fa',
-  fill: '#e5edf2',
-  fillDeep: '#d2dfe6',
-  surface: 'rgba(20,38,52,0.04)',
-  surfaceStrong: 'rgba(20,38,52,0.08)',
-  codeBg: 'rgba(20,38,52,0.06)',
-  codeBorder: 'rgba(20,38,52,0.12)',
+  canvas: '#f4f1ea',
+  depthTop: '#f8f5ef',
+  depthBottom: '#ece7db',
+  paper: '#fffdf8',
+  paperAlt: '#f6f2e9',
+  fill: '#ece7db',
+  fillDeep: '#ddd6c6',
+  surface: 'rgba(27,26,23,0.04)',
+  surfaceStrong: 'rgba(27,26,23,0.07)',
+  codeBg: 'rgba(27,26,23,0.05)',
+  codeBorder: 'rgba(27,26,23,0.12)',
+  editorCanvas: '#fffdf8',
 
-  ink: '#142634',
-  inkSoft: '#3d566c',
-  inkMuted: '#7d96a8',
-  inkFaint: '#b9cad5',
+  ink: '#1b1a17',
+  inkSoft: '#46443d',
+  inkMuted: '#8a8578',
+  inkFaint: '#b3ada1',
 
-  line: '#3a5567',
-  lineSoft: '#c8d6de',
-  lineFaint: '#dde6ec',
-  rule: 'rgba(20,38,52,0.10)',
-  ruleSoft: 'rgba(20,38,52,0.06)',
-  hairlineHi: 'rgba(255,255,255,0.85)',
+  line: '#4a4740',
+  lineSoft: '#d9d3c6',
+  lineFaint: '#e9e4d8',
+  rule: 'rgba(27,26,23,0.10)',
+  ruleSoft: 'rgba(27,26,23,0.06)',
+  hairlineHi: 'rgba(255,255,255,0.9)',
 
-  hover: 'rgba(20,38,52,0.05)',
-  accentSoftHover: 'rgba(14,112,144,0.18)',
-  brightWash: 'rgba(255,255,255,0.12)',
+  hover: 'rgba(27,26,23,0.045)',
+  selected: 'rgba(88,71,201,0.10)',
+  accentSoftHover: 'rgba(88,71,201,0.18)',
+  brightWash: 'rgba(255,255,255,0.14)',
 
-  accent: '#0e7090',
-  accentStrong: '#0a5a74',
-  accentGradTop: '#1a90b3',
-  accentGradBottom: '#0a5a74',
-  glow: '#0e7090',
-  accentSoft: '#bbdce6',
-  accentInk: '#063848',
+  accent: '#5847c9',
+  accentStrong: '#473aa6',
+  accentGradTop: '#6a59d8',
+  accentGradBottom: '#473aa6',
+  glow: '#5847c9',
+  accentSoft: '#ddd8f5',
+  accentInk: '#312269',
   onAccent: '#ffffff',
-  accentBg: 'rgba(14,112,144,0.10)',
-  accentBgStrong: 'rgba(14,112,144,0.16)',
-  accentBorder: 'rgba(14,112,144,0.32)',
-  accentBorderStrong: 'rgba(14,112,144,0.50)',
+  accentBg: 'rgba(88,71,201,0.10)',
+  accentBgStrong: 'rgba(88,71,201,0.16)',
+  accentBorder: 'rgba(88,71,201,0.32)',
+  accentBorderStrong: 'rgba(88,71,201,0.50)',
 
-  unread: '#0c8aaf',
-  mention: '#a64034',
+  unread: '#5847c9',
+  mention: '#c2410c',
   onUnread: '#ffffff',
-  danger: '#a64034',
-  dangerBg: 'rgba(166,64,52,0.10)',
-  dangerBorder: 'rgba(166,64,52,0.32)',
-  success: '#1f8a70',
-  successBg: 'rgba(31,138,112,0.12)',
-  successBorder: 'rgba(31,138,112,0.35)',
+  danger: '#c0392b',
+  dangerBg: 'rgba(192,57,43,0.10)',
+  dangerBorder: 'rgba(192,57,43,0.32)',
+  success: '#2f8f5b',
+  successBg: 'rgba(47,143,91,0.12)',
+  successBorder: 'rgba(47,143,91,0.35)',
   warning: '#b07a1e',
   warningBg: 'rgba(176,122,30,0.12)',
   warningBorder: 'rgba(176,122,30,0.32)',
@@ -166,62 +176,64 @@ const light: Palette = {
   note: '#fff2b0',
   noteInk: '#4a3a10',
 
-  scrim: 'rgba(20,38,52,0.55)',
-  overlay: 'rgba(20,38,52,0.35)',
-  onScrim: '#f4f8fb',
+  scrim: 'rgba(27,26,23,0.50)',
+  overlay: 'rgba(27,26,23,0.32)',
+  onScrim: '#fffdf8',
 };
 
 const dark: Palette = {
-  canvas: '#0b151c',
-  depthTop: '#13303f',
-  depthBottom: '#060d12',
-  paper: '#16252f',
-  paperAlt: '#1c2f3b',
-  fill: '#1f3240',
-  fillDeep: '#283f4f',
-  surface: 'rgba(216,230,238,0.05)',
-  surfaceStrong: 'rgba(216,230,238,0.09)',
-  codeBg: 'rgba(216,230,238,0.07)',
-  codeBorder: 'rgba(216,230,238,0.14)',
+  canvas: '#131210',
+  depthTop: '#1a1814',
+  depthBottom: '#0c0b09',
+  paper: '#1d1b16',
+  paperAlt: '#252219',
+  fill: '#2a2720',
+  fillDeep: '#363229',
+  surface: 'rgba(244,241,234,0.05)',
+  surfaceStrong: 'rgba(244,241,234,0.09)',
+  codeBg: 'rgba(244,241,234,0.07)',
+  codeBorder: 'rgba(244,241,234,0.14)',
+  editorCanvas: '#1d1b16',
 
-  ink: '#d8e6ee',
-  inkSoft: '#a9bdc9',
-  inkMuted: '#6f8696',
-  inkFaint: '#3c5060',
+  ink: '#ece8df',
+  inkSoft: '#b9b3a5',
+  inkMuted: '#857f70',
+  inkFaint: '#4e4a3f',
 
-  line: '#5b7587',
-  lineSoft: '#2e4253',
-  lineFaint: '#22323e',
-  rule: 'rgba(216,230,238,0.10)',
-  ruleSoft: 'rgba(216,230,238,0.06)',
-  hairlineHi: 'rgba(190,228,238,0.10)',
+  line: '#5c5749',
+  lineSoft: '#332f27',
+  lineFaint: '#272420',
+  rule: 'rgba(244,241,234,0.10)',
+  ruleSoft: 'rgba(244,241,234,0.06)',
+  hairlineHi: 'rgba(236,232,223,0.08)',
 
-  hover: 'rgba(216,230,238,0.055)',
-  accentSoftHover: 'rgba(82,182,212,0.16)',
+  hover: 'rgba(244,241,234,0.06)',
+  selected: 'rgba(139,124,240,0.16)',
+  accentSoftHover: 'rgba(139,124,240,0.18)',
   brightWash: 'rgba(255,255,255,0.12)',
 
-  accent: '#52b6d4',
-  accentStrong: '#6cc6e0',
-  accentGradTop: '#6fcce6',
-  accentGradBottom: '#3f9fc0',
-  glow: '#52b6d4',
-  accentSoft: '#264a58',
-  accentInk: '#bfe4ee',
-  onAccent: '#052029',
-  accentBg: 'rgba(82,182,212,0.12)',
-  accentBgStrong: 'rgba(82,182,212,0.20)',
-  accentBorder: 'rgba(82,182,212,0.35)',
-  accentBorderStrong: 'rgba(82,182,212,0.55)',
+  accent: '#8b7cf0',
+  accentStrong: '#a499f5',
+  accentGradTop: '#9a8bf5',
+  accentGradBottom: '#6f5fd8',
+  glow: '#8b7cf0',
+  accentSoft: '#2c2748',
+  accentInk: '#cabffb',
+  onAccent: '#0e0b1f',
+  accentBg: 'rgba(139,124,240,0.14)',
+  accentBgStrong: 'rgba(139,124,240,0.22)',
+  accentBorder: 'rgba(139,124,240,0.34)',
+  accentBorderStrong: 'rgba(139,124,240,0.55)',
 
-  unread: '#52b6d4',
-  mention: '#cf6b5e',
+  unread: '#8b7cf0',
+  mention: '#e08a5a',
   onUnread: '#ffffff',
-  danger: '#cf6b5e',
-  dangerBg: 'rgba(207,107,94,0.14)',
-  dangerBorder: 'rgba(207,107,94,0.38)',
-  success: '#5fc8a8',
-  successBg: 'rgba(95,200,168,0.14)',
-  successBorder: 'rgba(95,200,168,0.36)',
+  danger: '#e07a6a',
+  dangerBg: 'rgba(224,122,106,0.14)',
+  dangerBorder: 'rgba(224,122,106,0.38)',
+  success: '#5fc88a',
+  successBg: 'rgba(95,200,138,0.14)',
+  successBorder: 'rgba(95,200,138,0.36)',
   warning: '#d6a23f',
   warningBg: 'rgba(214,162,63,0.14)',
   warningBorder: 'rgba(214,162,63,0.34)',
@@ -229,12 +241,61 @@ const dark: Palette = {
   note: '#3a3416',
   noteInk: '#e9d98a',
 
-  scrim: 'rgba(4,10,15,0.66)',
-  overlay: 'rgba(4,10,15,0.45)',
-  onScrim: '#f4f8fb',
+  scrim: 'rgba(8,7,5,0.66)',
+  overlay: 'rgba(8,7,5,0.45)',
+  onScrim: '#fffdf8',
 };
 
 export const colors: Record<ColorScheme, Palette> = { light, dark };
+
+// ── Categorical swatch system ───────────────────────────────────────────────
+// The knowledge-app color family: 8 named swatches (gray → pink) each with a
+// soft `bg`, readable `text`, a `border`, and a `solid` chip color. Drives tag
+// chips, kanban column/card accents, page accents and colored callouts — the
+// thing that makes a Notion/Anytype-style app, not a single-accent chat app.
+
+export type SwatchName = 'gray' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink';
+
+export interface Swatch {
+  /** Soft tinted fill (chip / callout background). */
+  bg: string;
+  /** Readable text/icon on `bg` (and as a standalone label color). */
+  text: string;
+  /** Hairline border around a `bg` chip. */
+  border: string;
+  /** Saturated solid (dot, column rail, progress). */
+  solid: string;
+}
+
+export const SWATCH_NAMES: readonly SwatchName[] = ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+
+export const swatches: Record<ColorScheme, Record<SwatchName, Swatch>> = {
+  light: {
+    gray: { bg: '#ece9e1', text: '#5c584e', border: 'rgba(27,26,23,0.14)', solid: '#8a8578' },
+    red: { bg: '#f7e0db', text: '#a8392b', border: 'rgba(192,57,43,0.30)', solid: '#c0392b' },
+    orange: { bg: '#f9e6d2', text: '#9a5712', border: 'rgba(194,113,28,0.30)', solid: '#c2711c' },
+    yellow: { bg: '#f7eecb', text: '#7a5d12', border: 'rgba(176,122,30,0.32)', solid: '#d4a72c' },
+    green: { bg: '#dcefe1', text: '#246b44', border: 'rgba(47,143,91,0.30)', solid: '#2f8f5b' },
+    blue: { bg: '#d9e6f7', text: '#1f5a99', border: 'rgba(47,111,176,0.30)', solid: '#2f6fb0' },
+    purple: { bg: '#e6e1f7', text: '#4a3aa0', border: 'rgba(88,71,201,0.30)', solid: '#5847c9' },
+    pink: { bg: '#f7deec', text: '#a3357a', border: 'rgba(200,77,150,0.30)', solid: '#c84d96' },
+  },
+  dark: {
+    gray: { bg: '#2d2a22', text: '#b9b3a5', border: 'rgba(244,241,234,0.14)', solid: '#857f70' },
+    red: { bg: '#3a2420', text: '#e8a298', border: 'rgba(224,122,106,0.34)', solid: '#e07a6a' },
+    orange: { bg: '#3a2c1c', text: '#e6b483', border: 'rgba(214,138,79,0.34)', solid: '#d68a4f' },
+    yellow: { bg: '#34301a', text: '#e0c97a', border: 'rgba(214,162,63,0.34)', solid: '#d6a23f' },
+    green: { bg: '#1f3328', text: '#94d6ad', border: 'rgba(95,200,138,0.34)', solid: '#5fc88a' },
+    blue: { bg: '#1f2d3d', text: '#8fb8e6', border: 'rgba(90,144,208,0.34)', solid: '#5a90d0' },
+    purple: { bg: '#2a2548', text: '#c3b8f7', border: 'rgba(139,124,240,0.34)', solid: '#8b7cf0' },
+    pink: { bg: '#3a2030', text: '#e6a3c8', border: 'rgba(214,118,168,0.34)', solid: '#d676a8' },
+  },
+};
+
+/** Resolve a categorical swatch for the active scheme. */
+export function swatch(scheme: ColorScheme, name: SwatchName): Swatch {
+  return swatches[scheme][name];
+}
 
 /**
  * Font family keys — MUST match the keys registered in
@@ -242,14 +303,14 @@ export const colors: Record<ColorScheme, Palette> = { light, dark };
  * clearly. (RN custom fonts ship one family per weight, hence explicit names.)
  */
 export const fonts = {
-  /** Bricolage Grotesque — characterful display for wordmark & big titles. */
-  display: 'BricolageGrotesque_800ExtraBold',
-  heading: 'BricolageGrotesque_700Bold',
-  /** Hanken Grotesk — clean, friendly UI body text. */
-  body: 'HankenGrotesk_400Regular',
-  bodyMedium: 'HankenGrotesk_500Medium',
-  bodySemibold: 'HankenGrotesk_600SemiBold',
-  bodyBold: 'HankenGrotesk_700Bold',
+  /** Newsreader — editorial serif for the wordmark, page & section titles. */
+  display: 'Newsreader_700Bold',
+  heading: 'Newsreader_600SemiBold',
+  /** Spline Sans — quiet, readable grotesk for UI body text. */
+  body: 'SplineSans_400Regular',
+  bodyMedium: 'SplineSans_500Medium',
+  bodySemibold: 'SplineSans_600SemiBold',
+  bodyBold: 'SplineSans_700Bold',
   /** JetBrains Mono — keys, fingerprints, seed words, timestamps, labels. */
   mono: 'JetBrainsMono_400Regular',
   monoMedium: 'JetBrainsMono_500Medium',
@@ -258,10 +319,12 @@ export const fonts = {
 
 /** Type scale: [fontSize, lineHeight]. */
 export const type = {
-  display: { fontSize: 28, lineHeight: 34 },
+  /** Big editorial page/object title (Notion-style hero H1). */
+  pageTitle: { fontSize: 38, lineHeight: 44 },
+  display: { fontSize: 30, lineHeight: 36 },
   title: { fontSize: 22, lineHeight: 28 },
-  heading: { fontSize: 17, lineHeight: 22 },
-  subhead: { fontSize: 15, lineHeight: 20 },
+  heading: { fontSize: 17, lineHeight: 23 },
+  subhead: { fontSize: 15, lineHeight: 21 },
   body: { fontSize: 14, lineHeight: 20 },
   callout: { fontSize: 13, lineHeight: 18 },
   footnote: { fontSize: 12, lineHeight: 16 },
@@ -305,29 +368,29 @@ export const radii = {
 export const shadows = {
   none: {},
   sm: {
-    shadowColor: '#0a1722',
-    shadowOpacity: 0.12,
+    shadowColor: '#241f14',
+    shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   md: {
-    shadowColor: '#0a1722',
-    shadowOpacity: 0.16,
+    shadowColor: '#241f14',
+    shadowOpacity: 0.14,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
   lg: {
-    shadowColor: '#0a1722',
-    shadowOpacity: 0.22,
+    shadowColor: '#241f14',
+    shadowOpacity: 0.2,
     shadowRadius: 28,
     shadowOffset: { width: 0, height: 12 },
     elevation: 14,
   },
-  /** Bioluminescent accent glow for hero/primary moments. */
+  /** Accent glow for hero/primary moments. */
   accentGlow: {
-    shadowColor: '#0e7090',
+    shadowColor: '#5847c9',
     shadowOpacity: 0.4,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 8 },
@@ -337,8 +400,8 @@ export const shadows = {
 
 /**
  * Accent-tinted glow keyed to the active scheme's `glow` color. Dark surfaces
- * swallow near-black drop shadows, so primary moments (buttons, send, the brand
- * disc, focused inputs) lean on a colored bloom instead. Pass `colors.glow`.
+ * swallow near-black drop shadows, so primary moments (buttons, the brand disc,
+ * focused inputs) lean on a colored bloom instead. Pass `colors.glow`.
  */
 export function glowShadow(color: string, opacity = 0.45, radius = 18) {
   return {
@@ -370,7 +433,7 @@ export const motion = {
   slow: 360,
   /** Keypad fade-out / tip fade-in while a slow unlock (Argon2id) stretches the PIN. */
   unlockFade: 2000,
-  /** Slow ambient loop — bioluminescent halo / breathing glow. */
+  /** Slow ambient loop — breathing glow on hero moments. */
   pulse: 2800,
   /** Skeleton shimmer loop. */
   shimmer: 1100,
@@ -395,29 +458,55 @@ export const opacity = {
 export const layout = {
   /** Cap reading width on large/web screens. */
   maxContentWidth: 720,
+  /** Document editor reading column — a touch wider than chrome content. */
+  editorMaxWidth: 760,
   tabBarHeight: 64,
   headerMinHeight: 52,
   /** At/above this viewport width (web) the app switches to the desktop shell. */
   breakpointDesktop: 900,
   /** Vertical spaces rail at the left edge of the desktop shell. */
   railWidth: 64,
-  /** Categorized room sidebar between the rail and the main pane. */
-  sidebarWidth: 240,
-  /** Fixed width of a kanban column on the Projects placeholder board. */
+  /** Square space tile on the rail. */
+  railTileSize: 40,
+  /** Workspace sidebar between the rail and the main pane. */
+  sidebarWidth: 248,
+  /** Fixed width of a kanban column. */
   boardColumnWidth: 236,
+  /** Width of the task detail pane shown beside the board on wide screens. */
+  boardDetailPaneWidth: 360,
   /** Object tree (sidebar + Work): per-depth indent step and disclosure row height. */
   objectTreeIndent: 16,
   objectTreeRowHeight: 34,
-  /** Emoji glyph size in a Work doc/project hero header (larger than the title text). */
-  objectHeroEmoji: 34,
+  /** Hover-revealed add/handle button size on a tree/block row. */
+  rowAddButton: 20,
+  /** Emoji glyph size in a Work doc/board hero header (larger than the title text). */
+  objectHeroEmoji: 38,
+  /** Block editor: left gutter that holds the hover "+" / drag handle. */
+  blockGutterWidth: 26,
+  /** Block editor: drag/add handle glyph size. */
+  blockHandleSize: 18,
+  /** Block editor: vertical gap between block rows. */
+  blockRowGap: 2,
+  /** Block editor: per-nesting-level indent (reserved for nested blocks). */
+  blockIndentStep: 24,
+  /** Left accent bar on a quote block. */
+  quoteBarWidth: 3,
+  /** Anchored block-type / slash menu width. */
+  blockMenuWidth: 232,
   /** Min height of the seamless doc editor surface (one borderless textarea over the
    *  whole doc) — generous so an empty/short doc still fills the page as a tap target,
    *  the way a Notion page does; the field auto-grows past this with content. */
   docEditorMinHeight: 320,
-  /** Min height of the multiline content field in the task detail sheet. */
+  /** Min height of the multiline content field in the task detail sheet/pane. */
   taskContentMinHeight: 120,
   /** Top toolbar above the main pane on desktop. */
   desktopTopbarHeight: 52,
+  /** Max width of a breadcrumb crumb label before it truncates. */
+  breadcrumbCrumbMaxWidth: 200,
+  /** Avatar edit badge (camera) diameter on the account/space identity blocks. */
+  avatarBadgeSize: 24,
+  /** Anchored popover (account/space context menu) width. */
+  popoverWidth: 264,
   /**
    * Draggable title strip reserved at the top of the macOS desktop shell so the
    * window's traffic-light buttons (hiddenInset titleBarStyle) don't overlap the
@@ -428,7 +517,7 @@ export const layout = {
 
 // ── Semantic helpers ───────────────────────────────────────────────────────
 // Map domain state → token, so screens stay declarative. Each takes the active
-// Palette (from useTheme) since OctoChat is light/dark aware.
+// Palette (from useTheme) since OctoVault is light/dark aware.
 
 export type PresenceStatus = 'online' | 'away' | 'dnd' | 'offline';
 
@@ -455,6 +544,20 @@ export function verificationColor(p: Palette, level: VerificationLevel): string 
       return p.warning;
     case 'unverified':
       return p.danger;
+  }
+}
+
+/** Kanban task lifecycle → color. `doing` is the (previously unreachable) middle state. */
+export type TaskStatus = 'todo' | 'doing' | 'done';
+
+export function statusColor(p: Palette, status: TaskStatus): string {
+  switch (status) {
+    case 'todo':
+      return p.inkFaint;
+    case 'doing':
+      return p.warning;
+    case 'done':
+      return p.success;
   }
 }
 

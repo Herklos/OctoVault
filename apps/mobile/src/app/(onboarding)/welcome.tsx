@@ -56,7 +56,7 @@ export default function Welcome() {
         <View style={styles.lockup}>
           <Wordmark hideMark size={32} />
           <Txt variant="subhead" weight="medium" tone="inkSoft" center>
-            End-to-end encrypted{'\n'}team chat by design.
+            Your end-to-end encrypted{'\n'}knowledge vault.
           </Txt>
         </View>
       </View>

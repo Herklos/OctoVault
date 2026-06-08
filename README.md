@@ -4,10 +4,10 @@ A universal (web + native) **Expo** app for an end-to-end-encrypted,
 **Notion/Anytype-style** knowledge workspace — pages of nested blocks and kanban
 boards — built on **Starfish** and its **WAL/CRDT** document primitive.
 
-OctoVault was extracted from [OctoChat](https://github.com/drakkar-software/octochat)'s
+OctoVault was extracted from [OctoVault](https://github.com/drakkar-software/octovault)'s
 "work" features and rebuilt so each page/board is a CRDT op-log
 (`@drakkar.software/starfish-wal`): concurrent and offline edits converge with
-full history, and a trusted snapshot gives fast cold-start. It reuses OctoChat's
+full history, and a trusted snapshot gives fast cold-start. It reuses OctoVault's
 Expo/monorepo setup, Starfish client + crypto stack (BIP-39 → Ed25519/Kyber,
 per-space keyrings), theme system and UI primitives.
 

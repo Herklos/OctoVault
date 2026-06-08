@@ -23,7 +23,7 @@ import type { PullCache } from '@drakkar.software/starfish-client';
 
 import { kvGet, kvSet } from './kv';
 
-const PREFIX = 'octochat.pullcache.';
+const PREFIX = 'octovault.pullcache.';
 
 /**
  * Max age for a cached snapshot before it's treated as a miss. Generous (30 days)

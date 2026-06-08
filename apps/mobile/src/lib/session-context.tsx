@@ -533,7 +533,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       passkeyEnrolled,
       enablePasskey: async () => {
         // Enroll on the live gesture, then wrap the unlocked VMK under its PRF secret.
-        const passkey = await enrollPasskey('OctoChat');
+        const passkey = await enrollPasskey('OctoVault');
         await addPasskeyToVault(passkey);
         setPasskeyEnrolled(true);
       },

@@ -37,8 +37,8 @@ beforeEach(() => {
 
 describe('hydrateReads', () => {
   it('max-merges the server copy with kv and the legacy lastread map (highest wins)', async () => {
-    store.set('octochat.reads.u', JSON.stringify({ rooms: { r1: 100, r2: 50 } }));
-    store.set('octochat.lastread.u', JSON.stringify({ r2: 80, r3: 10 })); // legacy = bare map
+    store.set('octovault.reads.u', JSON.stringify({ rooms: { r1: 100, r2: 50 } }));
+    store.set('octovault.lastread.u', JSON.stringify({ r2: 80, r3: 10 })); // legacy = bare map
     await hydrateReads('u', { rooms: { r1: 90, r4: 5 } });
     expect(getRoomReadAt('r1')).toBe(100); // kv 100 beats server 90
     expect(getRoomReadAt('r2')).toBe(80); // legacy 80 beats kv 50
@@ -55,8 +55,8 @@ describe('hydrateReads', () => {
 
 describe('loadReadMarksFromKv', () => {
   it('folds the legacy lastread map into the synced reads map', async () => {
-    store.set('octochat.reads.u', JSON.stringify({ rooms: { r1: 100 } }));
-    store.set('octochat.lastread.u', JSON.stringify({ r1: 50, r2: 70 }));
+    store.set('octovault.reads.u', JSON.stringify({ rooms: { r1: 100 } }));
+    store.set('octovault.lastread.u', JSON.stringify({ r1: 50, r2: 70 }));
     expect(await loadReadMarksFromKv('u')).toEqual({ r1: 100, r2: 70 });
   });
 });

@@ -18,7 +18,7 @@ import { TaskDetailSheet } from '@/components/work/TaskDetailSheet';
  * it between columns, and delete — each is an idempotent CRDT op, so two devices
  * converge after a pull (no append-fold). Title/emoji live on the index node.
  */
-export function BoardView({ spaceId, objectId, emoji, title }: { spaceId: string; objectId: string; emoji?: string; title?: string }) {
+export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle }: { spaceId: string; objectId: string; emoji?: string; title?: string; onRenameTitle?: (text: string) => void }) {
   const { colors } = useTheme();
   const board = useBoard(spaceId, objectId);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
@@ -50,6 +50,7 @@ export function BoardView({ spaceId, objectId, emoji, title }: { spaceId: string
         emoji={emoji}
         title={title}
         subtitle={`${done}/${total} done`}
+        onChangeTitle={onRenameTitle}
         trailing={
           <Pressable
             accessibilityRole="button"

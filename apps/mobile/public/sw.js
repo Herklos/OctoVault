@@ -1,5 +1,5 @@
 /**
- * OctoChat PWA service worker.
+ * OctoVault PWA service worker.
  *
  * Deliberately minimal: it exists to satisfy the browser's installability
  * criteria (a registered SW with a `fetch` handler) and to give a graceful
@@ -11,7 +11,7 @@
  *  - Everything else      → pass through to the network (the browser HTTP
  *    cache already handles the content-hashed assets correctly).
  */
-const CACHE = 'octochat-shell-v1';
+const CACHE = 'octovault-shell-v1';
 const SHELL = '/';
 
 self.addEventListener('install', (event) => {

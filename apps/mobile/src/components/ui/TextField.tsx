@@ -12,11 +12,23 @@ import { Icon, type IconName } from './Icon';
 // `outlineStyle` is a web-only style prop not present in RN's types.
 const WEB_OUTLINE_RESET = (Platform.OS === 'web' ? { outlineStyle: 'none' } : null) as unknown as StyleProp<TextStyle>;
 
+type TypeVariant = keyof typeof typeScale;
+
+/** Map a type-scale step to its font family (serif display/heading, else grotesk body). */
+function familyForVariant(variant: TypeVariant): string {
+  if (variant === 'pageTitle' || variant === 'display') return fonts.display;
+  if (variant === 'title' || variant === 'heading') return fonts.heading;
+  return fonts.body;
+}
+
 interface TextFieldProps extends Omit<TextInputProps, 'style' | 'placeholderTextColor'> {
   /** Optional leading icon (tints to accent on focus). */
   leadingIcon?: IconName;
   /** Render the value in JetBrains Mono (caps, codes, fingerprints). */
   mono?: boolean;
+  /** Render the input text at a larger type-scale step (e.g. "display"/"pageTitle"
+   *  for an inline title editor) instead of the default body size. Ignored when `mono`. */
+  textVariant?: TypeVariant;
   /** Height for multiline textareas. */
   minHeight?: number;
   /** Borderless, transparent, chrome-free field that reads as plain body text — no
@@ -38,6 +50,7 @@ interface TextFieldProps extends Omit<TextInputProps, 'style' | 'placeholderText
 export function TextField({
   leadingIcon,
   mono = false,
+  textVariant,
   minHeight,
   multiline = false,
   plain = false,
@@ -69,6 +82,12 @@ export function TextField({
   // box covers the full glow area — otherwise the wrapper's paperAlt glow
   // leaks below the bordered field as a darker strip.
   const multilineMin = multiline ? { minHeight: minHeight ?? 72 } : null;
+  // Larger inline-title metrics: override family + size + line-height so the editor
+  // reads exactly like the rendered title (placed last so it wins over `multiline`).
+  const variantStyle =
+    textVariant && !mono
+      ? { fontFamily: familyForVariant(textVariant), fontSize: typeScale[textVariant].fontSize, lineHeight: typeScale[textVariant].lineHeight }
+      : null;
   return (
     <View style={[plain ? styles.wrapperPlain : styles.wrapper, containerStyle]}>
       {/* The recessed fill + focus glow IS the box — a plain field has neither. */}
@@ -118,6 +137,7 @@ export function TextField({
             styles.input,
             mono ? styles.mono : styles.sans,
             multiline && styles.multiline,
+            variantStyle,
             plain && styles.inputPlain,
             grownHeight !== undefined ? { height: grownHeight } : null,
             WEB_OUTLINE_RESET,

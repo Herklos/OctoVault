@@ -26,7 +26,7 @@ import { addDeviceToSpaceKeyring } from './members';
 import { bytesToHex, linkedDeviceScope } from './paths';
 import { readSpaces } from './registry';
 
-export const PAIR_PREFIX = 'octochat-pair:';
+export const PAIR_PREFIX = 'octovault-pair:';
 
 // Linked-device cap-cert lifetime. `provisionDevice` defaults to 30 days, after
 // which the paired session's cap expires and it must be re-paired. A year keeps a
@@ -35,7 +35,7 @@ const LINKED_DEVICE_TTL_SEC = 365 * 24 * 60 * 60;
 
 function anonClient(): StarfishClient {
   // Namespaced like every other client (see makeClient): the `_pairing` rendezvous
-  // lives under the same `/v1/octochat` namespace on the deployed server, so the
+  // lives under the same `/v1/octovault` namespace on the deployed server, so the
   // anonymous push/pull must carry it too. Undefined locally (paths unchanged).
   return new StarfishClient({ baseUrl: SYNC_BASE, namespace: SYNC_NAMESPACE, fetch: fetchWithTimeout() });
 }

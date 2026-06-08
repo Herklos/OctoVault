@@ -1,5 +1,5 @@
 /**
- * Thin accessor for the desktop (Electron) bridge exposed on `window.octochat`
+ * Thin accessor for the desktop (Electron) bridge exposed on `window.octovault`
  * by `apps/desktop/src/preload.ts`. Web and native have no such global, so every
  * helper feature-detects and no-ops off-desktop — the app must never depend on
  * the bridge being present (the bridge is additive).
@@ -14,7 +14,7 @@ export type DesktopUpdateResult = 'updated' | 'current' | 'error' | 'unavailable
 
 declare global {
   interface Window {
-    octochat?: {
+    octovault?: {
       isElectron?: boolean;
       version?: string;
       platform?: string;
@@ -35,12 +35,12 @@ declare global {
 }
 
 export function isDesktop(): boolean {
-  return !!globalThis.window?.octochat?.isElectron;
+  return !!globalThis.window?.octovault?.isElectron;
 }
 
 /** The Electron app version reported by the desktop bridge. Null off-desktop. */
 export function desktopVersion(): string | null {
-  return globalThis.window?.octochat?.version ?? null;
+  return globalThis.window?.octovault?.version ?? null;
 }
 
 /**
@@ -49,12 +49,12 @@ export function desktopVersion(): string | null {
  * lights. `platform` mirrors Electron's `process.platform` (see preload.ts).
  */
 export function isMacDesktop(): boolean {
-  return isDesktop() && globalThis.window?.octochat?.platform === 'darwin';
+  return isDesktop() && globalThis.window?.octovault?.platform === 'darwin';
 }
 
 /** Bring the desktop window to the front (restores if minimized). No-op elsewhere. */
 export function focusDesktopWindow(): void {
-  globalThis.window?.octochat?.focusWindow?.();
+  globalThis.window?.octovault?.focusWindow?.();
 }
 
 /**
@@ -66,7 +66,7 @@ export function focusDesktopWindow(): void {
  * overlay-icon API via setOverlayBadge.
  */
 export function setDesktopBadge(n: number): void {
-  const bridge = globalThis.window?.octochat;
+  const bridge = globalThis.window?.octovault;
   if (!bridge) return;
   if (bridge.platform === 'win32') {
     bridge.setOverlayBadge?.(n > 0 ? drawBadgePng(n) : null, n > 0 ? `${n} unread` : '');
@@ -108,7 +108,7 @@ function drawBadgePng(n: number): string {
  * startup (e.g. in the root layout).
  */
 export function onDesktopUpdateReady(cb: (version: string) => void): void {
-  globalThis.window?.octochat?.onUpdateReady?.(cb);
+  globalThis.window?.octovault?.onUpdateReady?.(cb);
 }
 
 /**
@@ -118,7 +118,7 @@ export function onDesktopUpdateReady(cb: (version: string) => void): void {
  * and when no update is staged.
  */
 export async function getDesktopPendingUpdate(): Promise<string | null> {
-  return (await globalThis.window?.octochat?.getPendingUpdate?.()) ?? null;
+  return (await globalThis.window?.octovault?.getPendingUpdate?.()) ?? null;
 }
 
 /**
@@ -128,7 +128,7 @@ export async function getDesktopPendingUpdate(): Promise<string | null> {
  * so the global restart banner surfaces too.
  */
 export async function checkDesktopUpdate(): Promise<DesktopUpdateResult | null> {
-  const fn = globalThis.window?.octochat?.checkForUpdates;
+  const fn = globalThis.window?.octovault?.checkForUpdates;
   return fn ? await fn() : null;
 }
 
@@ -137,5 +137,5 @@ export async function checkDesktopUpdate(): Promise<DesktopUpdateResult | null> 
  * Only call this after `onDesktopUpdateReady` fires.
  */
 export function relaunchDesktop(): void {
-  globalThis.window?.octochat?.relaunch?.();
+  globalThis.window?.octovault?.relaunch?.();
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
@@ -36,9 +36,20 @@ export function ObjectActions({ node, onRename, onArchive }: ObjectActionsProps)
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('');
 
+  // Re-seed whenever the sheet is open and the live node's name/emoji change — the
+  // node can be undefined on first paint (store still opening) or update from another
+  // surface, and a stale seed would Save the old/empty value back over a real name.
+  useEffect(() => {
+    if (open) {
+      setTitle(node?.title ?? '');
+      setEmoji(node?.emoji ?? '');
+    }
+  }, [open, node?.title, node?.emoji]);
+
   const show = () => {
-    setTitle(node?.title ?? '');
-    setEmoji(node?.emoji ?? '');
+    if (!node) return; // don't open against an unloaded node (would Save "Untitled")
+    setTitle(node.title ?? '');
+    setEmoji(node.emoji ?? '');
     setOpen(true);
   };
   const save = () => {

@@ -25,8 +25,8 @@ export interface PubspaceAccess {
 export type AccessMap = Record<string, PubspaceAccess>;
 
 /** Pre-multi-account global blob; adopted once by the first user that hydrates. */
-const LEGACY_KEY = 'octochat.pubspacecaps.v1';
-const keyFor = (userId: string) => `octochat.pubspacecaps.${userId}`;
+const LEGACY_KEY = 'octovault.pubspacecaps.v1';
+const keyFor = (userId: string) => `octovault.pubspacecaps.${userId}`;
 
 let cache: AccessMap = {};
 let activeKey: string | null = null;
@@ -59,7 +59,7 @@ export async function hydratePubspaceCaps(userId: string): Promise<void> {
       // corrupt blob is unrecoverable without the original invite link. Only the
       // in-memory cache is reset here (persist() runs on next save), so the raw blob
       // stays on disk for diagnosis until then.
-      console.error('[OctoChat] pubspace-caps: corrupt cache blob, resetting in-memory:', e);
+      console.error('[OctoVault] pubspace-caps: corrupt cache blob, resetting in-memory:', e);
       cache = {};
     }
   }

@@ -1,6 +1,6 @@
 /**
  * Starfish client construction + room keyring/encryptor helpers
- * (ported from the satellite chat example, adapted to OctoChat).
+ * (ported from the satellite chat example, adapted to OctoVault).
  */
 import { StarfishClient } from '@drakkar.software/starfish-client';
 import type { BatchPullEntry, Encryptor, StarfishCapProvider } from '@drakkar.software/starfish-client';

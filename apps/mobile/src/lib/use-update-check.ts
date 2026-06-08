@@ -45,7 +45,7 @@ interface UpdateCheck {
  * Manual "check for updates" for the settings screen.
  *
  * - Desktop (Electron): expo-updates is disabled in the renderer, so the check
- *   is routed through the `window.octochat` bridge to the main-process OTA
+ *   is routed through the `window.octovault` bridge to the main-process OTA
  *   updater. A staged bundle surfaces the global DesktopUpdateBanner (with its
  *   Restart) via the separate `update-ready` push.
  * - Native (real EAS build): wraps expo-updates' check + fetch; a downloaded

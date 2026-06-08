@@ -14,7 +14,7 @@ import { Txt } from '@/components/ui/Txt';
  * nothing there. Mounted by {@link AppFrame} as the topmost child so it sits over every
  * route; it does NOT tear down the session (the OS protects the seed at rest), it only
  * gates the UI. The lockup reuses the onboarding {@link HeroMark} so the lock feels like
- * the same OctoChat, not a system dialog.
+ * the same OctoVault, not a system dialog.
  */
 export function AppLockGate() {
   const { colors } = useTheme();
@@ -26,7 +26,7 @@ export function AppLockGate() {
         <HeroMark size={132} />
         <View style={styles.copy}>
           <Txt variant="title" weight="bold" center>
-            OctoChat is locked
+            OctoVault is locked
           </Txt>
           <Txt variant="caption" mono uppercase tone="inkMuted" center>
             Authenticate to continue

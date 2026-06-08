@@ -63,7 +63,7 @@ export function createFileRevocationStore(
         // "retrying" the same list would be rejected. Escalate to error so the
         // operational alarm fires; the atomic write above removes the corruption case,
         // leaving only a hard disk/permission failure here.
-        console.error(`[OctoChat] revocation-store: failed to persist ${filePath}:`, e);
+        console.error(`[OctoVault] revocation-store: failed to persist ${filePath}:`, e);
       }
       return res;
     },

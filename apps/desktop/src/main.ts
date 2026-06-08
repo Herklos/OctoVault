@@ -26,7 +26,7 @@ import { checkForUpdates, getPendingUpdateVersion } from './updater';
 // (navigator.clipboard, crypto), and supportFetchAPI/corsEnabled let the
 // renderer fetch the sync server (http://localhost:8787) cross-origin.
 // Display name for the menu bar / About / Quit items. Without this, an
-// unpackaged run (`electron .`) shows the package name "@octochat/desktop".
+// unpackaged run (`electron .`) shows the package name "@octovault/desktop".
 app.setName(APP_NAME);
 
 protocol.registerSchemesAsPrivileged([
@@ -130,7 +130,7 @@ function createWindow(): void {
 function registerIpc(): void {
   // Bring the window forward (notification toast clicked). Same restore/focus
   // pattern as the single-instance handler below, plus show() in case it's hidden.
-  ipcMain.handle('octochat:focus-window', () => {
+  ipcMain.handle('octovault:focus-window', () => {
     const win = BrowserWindow.getAllWindows()[0];
     if (!win) return;
     if (win.isMinimized()) win.restore();
@@ -141,7 +141,7 @@ function registerIpc(): void {
   // Reflect the unread total on the dock (macOS) / taskbar (Linux Unity) icon.
   // The renderer routes Windows to set-overlay-badge below instead, because
   // Windows has no numeric badge — setBadgeCount only draws a default grey dot.
-  ipcMain.handle('octochat:set-badge', (_event, count: unknown) => {
+  ipcMain.handle('octovault:set-badge', (_event, count: unknown) => {
     app.setBadgeCount(typeof count === 'number' && count > 0 ? count : 0);
   });
 
@@ -149,7 +149,7 @@ function registerIpc(): void {
   // URL (a red circle + count, themed in the app) or null to clear; the taskbar
   // overlay-icon API gives full color control that setBadgeCount's grey dot does
   // not. No-op on macOS/Linux, which use the numeric badge above.
-  ipcMain.handle('octochat:set-overlay-badge', (_event, png: unknown, description: unknown) => {
+  ipcMain.handle('octovault:set-overlay-badge', (_event, png: unknown, description: unknown) => {
     const win = BrowserWindow.getAllWindows()[0];
     if (!win) return;
     const image =
@@ -158,17 +158,17 @@ function registerIpc(): void {
   });
 
   // Let a freshly-mounted renderer learn about an update that was staged before
-  // it registered its `octochat:update-ready` listener (the push isn't buffered).
-  ipcMain.handle('octochat:get-pending-update', () => getPendingUpdateVersion());
+  // it registered its `octovault:update-ready` listener (the push isn't buffered).
+  ipcMain.handle('octovault:get-pending-update', () => getPendingUpdateVersion());
 
   // Run the OTA check on demand (the in-app "Check for updates" button). The
   // renderer can't run the updater itself — expo-updates is disabled there — so
   // it invokes this and gets back the outcome (downloaded / current / error).
-  ipcMain.handle('octochat:check-for-updates', () => checkForUpdates());
+  ipcMain.handle('octovault:check-for-updates', () => checkForUpdates());
 
   // Relaunch the app to apply a staged OTA bundle (called from the renderer
   // when the user accepts the "update ready" prompt).
-  ipcMain.handle('octochat:relaunch', () => {
+  ipcMain.handle('octovault:relaunch', () => {
     app.relaunch();
     app.quit();
   });
@@ -261,7 +261,7 @@ if (!gotLock) {
   void app.whenReady().then(() => {
     // Identifies the app to Windows so notification toasts show the right name
     // and icon (no-op on macOS/Linux). Must match electron-builder.yml `appId`.
-    app.setAppUserModelId('software.drakkar.octochat');
+    app.setAppUserModelId('software.drakkar.octovault');
     if (!isDev) registerAppProtocol(resolveDistDir());
     registerIpc();
     buildMenu();

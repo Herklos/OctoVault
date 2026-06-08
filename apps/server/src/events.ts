@@ -19,9 +19,9 @@
  * stream the global firehose to an unauthorized client.
  *
  * Whistlers topic derivation: queue.ts onPublish emits
- * `octochat.chat.changed.<spaceId>`; Whistlers applies the `octochat` namespace
+ * `octovault.chat.changed.<spaceId>`; Whistlers applies the `octovault` namespace
  * prefix then sanitizeTopic — every char outside [a-zA-Z0-9-_~%] → "-", giving
- * `octochat-octochat-chat-changed-<spaceId>`. This proxy reconstructs that exact
+ * `octovault-octovault-chat-changed-<spaceId>`. This proxy reconstructs that exact
  * transform server-side so Whistlers' ?topic= filter matches.
  */
 import { Hono, type Context } from "hono";
@@ -47,7 +47,7 @@ const WHISTLERS_INTERNAL_URL =
 const sanitizeTopic = (t: string) => t.replace(/[^a-zA-Z0-9\-_~%]/g, "-");
 
 /** Whistlers namespace — MUST match the namespace key in infra/whistlers.config.json. */
-const WHISTLERS_NAMESPACE = "octochat";
+const WHISTLERS_NAMESPACE = "octovault";
 
 /** Per-connection cap on PUBLIC (`psp-`) space topics. Public spaces are
  *  open-gated (no membership proof — their content is link-readable and these
@@ -193,14 +193,14 @@ export function createEventsRoute(opts: EventsRouteOptions): Hono {
       // Leave a trail for the "one public space is stale until I open it" report:
       // beyond the cap, those psp- spaces won't background-update (focus still pulls).
       console.warn(
-        `[OctoChat] /events: public-topic cap (${MAX_PUBLIC_TOPICS}) reached for ${identity}; extra psp- spaces won't live-update until reconnect.`,
+        `[OctoVault] /events: public-topic cap (${MAX_PUBLIC_TOPICS}) reached for ${identity}; extra psp- spaces won't live-update until reconnect.`,
       );
     }
 
     // 4. Map to sanitized destinationTopics server-side (never trust the client).
-    //    Mirrors Whistlers' per-message derivation for `octochat.chat.changed.<spaceId>`.
+    //    Mirrors Whistlers' per-message derivation for `octovault.chat.changed.<spaceId>`.
     const topics = authorized.map(
-      (s) => `${WHISTLERS_NAMESPACE}-${sanitizeTopic(`octochat.chat.changed.${s}`)}`,
+      (s) => `${WHISTLERS_NAMESPACE}-${sanitizeTopic(`octovault.chat.changed.${s}`)}`,
     );
 
     // 5. ★ Firehose-prevention invariant.

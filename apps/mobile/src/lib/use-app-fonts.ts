@@ -1,14 +1,14 @@
 import { useFonts } from 'expo-font';
 import {
-  BricolageGrotesque_700Bold,
-  BricolageGrotesque_800ExtraBold,
-} from '@expo-google-fonts/bricolage-grotesque';
+  Newsreader_600SemiBold,
+  Newsreader_700Bold,
+} from '@expo-google-fonts/newsreader';
 import {
-  HankenGrotesk_400Regular,
-  HankenGrotesk_500Medium,
-  HankenGrotesk_600SemiBold,
-  HankenGrotesk_700Bold,
-} from '@expo-google-fonts/hanken-grotesk';
+  SplineSans_400Regular,
+  SplineSans_500Medium,
+  SplineSans_600SemiBold,
+  SplineSans_700Bold,
+} from '@expo-google-fonts/spline-sans';
 import {
   JetBrainsMono_400Regular,
   JetBrainsMono_500Medium,
@@ -18,15 +18,18 @@ import {
 /**
  * Loads every font family referenced by `fonts` in `src/theme.ts`.
  * Keys here MUST stay in sync with that file. Returns `[loaded, error]`.
+ *
+ * Identity "Ink & Pearl": Newsreader (editorial serif — display/headings),
+ * Spline Sans (quiet grotesk — body), JetBrains Mono (labels/keys/fingerprints).
  */
 export function useAppFonts(): [boolean, Error | null] {
   return useFonts({
-    BricolageGrotesque_700Bold,
-    BricolageGrotesque_800ExtraBold,
-    HankenGrotesk_400Regular,
-    HankenGrotesk_500Medium,
-    HankenGrotesk_600SemiBold,
-    HankenGrotesk_700Bold,
+    Newsreader_600SemiBold,
+    Newsreader_700Bold,
+    SplineSans_400Regular,
+    SplineSans_500Medium,
+    SplineSans_600SemiBold,
+    SplineSans_700Bold,
     JetBrainsMono_400Regular,
     JetBrainsMono_500Medium,
     JetBrainsMono_700Bold,

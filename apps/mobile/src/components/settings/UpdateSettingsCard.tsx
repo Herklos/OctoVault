@@ -72,7 +72,7 @@ function UpdateStatusNote({ status }: { status: UpdateStatus }) {
     case 'unavailable':
       return (
         <Txt variant="micro" tone="inkMuted">
-          OctoChat keeps itself up to date.
+          OctoVault keeps itself up to date.
         </Txt>
       );
     default:

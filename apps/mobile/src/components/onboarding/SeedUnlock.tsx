@@ -110,7 +110,7 @@ export function SeedUnlock({ methods, onUnlock, onDone, onForget }: SeedUnlockPr
         </Callout>
       ) : null}
 
-      {/* Crossfade: the keypad fades out (slowly, during the unlock) and an OctoChat
+      {/* Crossfade: the keypad fades out (slowly, during the unlock) and an OctoVault
           fact fades in once it has cleared, to fill the Argon2id wait. The keypad
           stays mounted (faded) so its height holds the layout; the tip is overlaid,
           centered. Fade-out runs over ~2s; recovery (on error) snaps back fast.

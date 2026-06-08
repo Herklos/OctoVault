@@ -55,7 +55,18 @@ export function WorkspaceNav() {
 
       <View style={[styles.sidebar, { width: layout.sidebarWidth, backgroundColor: colors.paperAlt, borderRightColor: colors.lineSoft }]}>
         <View style={styles.head}>
-          <Txt variant="heading" weight="bold" numberOfLines={1} style={styles.headTitle}>{space?.name ?? 'OctoVault'}</Txt>
+          {space ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${space.name} — space details`}
+              onPress={() => router.push({ pathname: '/space/[id]', params: { id: space.id } })}
+              style={styles.headTitle}
+            >
+              <Txt variant="heading" weight="bold" numberOfLines={1}>{space.name}</Txt>
+            </Pressable>
+          ) : (
+            <Txt variant="heading" weight="bold" numberOfLines={1} style={styles.headTitle}>OctoVault</Txt>
+          )}
           <IconButton name="search" size={16} color={colors.inkMuted} onPress={() => router.push('/search')} accessibilityLabel="Search" />
         </View>
         <ScrollView contentContainerStyle={styles.tree} showsVerticalScrollIndicator={false}>

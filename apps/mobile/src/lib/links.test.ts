@@ -1,15 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// links.ts value-imports `expo-router` (router) and `react-native` (Platform,
-// Linking) for its navigation helpers; its `@/lib/types` import is type-only and
-// erased at runtime. Stub the two native modules so the pure parser runs under Node.
-vi.mock('expo-router', () => ({ router: { push: vi.fn() } }));
+// links.ts value-imports `react-native` (Platform, Linking) for `openUrl`; stub it
+// so the pure parser runs under Node.
 vi.mock('react-native', () => ({ Platform: { OS: 'web' }, Linking: { openURL: vi.fn() } }));
 
-import { router } from 'expo-router';
-
-import { linkify, matchesUser, mentionsUser, openRoom, type TextSegment } from './links';
-import type { Room } from './types';
+import { linkify, matchesUser, mentionsUser, type TextSegment } from './links';
 
 // Compact a segment to a tag for readable, order-sensitive assertions.
 const tag = (s: TextSegment): string =>
@@ -112,16 +107,5 @@ describe('mentionsUser', () => {
   it('is false with no text or no name', () => {
     expect(mentionsUser(undefined, 'michel')).toBe(false);
     expect(mentionsUser('hey @michel', undefined)).toBe(false);
-  });
-});
-
-describe('openRoom', () => {
-  it('navigates to the room route carrying id/name/kind', () => {
-    const room: Room = { id: 'r1', spaceId: 's1', category: 'DESIGN', name: 'design', kind: 'channel' };
-    openRoom(room);
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/room/[id]',
-      params: { id: 'r1', name: 'design', kind: 'channel' },
-    });
   });
 });

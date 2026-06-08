@@ -1,4 +1,4 @@
-/** Domain model for OctoChat. Frontend-only — these describe placeholder data. */
+/** Domain model for OctoVault. Frontend-only — these describe placeholder data. */
 
 import type { PresenceStatus, VerificationLevel } from '@/theme';
 import type { SealedBlob } from './starfish/account-seal';

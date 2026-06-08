@@ -16,14 +16,14 @@ implementing the read‑modify‑write sync protocol the regular rooms use.
     The server can read it; this is the bot‑friendliest mode.
 
 The storage/role contract lives in `apps/server/src/config.ts` (and the Python mirror
-`drakkar_sync/apps/octochat/collections.py`):
+`drakkar_sync/apps/octovault/collections.py`):
 
 | Collection   | Storage path                                          | Enc.        | Read / Write roles                          |
 |--------------|-------------------------------------------------------|-------------|---------------------------------------------|
 | `streamchat` | `spaces/{spaceId}/streams/{roomId}`                   | `delegated` | `space:member` / `space:member`             |
 | `pubstream`  | `pubspaces/{ownerId}/{spaceId}/streams/{roomId}`      | `none`      | `pubspace:reader` / `pubspace:owner,writer` |
 
-Both are registered in the queue plugin on the `octochat.chat.changed` topic, so an
+Both are registered in the queue plugin on the `octovault.chat.changed` topic, so an
 append fires the same per‑space SSE notification a normal message does — readers see
 bot posts live. **No new nginx route is needed**: `append` reuses the `/push/` action.
 
@@ -61,7 +61,7 @@ In the room, open **Connect a bot → Generate bot link**. It calls
 - **Bot link token** — the audience‑cap fragment (paste into the bot).
 - **Append endpoint (POST)** — the full URL the bot POSTs to.
 - **Path to sign** — the path the request signature is bound to (on the deployed
-  server this is the `/v1/octochat/push/…` path **without** the external `/sync`
+  server this is the `/v1/octovault/push/…` path **without** the external `/sync`
   mount, which nginx strips; locally it equals the endpoint’s path).
 
 ### 2. Bot redeems and appends
@@ -81,15 +81,15 @@ const botUserId = await userIdFromPubHex(bot.edPub); // helper below
 
 // --- from the "Connect a bot" panel ---
 const TOKEN     = "PASTE_BOT_LINK_TOKEN";
-const ENDPOINT  = "https://<host>/sync/v1/octochat/push/pubspaces/<owner>/<space>/streams/<room>";
-const SIGN_PATH = "/v1/octochat/push/pubspaces/<owner>/<space>/streams/<room>"; // "Path to sign"
+const ENDPOINT  = "https://<host>/sync/v1/octovault/push/pubspaces/<owner>/<space>/streams/<room>";
+const SIGN_PATH = "/v1/octovault/push/pubspaces/<owner>/<space>/streams/<room>"; // "Path to sign"
 const HOST      = new URL(ENDPOINT).host;
 
 const parsed = parsePublicLink(TOKEN); // structural check; server verifies sig + expiry
 
 export async function postMessage(text: string): Promise<void> {
   const element = { t: "msg", e: { id: crypto.randomUUID(), authorId: botUserId, ts: Date.now(), text } };
-  // The append body the OctoChat server/app expects: { data: <element> }.
+  // The append body the OctoVault server/app expects: { data: <element> }.
   const body = JSON.stringify({ data: element });
 
   // Sign THIS request (fresh ts + nonce each call) with the bot's own key.
@@ -127,7 +127,7 @@ async function userIdFromPubHex(edPubHex: string): Promise<string> {
 >   baseUrl: "https://<host>/sync",
 >   capProvider: { async getCap() { return { cap: parsed.cap, devEdPrivHex: bot.edPriv, pubHex: bot.edPub }; } },
 > });
-> await client.append("/v1/octochat/push/pubspaces/<owner>/<space>/streams/<room>",
+> await client.append("/v1/octovault/push/pubspaces/<owner>/<space>/streams/<room>",
 >                      { t: "msg", e: { id: crypto.randomUUID(), authorId: botUserId, ts: Date.now(), text } });
 > ```
 
@@ -168,7 +168,7 @@ import { StarfishClient } from "@drakkar.software/starfish-client";
 import { createKeyringEncryptor } from "@drakkar.software/starfish-keyring";
 
 const cap = JSON.parse(INVITE_CAP_JSON);              // owner-issued member cap
-const PREFIX = "/v1/octochat";                        // "" against a local dev server
+const PREFIX = "/v1/octovault";                        // "" against a local dev server
 const client = new StarfishClient({
   baseUrl: "https://<host>/sync",                     // "http://localhost:8787" locally
   capProvider: { async getCap() { return { cap, devEdPrivHex: bot.edPriv }; } },

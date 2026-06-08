@@ -53,7 +53,7 @@ function isAlreadyPresentRecipient(err: unknown): boolean {
  * server-side, so this only works for spaces the caller owns.
  *
  * The keyring SDK builds its own `/pull|/push` paths; `session.chatClient` carries
- * the `namespace` option (see makeClient), so those paths get the `/v1/octochat`
+ * the `namespace` option (see makeClient), so those paths get the `/v1/octovault`
  * prefix on the deployed server automatically — no client wrapper needed.
  *
  * Re-invite tolerance: a recipient already wrapped into the keyring makes the SDK

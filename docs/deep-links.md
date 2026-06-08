@@ -1,23 +1,23 @@
 # Deep links & universal / App Links
 
-Domain: **`oc.drakkar.software`** (serves the OctoChat web app and the link
+Domain: **`oc.drakkar.software`** (serves the OctoVault web app and the link
 association files).
 
-OctoChat opens from links three ways:
+OctoVault opens from links three ways:
 
 | Link form | Example | Works |
 | --- | --- | --- |
 | **Web URL** | `https://oc.drakkar.software/join#<token>` | Web app (always) |
-| **Custom scheme** | `octochat://join#<token>` | Native, once installed |
+| **Custom scheme** | `octovault://join#<token>` | Native, once installed |
 | **Universal / App Link** | `https://oc.drakkar.software/join#<token>` | Native, opens the app directly (web fallback if not installed) |
 
-Expo Router maps file routes to URLs automatically, so `octochat://rooms`,
-`octochat://room/<id>`, `octochat://join`, `octochat://search` already resolve
-in any standalone/dev build — `scheme: "octochat"` is set in `app.json`.
+Expo Router maps file routes to URLs automatically, so `octovault://rooms`,
+`octovault://room/<id>`, `octovault://join`, `octovault://search` already resolve
+in any standalone/dev build — `scheme: "octovault"` is set in `app.json`.
 
 ## Done in the repo
 
-- **`scheme: "octochat"`** in `app.json` → custom-scheme deep links route via
+- **`scheme: "octovault"`** in `app.json` → custom-scheme deep links route via
   Expo Router on native.
 - **Invite-link handler** — `src/lib/use-invite-link.ts` (`useInviteFragment`)
   reads the credential `#fragment` from the launch URL on **web** (`location.hash`)
@@ -34,7 +34,7 @@ in any standalone/dev build — `scheme: "octochat"` is set in `app.json`.
 - **`EXPO_PUBLIC_WEB_URL=https://oc.drakkar.software`** in all three `eas.json`
   build profiles, so native-built invite links emit the full `https://…/join#…`.
 
-So `octochat://join#<token>` auto-joins on native **today**. The `https://` form
+So `octovault://join#<token>` auto-joins on native **today**. The `https://` form
 opening the app needs the two hosted files below — plus a rebuild (the `app.json`
 native keys only take effect in a fresh build).
 
@@ -65,7 +65,7 @@ extension, `Content-Type: application/json`:
     "apps": [],
     "details": [
       {
-        "appID": "<APPLE_TEAM_ID>.com.drakkarsoftware.octochat",
+        "appID": "<APPLE_TEAM_ID>.com.drakkarsoftware.octovault",
         "paths": ["/join", "/join/*"]
       }
     ]
@@ -82,15 +82,15 @@ extension, `Content-Type: application/json`:
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.drakkarsoftware.octochat",
+      "package_name": "com.drakkarsoftware.octovault",
       "sha256_cert_fingerprints": ["<ANDROID_SHA256>"]
     }
   }
 ]
 ```
 
-The OctoChat web app serves static files from `apps/mobile/public/` (Expo
-`web.output: "single"`). Since `oc.drakkar.software` is the OctoChat web app, drop
+The OctoVault web app serves static files from `apps/mobile/public/` (Expo
+`web.output: "single"`). Since `oc.drakkar.software` is the OctoVault web app, drop
 the two files into `apps/mobile/public/.well-known/` so they ship with the web
 export — **but only with the real values filled in**: confirm the host serves the
 extension-less AASA as `application/json` and does not rewrite `/.well-known/*`
@@ -104,8 +104,8 @@ into the SPA. Otherwise host them via Infra.
 **Custom scheme (works now, no build config):**
 
 ```sh
-npx uri-scheme open 'octochat://join#<token>' --ios
-npx uri-scheme open 'octochat://room/<roomId>' --android
+npx uri-scheme open 'octovault://join#<token>' --ios
+npx uri-scheme open 'octovault://room/<roomId>' --android
 # Expo Go uses exp:// — prefix the path with /--/:
 npx uri-scheme open 'exp://127.0.0.1:8081/--/join' --ios
 ```
@@ -113,7 +113,7 @@ npx uri-scheme open 'exp://127.0.0.1:8081/--/join' --ios
 **Universal / App Links** can't be verified locally — they need:
 - the AASA + `assetlinks.json` actually served on `oc.drakkar.software` (validate
   the AASA via a validator / the Apple App Search API; check Android with
-  `adb shell pm get-app-links com.drakkarsoftware.octochat`), **and**
+  `adb shell pm get-app-links com.drakkarsoftware.octovault`), **and**
 - a **signed device build** (Apple CDN-caches the AASA; Android verifies at install).
 
 Tapping `https://oc.drakkar.software/join#<token>` in Messages/Notes (iOS) or via

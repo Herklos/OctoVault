@@ -128,7 +128,7 @@ export default function PairScreen() {
             ? 'Paste the code shown under the QR on your existing device.'
             : 'Scan the QR above, or paste the code.'}
         </Txt>
-        {input(code, setCode, 'octochat-pair:…')}
+        {input(code, setCode, 'octovault-pair:…')}
       </Card>
 
       <Card title="DEVICE PIN">{input(pin, setPin, 'Enter the PIN', true)}</Card>

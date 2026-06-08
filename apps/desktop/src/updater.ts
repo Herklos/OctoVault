@@ -6,7 +6,7 @@
  * 2. Compares the remote version to the currently active bundle.
  * 3. Downloads and verifies (sha256) each changed bundle into userData.
  * 4. Writes a "current.json" pointer so the NEXT launch serves the new bundle.
- * 5. Notifies the renderer via `octochat:update-ready` so it can prompt a restart.
+ * 5. Notifies the renderer via `octovault:update-ready` so it can prompt a restart.
  *
  * This mirrors expo-updates' apply-on-next-launch model: the running session is
  * never disrupted, and the embedded resources/web serves as the offline fallback.
@@ -138,7 +138,7 @@ function pruneOldVersions(keepVersion: string): void {
 /**
  * Version staged for next-launch apply this session, or null if none. Set when
  * `checkForUpdates` finishes staging a bundle. Exposed so the renderer can pull
- * it on mount — `octochat:update-ready` is a fire-once IPC push with no buffering,
+ * it on mount — `octovault:update-ready` is a fire-once IPC push with no buffering,
  * so a check that completes before React registers its listener would be missed.
  */
 let pendingUpdateVersion: string | null = null;
@@ -240,7 +240,7 @@ async function runCheck(): Promise<UpdateCheckResult> {
     pendingUpdateVersion = remote.version;
     const win = BrowserWindow.getAllWindows()[0];
     if (win && !win.isDestroyed()) {
-      win.webContents.send('octochat:update-ready', remote.version);
+      win.webContents.send('octovault:update-ready', remote.version);
     }
     return 'updated';
   } catch (err) {

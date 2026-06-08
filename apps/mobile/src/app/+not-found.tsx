@@ -9,13 +9,13 @@ import { Screen } from '@/components/ui/Screen';
 export default function NotFound() {
   return (
     <Screen style={styles.screen}>
-      <EmptyState iconName="globe" title="Lost at sea" subtitle="This channel has drifted out of range.">
+      <EmptyState iconName="globe" title="Lost at sea" subtitle="This page has drifted out of range.">
         <Button
-          label="Back to rooms"
+          label="Back to the Vault"
           variant="primary"
           size="lg"
           style={styles.cta}
-          onPress={() => router.replace('/(tabs)/rooms')}
+          onPress={() => router.replace('/(tabs)/work')}
         />
       </EmptyState>
     </Screen>

@@ -17,42 +17,57 @@ interface ObjectTreeProps {
    *  re-render; the tree itself is stateless about persistence). */
   collapsed: Set<ID>;
   onToggle: (id: ID) => void;
+  /** When set, each row reveals a "+" on hover that creates a child under it (the
+   *  caller decides what kind — e.g. a page inside a folder). Web-hover affordance. */
+  onAddChild?: (node: ObjectTreeNode) => void;
+  /** Types that are pure containers (folders): pressing toggles instead of opening a
+   *  content route. `category` is always treated as a container header. */
+  isContainer?: (type: string) => boolean;
 }
+
+type RowProps = { node: ObjectTreeNode } & Omit<ObjectTreeProps, 'nodes'>;
 
 /**
  * Recursive, collapsible object tree — the sidebar + Work surface for the unified
  * {@link ObjectTreeNode} model. Rows indent by depth; a node with children shows a
- * disclosure chevron that toggles its subtree. Collapse state is per-device (held by
- * the caller, not synced). Pure composition over `Icon`/`Txt` + theme tokens.
+ * disclosure chevron that toggles its subtree. Folders/categories are containers
+ * (toggle-only); pages/boards open. Collapse state is per-device (held by the
+ * caller, not synced). Pure composition over `Icon`/`Txt` + theme tokens.
  */
-export function ObjectTree({ nodes, onOpen, collapsed, onToggle }: ObjectTreeProps) {
+export function ObjectTree({ nodes, onOpen, collapsed, onToggle, onAddChild, isContainer }: ObjectTreeProps) {
   return (
     <View>
       {nodes.map((node) => (
-        <ObjectTreeRow key={node.id} node={node} onOpen={onOpen} collapsed={collapsed} onToggle={onToggle} />
+        <ObjectTreeRow
+          key={node.id}
+          node={node}
+          onOpen={onOpen}
+          collapsed={collapsed}
+          onToggle={onToggle}
+          onAddChild={onAddChild}
+          isContainer={isContainer}
+        />
       ))}
     </View>
   );
 }
 
-function ObjectTreeRow({ node, onOpen, collapsed, onToggle }: { node: ObjectTreeNode } & Omit<ObjectTreeProps, 'nodes'>) {
+function ObjectTreeRow({ node, onOpen, collapsed, onToggle, onAddChild, isContainer }: RowProps) {
   const { colors } = useTheme();
   const { hovered, hoverProps } = useHover();
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsed.has(node.id);
   const isCategory = node.type === 'category';
+  const container = isCategory || (isContainer?.(node.type) ?? false);
 
   const open = useCallback(() => {
-    if (isCategory) onToggle(node.id);
+    if (container) onToggle(node.id);
     else onOpen(node);
-  }, [isCategory, node, onOpen, onToggle]);
+  }, [container, node, onOpen, onToggle]);
 
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={node.title}
-        onPress={open}
+      <View
         {...hoverProps}
         style={[
           styles.row,
@@ -63,7 +78,7 @@ function ObjectTreeRow({ node, onOpen, collapsed, onToggle }: { node: ObjectTree
           accessibilityRole="button"
           accessibilityLabel={isCollapsed ? 'Expand' : 'Collapse'}
           hitSlop={6}
-          onPress={hasChildren ? () => onToggle(node.id) : undefined}
+          onPress={hasChildren || container ? () => onToggle(node.id) : undefined}
           style={styles.disclosure}
         >
           {hasChildren ? (
@@ -72,27 +87,45 @@ function ObjectTreeRow({ node, onOpen, collapsed, onToggle }: { node: ObjectTree
             </View>
           ) : null}
         </Pressable>
-        {node.emoji ? (
-          <Txt variant="subhead" style={styles.emoji}>
-            {node.emoji}
-          </Txt>
-        ) : (
-          <View style={styles.leafIcon}>
-            <Icon name={iconForNode(node)} size={13} color={colors.inkMuted} />
-          </View>
-        )}
-        <Txt
-          variant={isCategory ? 'caption' : 'subhead'}
-          weight={isCategory ? 'bold' : undefined}
-          tone={isCategory ? 'inkMuted' : undefined}
-          numberOfLines={1}
-          style={styles.label}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={node.title}
+          onPress={open}
+          style={styles.content}
         >
-          {isCategory ? node.title.toUpperCase() : node.title}
-        </Txt>
-      </Pressable>
+          {node.emoji ? (
+            <Txt variant="subhead" style={styles.emoji}>
+              {node.emoji}
+            </Txt>
+          ) : (
+            <View style={styles.leafIcon}>
+              <Icon name={iconForNode(node)} size={13} color={colors.inkMuted} />
+            </View>
+          )}
+          <Txt
+            variant={isCategory ? 'caption' : 'subhead'}
+            weight={isCategory ? 'bold' : undefined}
+            tone={isCategory ? 'inkMuted' : undefined}
+            numberOfLines={1}
+            style={styles.label}
+          >
+            {isCategory ? node.title.toUpperCase() : node.title}
+          </Txt>
+        </Pressable>
+        {onAddChild && hovered && !isCategory ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Add a page inside ${node.title}`}
+            hitSlop={6}
+            onPress={() => onAddChild(node)}
+            style={styles.add}
+          >
+            <Icon name="plus" size={13} color={colors.inkMuted} />
+          </Pressable>
+        ) : null}
+      </View>
       {hasChildren && !isCollapsed ? (
-        <ObjectTree nodes={node.children} onOpen={onOpen} collapsed={collapsed} onToggle={onToggle} />
+        <ObjectTree nodes={node.children} onOpen={onOpen} collapsed={collapsed} onToggle={onToggle} onAddChild={onAddChild} isContainer={isContainer} />
       ) : null}
     </>
   );
@@ -114,9 +147,11 @@ export function useTreeCollapse(): { collapsed: Set<ID>; toggle: (id: ID) => voi
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, height: layout.objectTreeRowHeight, paddingRight: spacing.sm, borderRadius: radii.md },
+  content: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   disclosure: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   chevOpen: { transform: [{ rotate: '90deg' }] },
   emoji: { width: 18, textAlign: 'center' },
   leafIcon: { width: 18, alignItems: 'center' },
   label: { flex: 1, minWidth: 0, letterSpacing: 0 },
+  add: { width: layout.rowAddButton, height: layout.rowAddButton, alignItems: 'center', justifyContent: 'center' },
 });

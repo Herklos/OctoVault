@@ -12,7 +12,7 @@ import type { PasskeyEnrollment, PersistedSession, SeedLock, UnlockMethod, Vault
 
 export type { PersistedSession } from './storage-types';
 
-const KEY = 'octochat_session_v1';
+const KEY = 'octovault_session_v1';
 
 /** Coerce whatever is stored into a Vault — promoting a legacy single PersistedSession. */
 function asVault(raw: string): Vault | null {

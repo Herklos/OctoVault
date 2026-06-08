@@ -12,7 +12,7 @@ import { Platform } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
-const FLAG_KEY = 'octochat_applock_biometric_v1';
+const FLAG_KEY = 'octovault_applock_biometric_v1';
 
 // Module-level mirror of the enabled flag. SecureStore is the source of truth, but its
 // reads are async; the gate needs the value SYNCHRONOUSLY (to cover the app-switcher
@@ -49,7 +49,7 @@ export async function isBiometricLockEnabled(): Promise<boolean> {
 export async function authenticateBiometric(): Promise<boolean> {
   try {
     const res = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Unlock OctoChat',
+      promptMessage: 'Unlock OctoVault',
       cancelLabel: 'Cancel',
       // Allow the device passcode as a fallback so a flaky/again-prompted biometric can
       // still let the owner in — and so removing biometrics at the OS level can't fully

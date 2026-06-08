@@ -97,8 +97,8 @@ export function clearAttachmentCache(): void {
  * Bounded by a small byte budget with oldest-first eviction; an over-quota write
  * fails silently (kv swallows it) and simply isn't persisted.
  */
-const PERSIST_PREFIX = 'octochat.attach.blob.';
-const PERSIST_INDEX = 'octochat.attach.index';
+const PERSIST_PREFIX = 'octovault.attach.blob.';
+const PERSIST_INDEX = 'octovault.attach.index';
 const PERSIST_BUDGET_BYTES = 4 * 1024 * 1024;
 
 type PersistIndex = { k: string; n: number }[];

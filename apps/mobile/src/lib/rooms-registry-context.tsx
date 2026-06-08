@@ -85,7 +85,7 @@ const IDLE: RoomsRegistryEntry = { ...PENDING, loading: false };
 // Offline cache of the plaintext `_rooms` registry (same sensitivity as the drafts /
 // outbox already in kv). Lets an offline read fall back to the last-synced rooms
 // instead of wiping the list. Keyed by identity so it never bleeds across accounts.
-const cacheKey = (userId: string, spaceId: string) => `octochat.rooms-cache.${userId}.${spaceId}`;
+const cacheKey = (userId: string, spaceId: string) => `octovault.rooms-cache.${userId}.${spaceId}`;
 
 /** Persist the DISPLAYABLE registry fields — never the `hash` (a cached hash must
  *  never feed a write; this cache is display-only). Fire-and-forget. */

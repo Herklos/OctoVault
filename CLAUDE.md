@@ -2,8 +2,9 @@
 
 Universal (web + native) **Expo** app for **OctoVault**, an end-to-end-encrypted,
 **Notion/Anytype-style** knowledge app (pages of nested blocks + kanban boards)
-with a marine/subaquatic theme and an octopus-vault mark. It syncs against a
-**Starfish** server (default `http://localhost:8787`, override with
+with an editorial **"Ink & Pearl"** theme (warm pearl paper, octopus-ink indigo
+accent, Newsreader serif + Spline Sans) and an octopus-vault mark. It syncs
+against a **Starfish** server (default `http://localhost:8787`, override with
 `EXPO_PUBLIC_STARFISH_URL`) over REST + SSE, with real end-to-end encryption
 (BIP-39 seed → Ed25519/Kyber keys → per-space keyrings).
 
@@ -11,9 +12,7 @@ Its document layer is built on the Starfish **WAL/CRDT** primitive
 (`@drakkar.software/starfish-wal`, 3.0.0-alpha.21): each page/board is an
 append-only op-log of CRDT ops folded client-side (commutative + idempotent),
 so concurrent/offline edits converge with full history and a trusted snapshot
-for fast cold-start. OctoVault was scaffolded from the OctoChat app — it reuses
-its Expo setup, monorepo layout, Starfish client/crypto stack, theme system and
-UI primitives.
+for fast cold-start.
 
 ## Layout
 

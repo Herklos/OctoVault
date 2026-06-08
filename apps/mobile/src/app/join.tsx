@@ -22,7 +22,7 @@ type SpaceType = 'private' | 'public';
 
 export default function JoinScreen() {
   const { session } = useSession();
-  const { createSpace } = useSpaces();
+  const { createSpace, setActiveId } = useSpaces();
   const inviteFrag = useInviteFragment();
   // The last fragment we auto-joined. Native re-delivers the same launch URL on
   // remount (there's no address bar to clear, unlike web's `replaceState`), so
@@ -41,8 +41,11 @@ export default function JoinScreen() {
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState<string | null>(null);
 
-  const enterSpace = (spaceId: string) =>
-    router.replace({ pathname: '/room/[id]', params: { id: `${spaceId}-general`, name: 'general', kind: 'channel' } });
+  // Make the just-created/joined space active and land on its Vault workspace.
+  const enterSpace = (spaceId: string) => {
+    setActiveId(spaceId);
+    router.replace('/(tabs)/work');
+  };
 
   const makeSpace = async () => {
     if (!session || creating) return;

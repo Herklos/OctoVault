@@ -27,7 +27,7 @@ import { updateMutesDoc } from './starfish/registry';
 import { kvGet, kvSet } from './starfish/kv';
 
 const EMPTY: MutePrefs = { rooms: {}, spaces: {} };
-const keyFor = (userId: string) => `octochat.mutes.${userId}`;
+const keyFor = (userId: string) => `octovault.mutes.${userId}`;
 
 let cache: MutePrefs = EMPTY;
 let activeKey: string | null = null;
@@ -167,7 +167,7 @@ async function setMute(session: Session, field: 'rooms' | 'spaces', id: string, 
   try {
     await updateMutesDoc(session.accountClient, session.userId, (cur) => applyMute(cur, field, id, muted));
   } catch (err) {
-    console.error('[OctoChat] mutes: failed to sync mute change', err);
+    console.error('[OctoVault] mutes: failed to sync mute change', err);
   } finally {
     pending--;
   }

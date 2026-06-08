@@ -3,16 +3,16 @@ import path from 'node:path';
 import { app } from 'electron';
 
 /** Display name (menu bar, About/Quit items, dock in dev). Overrides the package
- *  name `@octochat/desktop` that Electron uses by default when unpackaged.
+ *  name `@octovault/desktop` that Electron uses by default when unpackaged.
  *  Packaged builds get this from electron-builder's `productName`, but setting it
  *  here makes dev (`electron .`) and prod agree. */
-export const APP_NAME = 'OctoChat';
+export const APP_NAME = 'OctoVault';
 
 /** Custom privileged scheme that serves the exported Expo web build in prod. */
 export const APP_SCHEME = 'app';
 
-/** Origin loaded under the custom scheme: app://octochat/. */
-export const APP_ORIGIN = `${APP_SCHEME}://octochat/`;
+/** Origin loaded under the custom scheme: app://octovault/. */
+export const APP_ORIGIN = `${APP_SCHEME}://octovault/`;
 
 /** Expo dev server (`expo start --web`) loaded in development. */
 export const DEV_URL = 'http://localhost:8081';
@@ -28,15 +28,15 @@ export const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 /**
  * EAS Hosting URL where the Expo web export is deployed.
  *
- * Override at build time by setting OCTOCHAT_UPDATE_URL in the tsup environment
- * (add `define: { 'process.env.OCTOCHAT_UPDATE_URL': '"https://…"' }` to
+ * Override at build time by setting OCTOVAULT_UPDATE_URL in the tsup environment
+ * (add `define: { 'process.env.OCTOVAULT_UPDATE_URL': '"https://…"' }` to
  * tsup.config.ts) or by setting the env var before launching the packaged app.
  *
- * Fill in the default below after the first `pnpm --filter @octochat/desktop
+ * Fill in the default below after the first `pnpm --filter @octovault/desktop
  * deploy:web` run and the EAS Hosting production URL is known.
  */
 export const UPDATE_BASE: string =
-  (process.env['OCTOCHAT_UPDATE_URL'] as string | undefined) ??
+  (process.env['OCTOVAULT_UPDATE_URL'] as string | undefined) ??
   'https://oc.drakkar.software';
 
 /** Root directory under userData where downloaded bundle versions are stored. */

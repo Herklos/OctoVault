@@ -283,7 +283,7 @@ export async function recoverPubspaceAccess(session: Session, serverPubAccess: P
     try {
       recovered[spaceId] = JSON.parse(await unsealFromSelf(session, sealed)) as PubspaceAccess;
     } catch (e) {
-      console.error('[OctoChat] pubspace recover: failed to unseal', spaceId, e);
+      console.error('[OctoVault] pubspace recover: failed to unseal', spaceId, e);
     }
   }
   mergePubspaceAccess(recovered);
@@ -301,7 +301,7 @@ export async function recoverPubspaceAccess(session: Session, serverPubAccess: P
       pubAccess: { ...cur.pubAccess, ...sealedEntries },
     }));
   } catch (e) {
-    console.error('[OctoChat] pubspace backfill failed', e);
+    console.error('[OctoVault] pubspace backfill failed', e);
   }
 }
 

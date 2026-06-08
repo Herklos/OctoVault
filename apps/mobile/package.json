@@ -23,6 +23,8 @@
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo-google-fonts/hanken-grotesk": "^0.4.3",
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo-google-fonts/newsreader": "^0.4.1",
+    "@expo-google-fonts/spline-sans": "^0.4.2",
     "@expo/dom-webview": "~56.0.5",
     "@expo/vector-icons": "^15.1.1",
     "@legendapp/list": "3.0.0",

@@ -11,7 +11,7 @@
 import { kvGet, kvSet } from './kv';
 import type { PublicProfile } from './client';
 
-const key = (userId: string) => `octochat.profile.v1.${userId}`;
+const key = (userId: string) => `octovault.profile.v1.${userId}`;
 
 /** Persist a freshly-read profile (fire-and-forget). */
 export function cacheProfile(userId: string, profile: PublicProfile): void {

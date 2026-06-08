@@ -14,11 +14,11 @@ import { CustomQueue, type Queue } from "@drakkar.software/starfish-queuing";
 export async function createNatsQueue(): Promise<{ queue: Queue; nc: NatsConnection | null }> {
   const url = process.env.NATS_URL;
   if (!url) {
-    console.warn("[OctoChat] NATS_URL unset — chat change-events are not published (dev).");
+    console.warn("[OctoVault] NATS_URL unset — chat change-events are not published (dev).");
     return { queue: new CustomQueue({ onPublish: () => {} }), nc: null };
   }
-  const nc = await connect({ servers: url, name: "octochat-server" });
-  console.log(`[OctoChat] Publishing chat change-events to NATS at ${url}`);
+  const nc = await connect({ servers: url, name: "octovault-server" });
+  console.log(`[OctoVault] Publishing chat change-events to NATS at ${url}`);
   const queue = new CustomQueue({
     onPublish: (subject, payload) => {
       // Derive a per-space NATS subject so Whistlers can filter per space.

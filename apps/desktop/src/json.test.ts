@@ -21,7 +21,7 @@ describe('parseJsonResponse', () => {
   });
 
   it('throws on an SPA-fallback HTML 200 (the bug that failed silently)', () => {
-    const html = '<!DOCTYPE html>\n<html lang="en">\n  <head>\n    <title>OctoChat</title>';
+    const html = '<!DOCTYPE html>\n<html lang="en">\n  <head>\n    <title>OctoVault</title>';
     expect(() => parseJsonResponse(URL, 'text/html', html)).toThrow(
       /Expected JSON .* but got "text\/html" .* is the manifest deployed/,
     );

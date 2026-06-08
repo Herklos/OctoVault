@@ -1,7 +1,7 @@
-# @octochat/desktop
+# @octovault/desktop
 
-The OctoChat **desktop** app. It's a thin [Electron](https://www.electronjs.org/)
-shell that renders the existing Expo **web** build (`@octochat/mobile`) inside a
+The OctoVault **desktop** app. It's a thin [Electron](https://www.electronjs.org/)
+shell that renders the existing Expo **web** build (`@octovault/mobile`) inside a
 `BrowserWindow` — no UI is duplicated. One codebase, three runtimes: iOS,
 Android, web, and now desktop.
 
@@ -10,7 +10,7 @@ Android, web, and now desktop.
 | Mode | What Electron loads | Why |
 | --- | --- | --- |
 | **dev** | `http://localhost:8081` (the Expo dev server) | live reload / fast refresh |
-| **prod** | `app://octochat/` — a custom protocol serving the exported `apps/mobile/dist/` | offline, packaged, stable origin |
+| **prod** | `app://octovault/` — a custom protocol serving the exported `apps/mobile/dist/` | offline, packaged, stable origin |
 
 In production a **privileged `app://` scheme** (registered in `src/main.ts`,
 served by `src/protocol.ts`) streams the static export. It's `standard` + `secure`
@@ -32,14 +32,14 @@ expo-router's History-API routes (e.g. `/room/abc`) survive a reload.
 
 ## Scripts
 
-Run from the repo root (`pnpm --filter @octochat/desktop <script>`) or from
+Run from the repo root (`pnpm --filter @octovault/desktop <script>`) or from
 within `apps/desktop` (`pnpm <script>`).
 
 | Script | What it does |
 | --- | --- |
 | `dev` | Starts the Expo web dev server, waits for port 8081, then launches Electron pointed at it. |
 | `build:main` | Compiles `src/main.ts` + `src/preload.ts` → `dist-electron/` with tsup. |
-| `export` | Runs `@octochat/mobile`'s `export:web` (`expo export -p web --output-dir dist`). |
+| `export` | Runs `@octovault/mobile`'s `export:web` (`expo export -p web --output-dir dist`). |
 | `package` | `export` → `build:main` → `electron-builder` (full installers). |
 | `package:dir` | Same as `package` but produces an **unpacked** app dir (faster, no installer). |
 | `typecheck` | `tsc --noEmit` over the Electron source. |
@@ -64,8 +64,8 @@ pnpm desktop           # terminal 2 — Expo web on :8081 + Electron window
 
 ```bash
 # from the repo root
-pnpm --filter @octochat/desktop package:dir   # quick: unpacked .app/dir in apps/desktop/release/
-pnpm --filter @octochat/desktop package        # full installers (dmg/zip · nsis · AppImage)
+pnpm --filter @octovault/desktop package:dir   # quick: unpacked .app/dir in apps/desktop/release/
+pnpm --filter @octovault/desktop package        # full installers (dmg/zip · nsis · AppImage)
 ```
 
 Output lands in `apps/desktop/release/`. Targets are configured in
@@ -88,7 +88,7 @@ not inside the asar, so the `app://` handler can stream it.
   toasts with no prompt.
 - **Unsigned macOS builds** are quarantined by Gatekeeper. Open via
   right-click → **Open**, or clear the flag:
-  `xattr -dr com.apple.quarantine "apps/desktop/release/mac/OctoChat.app"`.
+  `xattr -dr com.apple.quarantine "apps/desktop/release/mac/OctoVault.app"`.
 - **Sync server URL is baked at export time — and now required.** The renderer
   inlines `EXPO_PUBLIC_STARFISH_URL` + `EXPO_PUBLIC_STARFISH_NAMESPACE` at *build*
   time, not runtime. `scripts/check-build-env.mjs` runs first in `export` and
@@ -97,8 +97,8 @@ not inside the asar, so the `app://` handler can stream it.
   unlocks but no rooms load). Set them before `export`/`package`:
   ```bash
   cross-env EXPO_PUBLIC_STARFISH_URL=https://dev-sync.drakkar.software/sync \
-            EXPO_PUBLIC_STARFISH_NAMESPACE=octochat \
-            pnpm --filter @octochat/desktop package
+            EXPO_PUBLIC_STARFISH_NAMESPACE=octovault \
+            pnpm --filter @octovault/desktop package
   ```
   A non-`localhost` `http://` URL is blocked by Chromium mixed-content rules — use
   `https://`.
@@ -124,7 +124,7 @@ apps/desktop/
   src/
     main.ts        # window, security, single-instance, menu, dev/prod loading
     protocol.ts    # app:// handler — serve dist/ + SPA fallback
-    preload.ts     # contextBridge → window.octochat { version, platform, isElectron }
+    preload.ts     # contextBridge → window.octovault { version, platform, isElectron }
     constants.ts   # scheme/URLs, isDev, resolveDistDir()
   build/icon.png   # source icon for packaging
   electron-builder.yml

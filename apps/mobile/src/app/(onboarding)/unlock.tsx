@@ -25,7 +25,7 @@ export default function UnlockScreen() {
     <StackScreen
       scroll
       contentStyle={styles.content}
-      header={<AppBar title="Unlock OctoChat" subtitle="welcome back" />}
+      header={<AppBar title="Unlock OctoVault" subtitle="welcome back" />}
     >
       <SeedUnlock
         methods={unlockMethods}

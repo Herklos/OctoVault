@@ -1,6 +1,6 @@
 # Desktop notifications
 
-How OctoChat desktop shows "new message" toasts, why the permission UX differs
+How OctoVault desktop shows "new message" toasts, why the permission UX differs
 per OS, and why **macOS may silently never prompt** (spoiler: the build is
 ad-hoc signed).
 
@@ -13,8 +13,8 @@ same web code path as the browser build:
 | --- | --- | --- |
 | Fire a toast | `apps/mobile/src/lib/notify.ts` | HTML5 `new Notification(...)` |
 | Decide when | `apps/mobile/src/lib/unread-context.tsx` | SSE `subscribeRoomChanges` → `notifyNewMessage(roomId)` |
-| Click → focus | `apps/mobile/src/lib/desktop.ts` → `preload.ts` `focusWindow` | IPC `octochat:focus-window` → `BrowserWindow.show()/focus()` |
-| Dock/taskbar badge | `preload.ts` `setBadgeCount` → `main.ts` `octochat:set-badge` | `app.setBadgeCount(n)` |
+| Click → focus | `apps/mobile/src/lib/desktop.ts` → `preload.ts` `focusWindow` | IPC `octovault:focus-window` → `BrowserWindow.show()/focus()` |
+| Dock/taskbar badge | `preload.ts` `setBadgeCount` → `main.ts` `octovault:set-badge` | `app.setBadgeCount(n)` |
 
 Chromium inside Electron bridges the HTML5 `Notification` to a **native OS
 toast** automatically — macOS Notification Center, Windows toast, Linux D-Bus.
@@ -27,7 +27,7 @@ when all of these hold:
 
 1. `Notification` exists and `Notification.permission === 'granted'`.
 2. The app window is **not focused** (`document.hasFocus()` is false) — never pop
-   while you're looking at OctoChat; the unread badge covers that case.
+   while you're looking at OctoVault; the unread badge covers that case.
 3. An SSE room-change event arrived for a room you are **not** currently viewing
    (the active room pulls messages instead of bumping unread — unread-context.tsx).
 
@@ -36,7 +36,7 @@ the SSE event carries no text or author. Clicking the toast focuses the window a
 routes to the room.
 
 > **Testing implication:** if you test with the window focused, or with the room
-> already open, **nothing fires** — by design. To trigger one: leave OctoChat in
+> already open, **nothing fires** — by design. To trigger one: leave OctoVault in
 > the background and send a message from another account/device into a room you
 > don't have open.
 
@@ -63,8 +63,8 @@ uniform:
 
 | OS | Prompts the user? | Details |
 | --- | --- | --- |
-| **macOS** | **Yes — one-time system prompt** | First posted notification triggers the macOS authorization dialog; the app then lives in System Settings → Notifications. **Requires a validly signed app** — see below. Unpackaged dev (`electron .`) registers under the name **"Electron"**, not OctoChat. |
-| **Windows** | **No prompt** | Toasts just appear; the user disables them later in Settings → Notifications. Requires an **AppUserModelID** (set in `main.ts`: `app.setAppUserModelId('software.drakkar.octochat')`) and a Start-Menu shortcut, which the nsis installer creates. |
+| **macOS** | **Yes — one-time system prompt** | First posted notification triggers the macOS authorization dialog; the app then lives in System Settings → Notifications. **Requires a validly signed app** — see below. Unpackaged dev (`electron .`) registers under the name **"Electron"**, not OctoVault. |
+| **Windows** | **No prompt** | Toasts just appear; the user disables them later in Settings → Notifications. Requires an **AppUserModelID** (set in `main.ts`: `app.setAppUserModelId('software.drakkar.octovault')`) and a Start-Menu shortcut, which the nsis installer creates. |
 | **Linux** | **No prompt** | Delivered over D-Bus `org.freedesktop.Notifications`. Shows if a notification daemon is running; there is no permission concept. |
 
 **Net:** only macOS asks. Windows and Linux silently allow.
@@ -76,7 +76,7 @@ signed with a **valid, stable identity**. Our current builds are **ad-hoc signed
 — verify with:
 
 ```bash
-codesign -dv --verbose=4 "release/mac-arm64/OctoChat.app"
+codesign -dv --verbose=4 "release/mac-arm64/OctoVault.app"
 # CodeDirectory ... flags=0x10002(adhoc,runtime)
 # Signature=adhoc
 # TeamIdentifier=not set
@@ -100,7 +100,7 @@ dropped it.
    path (App Translocation), which breaks its notification identity. Move it to
    `/Applications` first, or clear the flag:
    ```bash
-   xattr -dr com.apple.quarantine "apps/desktop/release/mac-arm64/OctoChat.app"
+   xattr -dr com.apple.quarantine "apps/desktop/release/mac-arm64/OctoVault.app"
    ```
 
 3. **A toast has to actually fire.** See "When a toast actually fires" above —
@@ -127,6 +127,6 @@ dropped it.
 
 - `apps/mobile/src/lib/notify.ts` — toast firing + permission helper.
 - `apps/mobile/src/lib/unread-context.tsx` — SSE subscription that drives toasts and the badge.
-- `apps/mobile/src/lib/desktop.ts` — `window.octochat` bridge accessors (focus, badge).
+- `apps/mobile/src/lib/desktop.ts` — `window.octovault` bridge accessors (focus, badge).
 - `apps/desktop/src/preload.ts` — exposes `focusWindow` / `setBadgeCount` over IPC.
 - `apps/desktop/src/main.ts` — IPC handlers, `setAppUserModelId`, `setBadgeCount`.
