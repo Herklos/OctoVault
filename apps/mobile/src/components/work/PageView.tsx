@@ -123,9 +123,12 @@ export function PageView({ spaceId, objectId, emoji, title, onRenameTitle }: { s
             onAddBelow={() => setMenu({ mode: 'insert', index: i + 1 })}
             onChangeType={() => setMenu({ mode: 'retype', id: b.id, type: b.type })}
             onToggle={() => page.setBlockChecked(b.id, !b.checked)}
-            onDelete={() => {
-              setEditingId(null);
+            onDeleteEmpty={() => {
+              // Backspace on an empty block removes it and focuses the previous one
+              // (Notion-style), so there's no need for a visible per-block trash.
+              const prev = page.blocks[i - 1];
               page.removeBlock(b.id);
+              setEditingId(prev ? prev.id : null);
             }}
           />
         ))}
@@ -152,6 +155,14 @@ export function PageView({ spaceId, objectId, emoji, title, onRenameTitle }: { s
         current={menu && menu.mode !== 'insert' ? menu.type : undefined}
         title={menu?.mode === 'insert' ? 'Add block' : 'Turn into'}
         onSelect={onMenuSelect}
+        onDelete={
+          menu && menu.mode === 'retype'
+            ? () => {
+                page.removeBlock(menu.id);
+                setMenu(null);
+              }
+            : undefined
+        }
         onClose={onMenuClose}
       />
     </View>
@@ -170,10 +181,11 @@ interface BlockRowProps {
   onAddBelow: () => void;
   onChangeType: () => void;
   onToggle: () => void;
-  onDelete: () => void;
+  /** Backspace on an empty block: delete it (Notion-style) — no visible trash. */
+  onDeleteEmpty: () => void;
 }
 
-function BlockRow({ block, index, editing, onEdit, onClose, onText, onChange, onAddBelow, onChangeType, onToggle, onDelete }: BlockRowProps) {
+function BlockRow({ block, index, editing, onEdit, onClose, onText, onChange, onAddBelow, onChangeType, onToggle, onDeleteEmpty }: BlockRowProps) {
   const { colors } = useTheme();
   const { hovered, hoverProps } = useRowHover();
   // Web reveals gutter controls on hover; native has no pointer (`useRowHover` is
@@ -187,7 +199,6 @@ function BlockRow({ block, index, editing, onEdit, onClose, onText, onChange, on
         <Pressable accessibilityRole="button" accessibilityLabel="Edit divider" onPress={onEdit} style={styles.dividerHit}>
           <View style={[styles.rule, { backgroundColor: colors.lineSoft }]} />
         </Pressable>
-        {editing ? <IconButton name="trash" size={13} color={colors.inkMuted} onPress={onDelete} accessibilityLabel="Delete block" /> : null}
       </View>
     );
   }
@@ -211,6 +222,7 @@ function BlockRow({ block, index, editing, onEdit, onClose, onText, onChange, on
             onCommit={(t) => onText(t)}
             onChange={onChange}
             onClose={onClose}
+            onDeleteEmpty={onDeleteEmpty}
             autoFocus
             commitEmpty
             plain
@@ -233,7 +245,6 @@ function BlockRow({ block, index, editing, onEdit, onClose, onText, onChange, on
             </Txt>
           </Pressable>
         )}
-        {editing ? <IconButton name="trash" size={13} color={colors.inkMuted} onPress={onDelete} accessibilityLabel="Delete block" style={styles.delete} /> : null}
       </View>
     </View>
   );
@@ -291,7 +302,6 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: spacing.xs },
   read: { paddingVertical: 4 },
   doneText: { textDecorationLine: 'line-through' },
-  delete: { alignSelf: 'flex-start' },
   dividerHit: { flex: 1, paddingVertical: spacing.xs },
   rule: { height: 1, borderRadius: radii.xs },
   tail: { minHeight: layout.docEditorMinHeight, paddingVertical: spacing.sm },

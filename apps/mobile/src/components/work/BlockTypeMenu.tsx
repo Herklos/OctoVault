@@ -16,6 +16,9 @@ interface BlockTypeMenuProps {
   /** Sheet heading — "Add block" when inserting, "Turn into" when changing type. */
   title?: string;
   onSelect: (type: BlockType) => void;
+  /** When set (changing an existing block), a "Delete block" action is shown — the
+   *  Notion-style way to remove a block from its handle menu. */
+  onDelete?: () => void;
   onClose: () => void;
 }
 
@@ -26,8 +29,9 @@ interface BlockTypeMenuProps {
  * `Modal` (the {@link TaskDetailSheet} pattern) so it works identically on web and
  * native without an anchored-popover positioning layer.
  */
-export function BlockTypeMenu({ visible, current, title = 'Add block', onSelect, onClose }: BlockTypeMenuProps) {
+export function BlockTypeMenu({ visible, current, title = 'Add block', onSelect, onDelete, onClose }: BlockTypeMenuProps) {
   const { colors } = useTheme();
+  const { hovered: delHovered, hoverProps: delHover } = useHover();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
@@ -44,6 +48,18 @@ export function BlockTypeMenu({ visible, current, title = 'Add block', onSelect,
               <BlockTypeRow key={def.type} icon={def.icon} label={def.label} active={def.type === current} onPress={() => onSelect(def.type)} />
             ))}
           </ScrollView>
+          {onDelete ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Delete block"
+              onPress={onDelete}
+              {...delHover}
+              style={[styles.delete, { borderTopColor: colors.lineSoft, backgroundColor: delHovered ? colors.dangerBg : 'transparent' }]}
+            >
+              <Icon name="trash" size={16} color={colors.danger} />
+              <Txt variant="subhead" weight="medium" tone="danger" style={styles.rowLabel}>Delete block</Txt>
+            </Pressable>
+          ) : null}
         </Pressable>
       </Pressable>
     </Modal>
@@ -77,4 +93,5 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: spacing.sm, gap: spacing.none },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.md },
   rowLabel: { flex: 1 },
+  delete: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs, marginHorizontal: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderRadius: radii.md },
 });

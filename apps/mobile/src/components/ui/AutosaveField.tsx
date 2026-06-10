@@ -32,6 +32,10 @@ interface AutosaveFieldProps {
    *  side-effect-free by default — used by the doc editor to detect the "/" slash
    *  command and start-of-line Markdown shortcuts as the user types. */
   onChange?: (text: string) => void;
+  /** Pressing Backspace while the field is ALREADY empty deletes the block
+   *  (Notion-style) instead of doing nothing — the doc editor wires this to remove
+   *  the block and focus the previous one. No-op when unset. */
+  onDeleteEmpty?: () => void;
   multiline?: boolean;
   /** Render the value in JetBrains Mono (code blocks). See {@link TextField}. */
   mono?: boolean;
@@ -66,6 +70,7 @@ export function AutosaveField({
   debounceMs = motion.autosaveDoc,
   commitEmpty = false,
   onChange,
+  onDeleteEmpty,
   multiline = false,
   mono = false,
   textVariant,
@@ -92,23 +97,27 @@ export function AutosaveField({
     onChange?.(text);
   };
 
-  // Web key handling differs from the Save/Cancel editor: there is no cancel, and
-  // Enter is a newline (multiline docs) or close (single-line titles); Escape always
-  // closes. Native single-line closes via the keyboard return key (onSubmitEditing).
-  const onKeyPress =
-    Platform.OS === 'web'
-      ? (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
-          const ev = e as WebKeyEvent;
-          const key = ev.nativeEvent.key;
-          if (key === 'Escape') {
-            ev.preventDefault?.();
-            close();
-          } else if (key === 'Enter' && !multiline && !ev.shiftKey && !ev.nativeEvent.isComposing) {
-            ev.preventDefault?.();
-            close();
-          }
-        }
-      : undefined;
+  // Key handling: Backspace on an already-empty field deletes the block (Notion-style,
+  // both platforms). On web there's also no cancel — Enter is a newline (multiline
+  // docs) or close (single-line titles), and Escape always closes. Native single-line
+  // also closes via the keyboard return key (onSubmitEditing).
+  const onKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    const ev = e as WebKeyEvent;
+    const key = ev.nativeEvent.key;
+    if (key === 'Backspace' && onDeleteEmpty && autosave.value === '') {
+      ev.preventDefault?.();
+      onDeleteEmpty();
+      return;
+    }
+    if (Platform.OS !== 'web') return;
+    if (key === 'Escape') {
+      ev.preventDefault?.();
+      close();
+    } else if (key === 'Enter' && !multiline && !ev.shiftKey && !ev.nativeEvent.isComposing) {
+      ev.preventDefault?.();
+      close();
+    }
+  };
 
   return (
     <TextField
@@ -125,7 +134,8 @@ export function AutosaveField({
       placeholder={placeholder}
       accessibilityLabel={accessibilityLabel}
       containerStyle={containerStyle}
-      {...(Platform.OS === 'web' ? { onKeyPress } : { onSubmitEditing: multiline ? undefined : close })}
+      onKeyPress={onKeyPress}
+      {...(Platform.OS !== 'web' && !multiline ? { onSubmitEditing: close } : {})}
     />
   );
 }
