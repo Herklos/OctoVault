@@ -160,7 +160,15 @@ const styles = StyleSheet.create({
     maxWidth: 360,
   },
   pinBlock: { gap: spacing.md },
-  qrContent: { padding: spacing.screenX, gap: spacing.xl, alignItems: 'center', justifyContent: 'center' },
+  qrContent: {
+    padding: spacing.screenX,
+    gap: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 560,
+    width: '100%',
+    alignSelf: 'center',
+  },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   footer: { paddingHorizontal: spacing.screenX, paddingTop: spacing.md },
 });

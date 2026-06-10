@@ -41,8 +41,8 @@ function Ring({ size, color, phase }: { size: number; color: string; phase: numb
     }
     const t = (p.value + phase) % 1;
     return {
-      opacity: interpolate(t, [0, 0.1, 1], [0, 0.5, 0]),
-      transform: [{ scale: interpolate(t, [0, 1], [1, 1.85]) }],
+      opacity: interpolate(t, [0, 0.1, 1], [0, 0.28, 0]),
+      transform: [{ scale: interpolate(t, [0, 1], [1, 1.7]) }],
     };
   });
 
@@ -78,5 +78,5 @@ export function PulseHalo({ size, color, rings = 2, children }: PulseHaloProps) 
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center' },
-  ring: { position: 'absolute', borderWidth: 1.5 },
+  ring: { position: 'absolute', borderWidth: 1 },
 });

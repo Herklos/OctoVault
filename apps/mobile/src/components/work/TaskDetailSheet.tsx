@@ -1,7 +1,8 @@
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { layout, radii, spacing } from '@/theme';
+import { layout, radii, shadows, spacing } from '@/theme';
 import type { Column, Task } from '@/lib/use-board';
+import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
 import { AutosaveField } from '@/components/ui/AutosaveField';
 import { Icon } from '@/components/ui/Icon';
@@ -27,12 +28,13 @@ interface TaskDetailSheetProps {
  */
 export function TaskDetailSheet({ task, columns, onRename, onSetNotes, onMove, onToggleStatus, onDelete, onClose }: TaskDetailSheetProps) {
   const { colors } = useTheme();
+  const { isWide } = useResponsive();
   const done = task?.status === 'done';
 
   return (
     <Modal visible={!!task} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={[styles.backdrop, { backgroundColor: colors.scrim }]} onPress={onClose} accessibilityLabel="Dismiss">
-        <Pressable style={[styles.sheet, { backgroundColor: colors.paper }]} onPress={() => undefined}>
+      <Pressable style={[styles.backdrop, isWide && styles.backdropWide, { backgroundColor: colors.scrim }]} onPress={onClose} accessibilityLabel="Dismiss">
+        <Pressable style={[styles.sheet, isWide ? styles.sheetWide : styles.sheetBottom, { backgroundColor: colors.paper, borderColor: colors.lineSoft }]} onPress={() => undefined}>
           {task ? (
             <>
               <View style={styles.head}>
@@ -84,7 +86,10 @@ export function TaskDetailSheet({ task, columns, onRename, onSetNotes, onMove, o
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { maxHeight: '85%', paddingBottom: spacing.lg, borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet },
+  backdropWide: { justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  sheet: { paddingBottom: spacing.lg },
+  sheetBottom: { maxHeight: '85%', borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet },
+  sheetWide: { width: layout.taskPanelWidth, maxWidth: '94%', maxHeight: '82%', borderRadius: radii.sheet, borderWidth: 1, ...shadows.lg },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
   statusBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   body: { paddingHorizontal: spacing.lg, gap: spacing.sm },

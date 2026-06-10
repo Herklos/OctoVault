@@ -47,5 +47,12 @@ export default function RecoverScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg },
+  content: {
+    padding: spacing.xl,
+    gap: spacing.lg,
+    maxWidth: 460,
+    width: '100%',
+    alignSelf: 'center',
+    justifyContent: 'center',
+  },
 });

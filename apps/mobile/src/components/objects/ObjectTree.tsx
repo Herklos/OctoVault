@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
-import { useHover } from '@/lib/use-hover';
+import { useRowHover } from '@/lib/use-hover';
 import { useTheme } from '@/lib/use-theme';
 import { iconForNode } from '@/lib/object-types';
 import type { ObjectTreeNode } from '@/lib/starfish/objects';
@@ -54,7 +54,10 @@ export function ObjectTree({ nodes, onOpen, collapsed, onToggle, onAddChild, isC
 
 function ObjectTreeRow({ node, onOpen, collapsed, onToggle, onAddChild, isContainer }: RowProps) {
   const { colors } = useTheme();
-  const { hovered, hoverProps } = useHover();
+  // Rows are plain Views (not Pressables, to keep text selection), so hover must use
+  // onMouseEnter/onMouseLeave (useRowHover) — RN-web does NOT forward Pressable-style
+  // onHoverIn on a View, which previously left rows un-hoverable and hid the add-child "+".
+  const { hovered, hoverProps } = useRowHover();
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsed.has(node.id);
   const isCategory = node.type === 'category';

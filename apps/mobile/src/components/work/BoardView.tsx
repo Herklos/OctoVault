@@ -49,29 +49,14 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle }: { 
       <ObjectHero
         emoji={emoji}
         title={title}
-        subtitle={`${done}/${total} done`}
+        subtitle={total ? `${done} of ${total} done` : undefined}
         onChangeTitle={onRenameTitle}
-        trailing={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add column"
-            disabled={!board.ready}
-            onPress={() => board.addColumn('New column')}
-            style={[styles.add, { borderColor: colors.lineFaint, opacity: board.ready ? 1 : opacity.disabled }]}
-          >
-            <Icon name="plus" size={12} color={colors.inkMuted} />
-            <Txt variant="caption" tone="inkMuted">Column</Txt>
-          </Pressable>
-        }
       />
 
       {board.offline ? <Callout tone="info" iconName="info">Offline — showing the last synced board.</Callout> : null}
       {board.openError ? <Callout tone="danger" iconName="alert">{board.openError}</Callout> : null}
 
-      {columns.length === 0 ? (
-        <Callout tone="info" iconName="info">No columns yet. Add one to start the board.</Callout>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.columns}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.columns}>
           {columns.map((col) => (
             <View key={col.id} style={[styles.column, paperBorder(colors), shadows.sm]}>
               <View style={styles.colHead}>
@@ -123,8 +108,18 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle }: { 
               </Pressable>
             </View>
           ))}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add column"
+            disabled={!board.ready}
+            onPress={() => board.addColumn('New column')}
+            style={[styles.addColumn, { borderColor: colors.lineSoft, opacity: board.ready ? 1 : opacity.disabled }]}
+          >
+            <Icon name="plus" size={15} color={colors.inkMuted} />
+            <Txt variant="footnote" weight="medium" tone="inkMuted">{columns.length === 0 ? 'Add a column' : 'Add column'}</Txt>
+          </Pressable>
         </ScrollView>
-      )}
 
       <TaskDetailSheet
         task={openTask}
@@ -142,9 +137,9 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle }: { 
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
-  add: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.xs, borderWidth: 1 },
-  columns: { gap: spacing.sm, paddingBottom: spacing.sm },
+  columns: { gap: spacing.md, paddingBottom: spacing.sm, alignItems: 'flex-start' },
   column: { width: layout.boardColumnWidth, borderRadius: radii.card, borderWidth: 1, padding: spacing.sm, gap: spacing.xs },
+  addColumn: { width: layout.boardColumnWidth, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderRadius: radii.card, borderWidth: 1, borderStyle: 'dashed' },
   colHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: 2, paddingBottom: spacing.xs },
   colTitle: { flex: 1 },
   card: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.md, borderWidth: 1 },

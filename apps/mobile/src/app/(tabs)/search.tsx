@@ -62,5 +62,5 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.screenX, paddingTop: spacing.md, gap: spacing.md },
+  content: { paddingHorizontal: spacing.screenX, paddingTop: spacing.md, gap: spacing.md, maxWidth: 680, width: '100%', alignSelf: 'center' },
 });

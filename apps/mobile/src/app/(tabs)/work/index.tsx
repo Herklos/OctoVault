@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
-import { spacing } from '@/theme';
+import { layout, spacing } from '@/theme';
 import { useSpaces } from '@/lib/use-spaces';
 import { AppBar } from '@/components/ui/AppBar';
 import { IconButton } from '@/components/ui/IconButton';
+import { Stage } from '@/components/ui/Stage';
 import { StackScreen } from '@/components/ui/StackScreen';
 import { WorkObjects } from '@/components/work/WorkObjects';
 
@@ -36,11 +37,14 @@ export default function WorkScreen() {
       }
       contentStyle={styles.content}
     >
-      <WorkObjects spaceId={space?.id ?? null} hero />
+      <Stage maxWidth={layout.listMaxWidth} style={styles.stage}>
+        <WorkObjects spaceId={space?.id ?? null} hero />
+      </Stage>
     </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.sm, paddingTop: spacing.sm, paddingBottom: 96 },
+  content: { paddingTop: spacing.sm, paddingBottom: 96 },
+  stage: { paddingTop: spacing.sm },
 });

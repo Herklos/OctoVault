@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
-import { spacing } from '@/theme';
+import { layout, spacing } from '@/theme';
 import { useSpaces } from '@/lib/use-spaces';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { AppBar } from '@/components/ui/AppBar';
+import { Stage } from '@/components/ui/Stage';
 import { StackScreen } from '@/components/ui/StackScreen';
 import { Breadcrumbs } from '@/components/objects/Breadcrumbs';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -47,20 +48,23 @@ export default function WorkPageScreen() {
         />
       }
     >
-      <Breadcrumbs trail={trail} onNavigate={(n) => openCrumb(n.id, n.type)} />
-      <ErrorBoundary label="Page">
-        <PageView
-          spaceId={spaceId}
-          objectId={id}
-          emoji={node?.emoji || emoji}
-          title={node?.title || label}
-          onRenameTitle={(t) => rename(id, { title: t.trim() || 'Untitled' })}
-        />
-      </ErrorBoundary>
+      <Stage maxWidth={layout.editorMaxWidth} style={styles.stage}>
+        <Breadcrumbs trail={trail} onNavigate={(n) => openCrumb(n.id, n.type)} />
+        <ErrorBoundary label="Page">
+          <PageView
+            spaceId={spaceId}
+            objectId={id}
+            emoji={node?.emoji || emoji}
+            title={node?.title || label}
+            onRenameTitle={(t) => rename(id, { title: t.trim() || 'Untitled' })}
+          />
+        </ErrorBoundary>
+      </Stage>
     </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.screenX, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
+  content: { paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
+  stage: { gap: spacing.sm },
 });

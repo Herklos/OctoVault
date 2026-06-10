@@ -214,9 +214,9 @@ const dark: Palette = {
 
   accent: '#8b7cf0',
   accentStrong: '#a499f5',
-  accentGradTop: '#9a8bf5',
-  accentGradBottom: '#6f5fd8',
-  glow: '#8b7cf0',
+  accentGradTop: '#7e6fe0',
+  accentGradBottom: '#5a4cc0',
+  glow: '#7d6ee0',
   accentSoft: '#2c2748',
   accentInk: '#cabffb',
   onAccent: '#0e0b1f',
@@ -388,13 +388,13 @@ export const shadows = {
     shadowOffset: { width: 0, height: 12 },
     elevation: 14,
   },
-  /** Accent glow for hero/primary moments. */
+  /** Accent glow for hero/primary moments — kept restrained (editorial, not neon). */
   accentGlow: {
     shadowColor: '#5847c9',
-    shadowOpacity: 0.4,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
 } as const;
 
@@ -403,7 +403,7 @@ export const shadows = {
  * swallow near-black drop shadows, so primary moments (buttons, the brand disc,
  * focused inputs) lean on a colored bloom instead. Pass `colors.glow`.
  */
-export function glowShadow(color: string, opacity = 0.45, radius = 18) {
+export function glowShadow(color: string, opacity = 0.28, radius = 14) {
   return {
     shadowColor: color,
     shadowOpacity: opacity,
@@ -481,6 +481,16 @@ export const layout = {
   rowAddButton: 20,
   /** Emoji glyph size in a Work doc/board hero header (larger than the title text). */
   objectHeroEmoji: 38,
+  /** Notion/Anytype-style large object icon, shown ABOVE the title in a doc/board hero. */
+  objectIconLg: 60,
+  /** Rounded tile holding the large hero icon (icon sits centered inside). */
+  objectIconTile: 78,
+  /** Optional cover band height above a doc/board hero (Notion-style). */
+  coverHeight: 184,
+  /** Editorial reading column for a workspace list landing (Vault home, search). */
+  listMaxWidth: 760,
+  /** Side panel for an opened board task on wide screens (replaces the bottom sheet). */
+  taskPanelWidth: 380,
   /** Block editor: left gutter that holds the hover "+" / drag handle. */
   blockGutterWidth: 26,
   /** Block editor: drag/add handle glyph size. */

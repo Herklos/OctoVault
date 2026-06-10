@@ -74,7 +74,9 @@ export function PinPad({ onDigit, onDelete }: PinPadProps) {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
-  key: { flexBasis: '31%', aspectRatio: 1.7, alignItems: 'center', justifyContent: 'center' },
-  keyBtn: { borderRadius: radii.md, borderWidth: 1 },
+  // Capped + centered so the pad stays a compact, iOS-like keypad on wide web
+  // instead of ballooning to the full reading column.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', alignSelf: 'center', maxWidth: 300, width: '100%' },
+  key: { flexBasis: '30%', aspectRatio: 1.35, alignItems: 'center', justifyContent: 'center' },
+  keyBtn: { borderRadius: radii.lg, borderWidth: 1 },
 });

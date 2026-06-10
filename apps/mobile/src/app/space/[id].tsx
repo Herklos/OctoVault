@@ -368,7 +368,7 @@ export default function SpaceDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg, paddingBottom: 96 },
+  content: { padding: spacing.screenX, gap: spacing.lg, paddingBottom: 96, maxWidth: 680, width: '100%', alignSelf: 'center' },
   identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   avatarWrap: { position: 'relative' },
   cameraBadge: {

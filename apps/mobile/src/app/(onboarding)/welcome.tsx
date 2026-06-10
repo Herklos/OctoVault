@@ -122,15 +122,16 @@ export default function Welcome() {
 const styles = StyleSheet.create({
   screen: {
     paddingHorizontal: spacing.xl,
-    justifyContent: 'space-between',
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.xl,
+    paddingVertical: spacing.xxl,
+    justifyContent: 'center',
+    gap: spacing.xxxl,
+    maxWidth: 440,
+    width: '100%',
+    alignSelf: 'center',
   },
   hero: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xxl,
+    gap: spacing.xl,
   },
   lockup: {
     alignItems: 'center',

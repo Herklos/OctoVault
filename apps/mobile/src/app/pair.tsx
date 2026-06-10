@@ -144,7 +144,7 @@ export default function PairScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg },
+  content: { padding: spacing.xl, gap: spacing.lg, maxWidth: 480, width: '100%', alignSelf: 'center', justifyContent: 'center' },
   center: { padding: spacing.xl, gap: spacing.md, alignItems: 'center', justifyContent: 'center' },
   input: {
     height: 44,

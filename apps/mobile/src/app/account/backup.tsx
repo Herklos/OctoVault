@@ -81,5 +81,5 @@ export default function BackupSeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg },
+  content: { padding: spacing.screenX, gap: spacing.lg, maxWidth: 560, width: '100%', alignSelf: 'center' },
 });

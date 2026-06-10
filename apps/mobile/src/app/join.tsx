@@ -219,7 +219,7 @@ export default function JoinScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg },
+  content: { padding: spacing.screenX, gap: spacing.lg, maxWidth: 600, width: '100%', alignSelf: 'center' },
   typeRow: { flexDirection: 'row', gap: spacing.sm },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: { flex: 1 },

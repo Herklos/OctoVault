@@ -29,7 +29,6 @@ import { ObjectHero } from '@/components/work/ObjectHero';
  * below the last block (or an empty page) appends a paragraph and focuses it.
  */
 export function PageView({ spaceId, objectId, emoji, title, onRenameTitle }: { spaceId: string; objectId: string; emoji?: string; title?: string; onRenameTitle?: (text: string) => void }) {
-  const { colors } = useTheme();
   const page = usePage(spaceId, objectId);
   const [editingId, setEditingId] = useState<string | null>(null);
   // The block-type menu is shared across three triggers: `insert` chooses a new
@@ -53,7 +52,7 @@ export function PageView({ spaceId, objectId, emoji, title, onRenameTitle }: { s
 
   if (isPublicSpaceId(spaceId)) {
     return (
-      <View style={[styles.wrap, { backgroundColor: colors.editorCanvas }]}>
+      <View style={styles.wrap}>
         <ObjectHero emoji={emoji} title={title} />
         <Callout tone="info" iconName="info">Pages live in private, end-to-end-encrypted spaces in this version.</Callout>
       </View>
@@ -104,8 +103,8 @@ export function PageView({ spaceId, objectId, emoji, title, onRenameTitle }: { s
   };
 
   return (
-    <View style={[styles.wrap, { backgroundColor: colors.editorCanvas }]}>
-      <ObjectHero emoji={emoji} title={title} subtitle={page.blocks.length ? `${page.blocks.length} blocks` : undefined} onChangeTitle={onRenameTitle} />
+    <View style={styles.wrap}>
+      <ObjectHero emoji={emoji} title={title} onChangeTitle={onRenameTitle} leftInset={layout.blockGutterWidth} />
 
       {page.offline ? <Callout tone="info" iconName="info">Offline — showing the last synced version.</Callout> : null}
       {page.openError ? <Callout tone="danger" iconName="alert">{page.openError}</Callout> : null}
@@ -144,7 +143,7 @@ export function PageView({ spaceId, objectId, emoji, title, onRenameTitle }: { s
         style={[styles.tail, { opacity: page.ready ? 1 : opacity.disabled }]}
       >
         {page.blocks.length === 0 && page.ready ? (
-          <Txt variant="body" tone="inkFaint">Empty page — click here to start writing.</Txt>
+          <Txt variant="body" tone="inkFaint">Write something, or type ‘/’ for commands…</Txt>
         ) : null}
       </Pressable>
 
@@ -270,17 +269,24 @@ function Prefix({ type, index }: { type: BlockType; index: number }) {
   if (type === 'bulleted') return <Txt style={styles.marker} tone="inkMuted">•</Txt>;
   if (type === 'numbered') return <Txt style={styles.marker} tone="inkMuted" mono>{`${index + 1}.`}</Txt>;
   if (type === 'quote') return <View style={[styles.quoteBar, { backgroundColor: colors.accent }]} />;
-  return <View style={styles.marker} />;
+  // Paragraphs / headings carry no leading marker, so their text sits flush with the
+  // hero title (which is inset by the same gutter) — no stray indent.
+  return null;
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, gap: spacing.md },
+  wrap: { flex: 1, gap: spacing.sm },
   blocks: { gap: layout.blockRowGap },
-  row: { flexDirection: 'row', alignItems: 'flex-start' },
+  row: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 1 },
   gutter: { width: layout.blockGutterWidth },
-  gutterCluster: { position: 'absolute', right: 0, top: 2, flexDirection: 'row', alignItems: 'center' },
+  // The handle cluster lives in the left margin, ending a touch BEFORE the text
+  // column (right: 8) so the +/⠿ never crowd the marker or text — Notion-style
+  // margin handles. It overflows left out of the reserved gutter.
+  gutterCluster: { position: 'absolute', right: 8, top: 3, flexDirection: 'row', alignItems: 'center' },
   gutterBtn: { padding: 1 },
-  marker: { minWidth: 20, alignItems: 'center', paddingTop: 2 },
+  // Left-aligned so the marker glyph (•, 1., checkbox) sits flush at the text-column
+  // edge — aligned with the title and with paragraph text; list text indents past it.
+  marker: { width: 22, alignItems: 'flex-start', paddingTop: 3 },
   quoteBar: { width: layout.quoteBarWidth, alignSelf: 'stretch', borderRadius: radii.xs, marginRight: spacing.xs },
   body: { flex: 1, gap: spacing.xs },
   read: { paddingVertical: 4 },

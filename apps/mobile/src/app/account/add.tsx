@@ -60,6 +60,6 @@ export default function AddAccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg },
+  content: { padding: spacing.screenX, gap: spacing.lg, maxWidth: 600, width: '100%', alignSelf: 'center' },
   actions: { gap: spacing.md },
 });

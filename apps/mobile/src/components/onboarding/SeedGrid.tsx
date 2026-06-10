@@ -17,7 +17,9 @@ export function SeedGrid({ words, concealed = false }: SeedGridProps) {
     <View style={[styles.grid, { backgroundColor: colors.paperAlt, borderColor: colors.accentBorder }]}>
       {words.map((word, i) => (
         <View
-          key={word}
+          // Index key: a BIP-39 seed can legitimately repeat a word, so the word
+          // itself isn't unique — position is.
+          key={i}
           style={[styles.cell, paperBorder(colors, colors.lineFaint)]}
         >
           <View style={[styles.index, { backgroundColor: colors.accentBg }]}>

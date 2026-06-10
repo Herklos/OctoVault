@@ -48,7 +48,7 @@ export function EmptyState({ iconName, title, subtitle, children, onIconPress }:
       style={[
         styles.icon,
         { backgroundColor: colors.accentBg, borderColor: colors.accentBorder, borderTopColor: colors.hairlineHi },
-        glowShadow(colors.glow, hovered ? 0.34 : 0.2, hovered ? 18 : 14),
+        glowShadow(colors.glow, hovered ? 0.18 : 0.1, hovered ? 14 : 10),
         // Android renders the elevation shadow of this fully-rounded disc as a
         // hexagon (its rounded-rect outline shadow degrades to a polygon at
         // radius 999). Web (boxShadow) and iOS (shadow* props) draw a clean

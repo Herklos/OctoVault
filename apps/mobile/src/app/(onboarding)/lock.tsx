@@ -49,5 +49,5 @@ export default function LockScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg },
+  content: { padding: spacing.xl, gap: spacing.lg, justifyContent: 'center', maxWidth: 440, width: '100%', alignSelf: 'center' },
 });
