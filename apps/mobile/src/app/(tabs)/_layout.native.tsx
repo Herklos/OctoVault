@@ -8,8 +8,8 @@ import { useTheme } from '@/lib/use-theme';
 
 /**
  * Native (iOS / Android) bottom tabs. Renders the real platform tab bar via Expo
- * Router's `NativeTabs`. Four tabs: Vault (workspace), Notes (personal magic space),
- * Agents (active space automations), and Search (iOS 26 floats it to bottom-right).
+ * Router's `NativeTabs`. Four tabs: Vault (workspace), Agents (active space automations),
+ * Notes (personal magic space), and Search (iOS 26 floats it to bottom-right).
  * The web/PWA build keeps the JS `Tabs` renderer in `_layout.tsx`.
  */
 export default function NativeTabsLayout() {
@@ -31,13 +31,13 @@ export default function NativeTabsLayout() {
         <NativeTabs.Trigger.Label>Vault</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={<NativeTabs.Trigger.VectorIcon family={Feather} name="briefcase" />} />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="notes">
-        <NativeTabs.Trigger.Label>Notes</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon src={<NativeTabs.Trigger.VectorIcon family={Feather} name="book-open" />} />
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="agents">
         <NativeTabs.Trigger.Label>Agents</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="sparkles-outline" />} />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="notes">
+        <NativeTabs.Trigger.Label>Notes</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={<NativeTabs.Trigger.VectorIcon family={Feather} name="book-open" />} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search" role="search">
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>

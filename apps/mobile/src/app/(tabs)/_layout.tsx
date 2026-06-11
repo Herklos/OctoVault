@@ -56,11 +56,11 @@ export default function TabsLayout() {
         </View>
       )}
     >
-      {/* OctoVault's tabs: Vault (workspace) · Notes (personal magic space) ·
-          Agents (active space automations) · Search (global). */}
+      {/* OctoVault's tabs: Vault (workspace) · Agents (active space automations) ·
+          Notes (personal magic space) · Search (global). */}
       <Tabs.Screen name="work"   options={{ title: 'Vault',   tabBarIcon: tabIcon('work')   }} />
-      <Tabs.Screen name="notes"  options={{ title: 'Notes',   tabBarIcon: tabIcon('book')   }} />
       <Tabs.Screen name="agents" options={{ title: 'Agents',  tabBarIcon: tabIcon('agents') }} />
+      <Tabs.Screen name="notes"  options={{ title: 'Notes',   tabBarIcon: tabIcon('book')   }} />
       <Tabs.Screen name="search" options={{ title: 'Search',  tabBarIcon: tabIcon('search') }} />
     </Tabs>
   );
