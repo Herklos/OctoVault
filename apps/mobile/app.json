@@ -2,12 +2,13 @@
   "expo": {
     "name": "OctoVault",
     "slug": "octovault",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "octovault",
     "userInterfaceStyle": "automatic",
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,6 +42,7 @@
       ]
     },
     "ios": {
+      "buildNumber": "1",
       "bundleIdentifier": "com.drakkarsoftware.octovault",
       "associatedDomains": [
         "applinks:ov.drakkar.software"
