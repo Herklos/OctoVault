@@ -1,13 +1,13 @@
 import { Redirect, router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
-import { StackScreen } from '@/components/ui/StackScreen';
 import { Txt } from '@/components/ui/Txt';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
 
 /** Add-account chooser: create a fresh identity or recover one from a seed. Both
  *  append to the already-unlocked vault and switch to it — no PIN step. */
@@ -17,14 +17,14 @@ export default function AddAccountScreen() {
   if (!session) return <Redirect href="/" />;
 
   return (
-    <StackScreen
-      contentStyle={styles.content}
+    <AuthScreen
+      scroll={false}
       header={
         <AppBar
           title="Add account"
           subtitle="Another identity on this device"
           onBack={() => router.back()}
-          right={<IconButton name="x" onPress={() => router.back()} accessibilityLabel="Cancel" />}
+          right={<IconButton name="x" onPress={() => router.back()} accessibilityLabel="Cancel" tooltip="Cancel" />}
         />
       }
     >
@@ -47,19 +47,20 @@ export default function AddAccountScreen() {
           onPress={() => router.push('/account/recover')}
         />
         <Button
-          label="Scan QR from existing device"
+          // Web pastes a code (no camera scanner); native scans. Promise what
+          // the platform delivers.
+          label={Platform.OS === 'web' ? 'Pair from an existing device' : 'Scan QR from existing device'}
           variant="ghost"
           size="md"
           full
-          iconName="qr"
+          iconName={Platform.OS === 'web' ? 'devices' : 'qr'}
           onPress={() => router.push('/pair')}
         />
       </View>
-    </StackScreen>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg, maxWidth: 600, width: '100%', alignSelf: 'center' },
   actions: { gap: spacing.md },
 });

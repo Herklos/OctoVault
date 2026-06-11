@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
+import { humanizeError } from '@/lib/errors';
 import { useSession } from '@/lib/session-context';
 
 import { Button } from './Button';
@@ -47,7 +48,7 @@ export function SignInPrompt({ subtitle }: SignInPromptProps) {
         setUnlocking(true);
         setError(null);
         unlock('passkey').catch((e) => {
-          setError(String((e as Error)?.message ?? e));
+          setError(humanizeError(e, 'Couldn’t unlock with the passkey. Try again or use your PIN.'));
           setUnlocking(false);
         });
       };

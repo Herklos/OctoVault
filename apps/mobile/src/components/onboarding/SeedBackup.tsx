@@ -16,6 +16,10 @@ interface SeedBackupProps {
   error?: string | null;
   /** Lead-in copy; defaults to the first-time "write these down" wording. */
   intro?: ReactNode;
+  /** Fires the FIRST time the grid is revealed. The seed ceremony gates its
+   *  confirm CTA on this — a user must have at least seen the words before they
+   *  can claim to have written them down (the grid mounts concealed). */
+  onRevealed?: () => void;
 }
 
 /**
@@ -23,9 +27,24 @@ interface SeedBackupProps {
  * reveal / copy controls. Shared by first-account onboarding and add-account so
  * the phrase-handling UI stays identical. The confirm action lives in each
  * screen's footer — the handler differs (first sign-in vs. add-account).
+ * Native deliberately gets no Copy button: the phrase belongs on paper, and the
+ * mobile clipboard syncs to other apps/devices too eagerly to trust with it.
  */
-export function SeedBackup({ words, error, intro }: SeedBackupProps) {
+export function SeedBackup({ words, error, intro, onRevealed }: SeedBackupProps) {
   const [revealed, setRevealed] = useState(false);
+  const [everRevealed, setEverRevealed] = useState(false);
+
+  const toggleReveal = () => {
+    setRevealed((v) => {
+      const next = !v;
+      if (next && !everRevealed) {
+        setEverRevealed(true);
+        onRevealed?.();
+      }
+      return next;
+    });
+  };
+
   return (
     <>
       {intro ?? (
@@ -46,7 +65,7 @@ export function SeedBackup({ words, error, intro }: SeedBackupProps) {
           variant="ghost"
           size="sm"
           iconName={revealed ? 'eye-off' : 'eye'}
-          onPress={() => setRevealed((v) => !v)}
+          onPress={toggleReveal}
         />
         {Platform.OS === 'web' ? (
           <Button
@@ -64,8 +83,8 @@ export function SeedBackup({ words, error, intro }: SeedBackupProps) {
           {error}
         </Callout>
       ) : (
-        <Callout tone="danger" iconName="alert" title="No screenshots.">
-          Anyone with these 12 words can read your messages forever.
+        <Callout tone="danger" iconName="alert" title="Keep them offline.">
+          Anyone with these 12 words can read your notes forever. Paper beats screenshots.
         </Callout>
       )}
     </>

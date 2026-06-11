@@ -17,7 +17,7 @@ import {
   type ReactNode,
 } from 'react';
 import { AppState } from 'react-native';
-import { usePathname } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 
 import type { Space } from '@/lib/types';
 
@@ -27,12 +27,17 @@ import { consumePrimedSpaces } from './spaces-prime';
 import { hydrateMutes } from './mutes';
 import { flushReadsNow, hydrateReads } from './reads';
 import { useSession } from './session-context';
+import { getNavPrefs, hydrateNavPrefs, resetNavPrefs, setActiveSpacePref } from './use-nav-prefs';
 
 interface SpacesContextValue {
   /** The identity's spaces, WITHOUT the unread overlay (added in `useSpaces`). */
   spaces: Space[];
   activeId: string | null;
   setActiveId: (id: string | null) => void;
+  /** USER-initiated space switch (rail tile, SpaceSwitcher row): navigates the
+   *  main pane home FIRST, then activates + persists the space. Use this — not
+   *  `setActiveId` — for explicit switches; see the intent guard below for why. */
+  switchSpace: (id: string) => void;
   loading: boolean;
   refresh: () => Promise<void>;
   createSpace: (name: string, type?: 'private' | 'public') => Promise<Space | null>;
@@ -44,18 +49,55 @@ interface SpacesContextValue {
 
 const Ctx = createContext<SpacesContextValue | null>(null);
 
+/** Seed pick for the active space: the persisted last-active space when it still
+ *  exists in the list (cold-start restore), else the first space. */
+function pickActive(list: Space[]): string | null {
+  const pref = getNavPrefs().activeSpaceId;
+  return (pref && list.some((s) => s.id === pref) ? pref : list[0]?.id) ?? null;
+}
+
+/** How long an explicit switch vetoes conflicting `setActiveId` calls. Covers a
+ *  native pop animation (~300 ms) with margin; see `switchIntent` below. */
+const SWITCH_INTENT_MS = 800;
+
 export function SpacesProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
   const pathname = usePathname();
   const [spaces, setSpaces] = useState<Space[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // A USER-initiated switch must survive the exiting detail route's param
+  // re-sync: page/board screens force `setActiveId(theirSpace)` whenever it
+  // drifts from their `spaceId` param, and on native the popped screen stays
+  // mounted through its exit animation — its effect used to fire on our switch
+  // and silently revert it. The intent gives the explicit choice a short veto
+  // window over any CONFLICTING set (a set to the intended id passes through).
+  const switchIntent = useRef<{ id: string; until: number } | null>(null);
+
+  const setActiveId = useCallback((id: string | null) => {
+    const intent = switchIntent.current;
+    if (intent && id !== intent.id && Date.now() < intent.until) return;
+    setActiveIdState(id);
+    if (id) setActiveSpacePref(id);
+  }, []);
+
+  const switchSpace = useCallback((id: string) => {
+    switchIntent.current = { id, until: Date.now() + SWITCH_INTENT_MS };
+    // Navigate home FIRST: switching while a document is open would otherwise
+    // leave the main pane showing the old space's content (and the old route's
+    // sync effect fighting the store). The Vault home renders whatever space
+    // is active, so it's the safe landing for every switch.
+    router.navigate('/(tabs)/work');
+    setActiveIdState(id);
+    setActiveSpacePref(id);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!session) return;
     const { spaces: list, mutes, reads } = await readSpaces(session.accountClient, session.userId);
     setSpaces(list);
-    setActiveId((prev) => prev ?? list[0]?.id ?? null);
+    setActiveIdState((prev) => prev ?? pickActive(list));
     // This `_spaces` re-pull runs on every navigation (effect below) and on app
     // foreground. Re-hydrate the read marks and mute prefs from it too (they share the
     // doc) so a room read or a space muted on another device propagates here without an
@@ -71,7 +113,10 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     if (!session) {
       setSpaces([]);
-      setActiveId(null);
+      setActiveIdState(null);
+      // Clear the live nav prefs so the next identity can't inherit this one's
+      // last location (its own stored prefs hydrate on the next session).
+      resetNavPrefs();
       setLoading(false);
       return;
     }
@@ -79,19 +124,24 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
     // hydration) instead of pulling the identical doc again on first paint. Falls
     // back to a read when no fresh stash exists (e.g. a later in-app refresh).
     const primed = consumePrimedSpaces(session.userId);
-    // An EMPTY prime (`[]`) is truthy in JS — if we adopted it we'd short-circuit
-    // the refresh and show a blank rail. Offline that empty came from a failed
-    // `readSpaces`; the SDK pull cache now serves the last-synced `_spaces` doc on
-    // the refresh below, so fall through to it instead of locking in empty.
-    if (primed && primed.length > 0) {
-      setSpaces(primed);
-      setActiveId((prev) => prev ?? primed[0]?.id ?? null);
-      setLoading(false);
-      // Kick a background refresh to pick up the latest spaces + read/mute marks now.
-      void refresh().catch(() => {});
-      return;
-    }
     (async () => {
+      // The persisted last-active space / last route must land BEFORE the active
+      // seed below reads them (one fast device-local kv read), or every cold
+      // start would fall back to spaces[0] like the pre-prefs build.
+      await hydrateNavPrefs(session.userId).catch(() => {});
+      if (cancelled) return;
+      // An EMPTY prime (`[]`) is truthy in JS — if we adopted it we'd short-circuit
+      // the refresh and show a blank rail. Offline that empty came from a failed
+      // `readSpaces`; the SDK pull cache now serves the last-synced `_spaces` doc on
+      // the refresh below, so fall through to it instead of locking in empty.
+      if (primed && primed.length > 0) {
+        setSpaces(primed);
+        setActiveIdState((prev) => prev ?? pickActive(primed));
+        setLoading(false);
+        // Kick a background refresh to pick up the latest spaces + read/mute marks now.
+        void refresh().catch(() => {});
+        return;
+      }
       try {
         await refresh();
       } catch {
@@ -158,7 +208,7 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
       setActiveId(space.id);
       return space;
     },
-    [session, refresh],
+    [session, refresh, setActiveId],
   );
 
   const reorderSpaces = useCallback(
@@ -181,8 +231,8 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<SpacesContextValue>(
-    () => ({ spaces, activeId, setActiveId, loading, refresh, createSpace, reorderSpaces }),
-    [spaces, activeId, loading, refresh, createSpace, reorderSpaces],
+    () => ({ spaces, activeId, setActiveId, switchSpace, loading, refresh, createSpace, reorderSpaces }),
+    [spaces, activeId, setActiveId, switchSpace, loading, refresh, createSpace, reorderSpaces],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

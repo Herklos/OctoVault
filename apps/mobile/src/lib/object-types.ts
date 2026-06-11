@@ -74,3 +74,23 @@ export function isContainerType(type: ObjectType): boolean {
 export function contentKindOf(node: Pick<ObjectNode, 'type' | 'contentKind'>): ObjectContentKind {
   return node.contentKind ?? objectDescriptor(node.type).contentKind;
 }
+
+/** The detail route an object opens into — boards open the kanban screen, every
+ *  other content type the page editor. The single source for this mapping (it was
+ *  duplicated as inline ternaries across the tree, the routes and search). */
+export function routeForNode(node: Pick<ObjectNode, 'type'>): '/work/board/[id]' | '/work/page/[id]' {
+  return node.type === 'board' ? '/work/board/[id]' : '/work/page/[id]';
+}
+
+/**
+ * Absolute shareable URL for an object — the "Copy link" target. Web-only by
+ * construction (it needs a routable origin; a native deep-link scheme would not
+ * open for a collaborator), so it returns `null` off web and callers hide the
+ * affordance. The spaceId rides along because a cross-space deep link must bind
+ * the shared index store to the right space before the node resolves.
+ */
+export function objectLink(spaceId: string, node: Pick<ObjectNode, 'id' | 'type'>): string | null {
+  const origin = (globalThis as { location?: { origin?: string } }).location?.origin;
+  if (!origin) return null;
+  return `${origin}${routeForNode(node).replace('[id]', node.id)}?spaceId=${encodeURIComponent(spaceId)}`;
+}

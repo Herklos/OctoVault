@@ -27,7 +27,9 @@ interface TextFieldProps extends Omit<TextInputProps, 'style' | 'placeholderText
   /** Render the value in JetBrains Mono (caps, codes, fingerprints). */
   mono?: boolean;
   /** Render the input text at a larger type-scale step (e.g. "display"/"pageTitle"
-   *  for an inline title editor) instead of the default body size. Ignored when `mono`. */
+   *  for an inline title editor) instead of the default body size. With `mono`,
+   *  the variant's size/line-height still apply (the family stays mono) so an
+   *  inline code editor's metrics match the rendered `Txt` it replaces. */
   textVariant?: TypeVariant;
   /** Height for multiline textareas. */
   minHeight?: number;
@@ -84,10 +86,16 @@ export function TextField({
   const multilineMin = multiline ? { minHeight: minHeight ?? 72 } : null;
   // Larger inline-title metrics: override family + size + line-height so the editor
   // reads exactly like the rendered title (placed last so it wins over `multiline`).
-  const variantStyle =
-    textVariant && !mono
-      ? { fontFamily: familyForVariant(textVariant), fontSize: typeScale[textVariant].fontSize, lineHeight: typeScale[textVariant].lineHeight }
-      : null;
+  // A mono field keeps the mono family but adopts the variant's metrics — the doc
+  // editor's code blocks render at `callout` size in read AND edit mode, so the
+  // Txt ⇄ TextInput swap doesn't reflow.
+  const variantStyle = textVariant
+    ? {
+        ...(mono ? null : { fontFamily: familyForVariant(textVariant) }),
+        fontSize: typeScale[textVariant].fontSize,
+        lineHeight: typeScale[textVariant].lineHeight,
+      }
+    : null;
   return (
     <View style={[plain ? styles.wrapperPlain : styles.wrapper, containerStyle]}>
       {/* The recessed fill + focus glow IS the box — a plain field has neither. */}
@@ -202,6 +210,9 @@ const styles = StyleSheet.create({
   mono: { fontFamily: fonts.mono, fontSize: typeScale.caption.fontSize },
   multiline: { textAlignVertical: 'top', paddingTop: spacing.sm, lineHeight: typeScale.body.lineHeight },
   // Drop the input's own vertical padding so the first line sits where the reader's
-  // first paragraph does (the surrounding view supplies any padding).
-  inputPlain: { paddingVertical: 0 },
+  // first paragraph does (the surrounding view supplies any padding). The explicit
+  // `paddingTop: 0` is load-bearing: RN resolves `paddingTop` (set by `multiline`
+  // above) over `paddingVertical` regardless of array order, and that stray 8px was
+  // the visible text jump when a doc block entered edit mode.
+  inputPlain: { paddingVertical: 0, paddingTop: 0 },
 });

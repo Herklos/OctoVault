@@ -2,9 +2,19 @@
  * Kanban-board model on a {@link WalDocument} (the `board` object type).
  *
  * One board = one WAL document holding:
- *  - an RGA list **`columns`** of column ids and a register **`coltitle:{id}`** each;
+ *  - an RGA list **`columns`** of column ids, with per-column LWW registers
+ *    **`coltitle:{id}`** (title) and **`coldone:{id}`** (this column IS the
+ *    board's "Done" group — see below);
  *  - an RGA list **`tasks`** of task ids, with per-task LWW registers
  *    **`task:{id}:col|order|status|title|notes`**.
+ *
+ * Done-ness follows the Notion model: the column is the grouping property, so a
+ * board with a `coldone`-flagged column derives a task's `done` purely from
+ * which column it sits in (the per-task `status` register is then only a
+ * back-compat WRITE for older clients, never the source of truth — otherwise a
+ * card dragged out of Done would stay struck through). Boards that predate the
+ * flag (no done column anywhere) keep deriving from `status`, so nothing old
+ * breaks.
  *
  * Every mutation is an idempotent CRDT op, so concurrent edits from two devices
  * converge after a `pull()` — no append-fold replay, no lost moves. Pure over a
@@ -19,6 +29,9 @@ export type TaskStatus = 'todo' | 'doing' | 'done';
 export interface Column {
   id: string;
   title: string;
+  /** This column is the board's "Done" group (`coldone:{id}`): cards in it
+   *  count as completed and render checked/struck. */
+  done: boolean;
 }
 
 export interface Task {
@@ -28,6 +41,9 @@ export interface Task {
   notes: string;
   status: TaskStatus;
   order: number;
+  /** Derived completion — column membership when the board has a done column,
+   *  else the legacy `status` register. Render from THIS, never from `status`. */
+  done: boolean;
 }
 
 export interface Board {
@@ -40,6 +56,7 @@ export interface Board {
 const COLS = 'columns';
 const TASKS = 'tasks';
 const colTitle = (id: string) => `coltitle:${id}`;
+const colDone = (id: string) => `coldone:${id}`;
 const taskCol = (id: string) => `task:${id}:col`;
 const taskOrder = (id: string) => `task:${id}:order`;
 const taskStatus = (id: string) => `task:${id}:status`;
@@ -65,8 +82,11 @@ export function readBoard(doc: WalDocument): Board {
   for (const raw of colIds) {
     if (typeof raw !== 'string' || seenCol.has(raw)) continue;
     seenCol.add(raw);
-    columns.push({ id: raw, title: str(state[colTitle(raw)]) });
+    columns.push({ id: raw, title: str(state[colTitle(raw)]), done: state[colDone(raw)] === true });
   }
+  // The column IS the done property once any column carries the flag (see header).
+  const hasDoneColumn = columns.some((c) => c.done);
+  const doneColIds = new Set(columns.filter((c) => c.done).map((c) => c.id));
 
   const seenTask = new Set<string>();
   const tasks: Task[] = [];
@@ -74,13 +94,21 @@ export function readBoard(doc: WalDocument): Board {
     if (typeof raw !== 'string' || seenTask.has(raw)) continue;
     seenTask.add(raw);
     const status = str(state[taskStatus(raw)]);
+    let columnId = str(state[taskCol(raw)]);
+    // A task whose column register is missing/stale (e.g. its column was deleted
+    // concurrently on another device) would otherwise render NOWHERE while still
+    // existing in the log — fold orphans into the first column so they stay
+    // visible and recoverable instead of silently inflating the counts.
+    if (!seenCol.has(columnId)) columnId = columns[0]?.id ?? '';
+    const normalized = (status === 'doing' || status === 'done' ? status : 'todo') as TaskStatus;
     tasks.push({
       id: raw,
-      columnId: str(state[taskCol(raw)]),
+      columnId,
       title: str(state[taskTitle(raw)]),
       notes: str(state[taskNotes(raw)]),
-      status: (status === 'doing' || status === 'done' ? status : 'todo') as TaskStatus,
+      status: normalized,
       order: num(state[taskOrder(raw)]),
+      done: hasDoneColumn ? doneColIds.has(columnId) : normalized === 'done',
     });
   }
 
@@ -90,8 +118,23 @@ export function readBoard(doc: WalDocument): Board {
       .filter((t) => t.columnId === col.id)
       .sort((a, b) => a.order - b.order || (a.id < b.id ? -1 : 1));
   }
-  const done = tasks.filter((t) => t.status === 'done').length;
-  return { columns, tasksByColumn, done, total: tasks.length };
+  // Count only bucketed tasks (a column-less task on a zero-column board is
+  // unreachable, so it must not inflate the hero's "X of Y done").
+  const visible = tasks.filter((t) => t.columnId);
+  const done = visible.filter((t) => t.done).length;
+  return { columns, tasksByColumn, done, total: visible.length };
+}
+
+/**
+ * Sort key for a card landing between two siblings — fractional indexing over
+ * the plain-number `order` register, so ANY drop position is a single LWW write
+ * (no renumbering of siblings, hence no concurrent-edit fan-out).
+ */
+export function orderBetween(above: number | undefined, below: number | undefined): number {
+  if (above !== undefined && below !== undefined) return (above + below) / 2;
+  if (below !== undefined) return below - 1; // dropped at the top
+  if (above !== undefined) return above + 1; // dropped at the end
+  return 1; // first card of an empty column
 }
 
 export function addColumn(doc: WalDocument, title: string): string {
@@ -105,13 +148,78 @@ export function renameColumn(doc: WalDocument, id: string, title: string): void 
   doc.setField(colTitle(id), title);
 }
 
-export function addTask(doc: WalDocument, columnId: string, title: string): string {
+/** Flag/unflag a column as the board's "Done" group (`coldone:{id}`). */
+export function setColumnDone(doc: WalDocument, id: string, done: boolean): void {
+  doc.setField(colDone(id), done);
+}
+
+/**
+ * Reorder a column to `toIndex` within the column strip. `setList` emits the
+ * minimal RGA diff (an LCS over ids), so a concurrent rename of an untouched
+ * column converges — only the moved id is removed+reinserted.
+ */
+export function moveColumn(doc: WalDocument, id: string, toIndex: number): void {
+  const cur = ids(doc, COLS).filter((x, i, a) => a.indexOf(x) === i);
+  const from = cur.indexOf(id);
+  if (from === -1) return;
+  const next = cur.filter((x) => x !== id);
+  next.splice(Math.max(0, Math.min(toIndex, next.length)), 0, id);
+  doc.setList(COLS, next);
+}
+
+/**
+ * Delete a column. Its cards either re-home to `moveTasksTo` (appended after
+ * that column's last card, keeping their relative order) or are deleted with
+ * it — the caller asks the user which (never decide silently).
+ */
+export function deleteColumn(doc: WalDocument, id: string, opts: { moveTasksTo?: string | null } = {}): void {
+  const tasks = readBoard(doc).tasksByColumn[id] ?? [];
+  if (opts.moveTasksTo && opts.moveTasksTo !== id) {
+    const target = opts.moveTasksTo;
+    let order = (readBoard(doc).tasksByColumn[target]?.at(-1)?.order ?? 0) + 1;
+    for (const t of tasks) {
+      moveTask(doc, t.id, target, order);
+      order += 1;
+    }
+  } else {
+    for (const t of tasks) deleteTask(doc, t.id);
+  }
+  doc.setList(COLS, ids(doc, COLS).filter((x) => x !== id));
+  doc.deleteField(colTitle(id));
+  doc.deleteField(colDone(id));
+}
+
+/**
+ * Seed a fresh board with the canonical Notion groups. The caller guards this
+ * to the CREATING device's first ready tick on an empty board (a route flag) —
+ * never on mere emptiness, or two devices opening the same new board would
+ * both seed and converge to six columns.
+ */
+export function seedDefaultColumns(doc: WalDocument): void {
+  addColumn(doc, 'To do');
+  addColumn(doc, 'In progress');
+  setColumnDone(doc, addColumn(doc, 'Done'), true);
+}
+
+export function addTask(doc: WalDocument, columnId: string, title: string, order?: number): string {
   const id = randomId();
   const siblings = readBoard(doc).tasksByColumn[columnId] ?? [];
-  const order = (siblings.at(-1)?.order ?? 0) + 1;
+  const resolved = order ?? (siblings.at(-1)?.order ?? 0) + 1;
   doc.setField(taskCol(id), columnId);
   doc.setField(taskTitle(id), title);
   doc.setField(taskStatus(id), 'todo');
+  doc.setField(taskOrder(id), resolved);
+  doc.push(TASKS, id);
+  return id;
+}
+
+/** Copy a card (title/notes/status) into `order` within the source's column. */
+export function duplicateTask(doc: WalDocument, source: Task, order: number): string {
+  const id = randomId();
+  doc.setField(taskCol(id), source.columnId);
+  doc.setField(taskTitle(id), source.title);
+  doc.setField(taskStatus(id), source.status);
+  if (source.notes) doc.setField(taskNotes(id), source.notes);
   doc.setField(taskOrder(id), order);
   doc.push(TASKS, id);
   return id;
@@ -142,4 +250,19 @@ export function deleteTask(doc: WalDocument, id: string): void {
   doc.deleteField(taskStatus(id));
   doc.deleteField(taskTitle(id));
   doc.deleteField(taskNotes(id));
+}
+
+/**
+ * Undo a {@link deleteTask}: re-insert the id and rewrite every register from
+ * the pre-delete snapshot. Each `setField` is a fresh LWW write stamped after
+ * the delete's tombstones, so it wins the merge — making "Delete → toast Undo"
+ * CRDT-honest instead of pretending with local state.
+ */
+export function restoreTask(doc: WalDocument, task: Task): void {
+  doc.setField(taskCol(task.id), task.columnId);
+  doc.setField(taskTitle(task.id), task.title);
+  doc.setField(taskStatus(task.id), task.status);
+  doc.setField(taskNotes(task.id), task.notes);
+  doc.setField(taskOrder(task.id), task.order);
+  if (!ids(doc, TASKS).includes(task.id)) doc.push(TASKS, task.id);
 }

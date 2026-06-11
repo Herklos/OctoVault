@@ -1,108 +1,139 @@
-import { useEffect, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useRef, useState } from 'react';
+import type { View as ViewType } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/theme';
+import { copyText } from '@/lib/clipboard';
+import { objectDescriptor, objectLink } from '@/lib/object-types';
+import { useSpaceObjects } from '@/lib/space-objects-context';
 import type { ObjectNode } from '@/lib/types';
 import { useTheme } from '@/lib/use-theme';
-import { Button } from '@/components/ui/Button';
+import { AutosaveField } from '@/components/ui/AutosaveField';
+import { EmojiPicker } from '@/components/ui/EmojiPicker';
+import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { TextField } from '@/components/ui/TextField';
+import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu';
+import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
-
-// keyboard-controller KAV lifts the bottom-anchored sheet above the keyboard
-// (works under Android edge-to-edge); on web the keyboard never overlays, so a
-// plain View passthrough — same pattern as StackScreen.
-const KAV = Platform.OS === 'web' ? View : KeyboardAvoidingView;
+import { useToast } from '@/components/ui/Toast';
 
 interface ObjectActionsProps {
-  /** The object being acted on (doc/project/…); actions disable until it loads. */
+  /** The object being acted on (page/board/…); the trigger no-ops until it loads. */
   node: ObjectNode | undefined;
   /** Persist a title/emoji change (wired to `useObjects.rename` in the route). */
   onRename: (patch: { title?: string; emoji?: string }) => void;
-  /** Archive the object (wired to `useObjects.archive`); the route handles nav. */
+  /** Archive the object (wired to `useObjects.archive`); the route handles nav.
+   *  This component owns the Undo toast (restore through the shared store). */
   onArchive: () => void;
 }
 
 /**
- * Header action menu for any {@link ObjectNode}: rename its title/emoji or archive
- * it. Presentational — rename/archive logic lives in `useObjects` (passed in), so
- * this works for docs, projects and any future object type unchanged. Built on RN
- * `Modal` as a bottom sheet, mirroring {@link MoveToCategorySheet}.
+ * Header actions for any {@link ObjectNode}: icon via the searchable
+ * {@link EmojiPicker}, title via a no-Save/Cancel {@link AutosaveField} (every
+ * keystroke debounce-commits; closing never loses an edit), plus Copy link (web)
+ * and Archive. Built on the {@link Sheet} primitive so it presents as a centered
+ * dialog on desktop and a bottom sheet on phones — the old hand-rolled Modal was
+ * bottom-anchored even on a 1440px window, with a type-an-emoji-by-hand field.
+ *
+ * Archive is reversible, so it ships with a toast Undo (restore through the ONE
+ * shared index store) instead of a blocking confirm — `useConfirm` stays reserved
+ * for the irreversible delete-forever in Trash.
  */
 export function ObjectActions({ node, onRename, onArchive }: ObjectActionsProps) {
   const { colors } = useTheme();
+  const toast = useToast();
+  const { spaceId, objects } = useSpaceObjects();
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [emoji, setEmoji] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const iconRef = useRef<ViewType>(null);
 
-  // Re-seed whenever the sheet is open and the live node's name/emoji change — the
-  // node can be undefined on first paint (store still opening) or update from another
-  // surface, and a stale seed would Save the old/empty value back over a real name.
-  useEffect(() => {
-    if (open) {
-      setTitle(node?.title ?? '');
-      setEmoji(node?.emoji ?? '');
-    }
-  }, [open, node?.title, node?.emoji]);
+  const label = node ? objectDescriptor(node.type).label : 'Object';
 
-  const show = () => {
-    if (!node) return; // don't open against an unloaded node (would Save "Untitled")
-    setTitle(node.title ?? '');
-    setEmoji(node.emoji ?? '');
-    setOpen(true);
-  };
-  const save = () => {
-    const t = title.trim();
-    onRename({ title: t || 'Untitled', emoji: emoji.trim() || undefined });
+  const archive = () => {
+    if (!node) return;
+    const id = node.id;
     setOpen(false);
+    onArchive();
+    toast.show({
+      message: `${label} archived`,
+      action: { label: 'Undo', onPress: () => objects.restore(id) },
+    });
+  };
+
+  const copyLink = async () => {
+    if (!node || !spaceId) return;
+    const url = objectLink(spaceId, node);
+    if (!url) return;
+    setOpen(false);
+    if (await copyText(url)) toast.show({ message: 'Link copied' });
   };
 
   return (
     <>
-      <IconButton name="dots-v" size={20} color={colors.ink} onPress={show} accessibilityLabel="Object actions" />
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)} statusBarTranslucent>
-        <KAV style={styles.kav} behavior="padding">
-          <Pressable style={[styles.backdrop, { backgroundColor: colors.scrim }]} onPress={() => setOpen(false)} accessibilityLabel="Dismiss">
-            <Pressable style={[styles.sheet, { backgroundColor: colors.paper }]} onPress={() => undefined}>
-              <Txt variant="micro" weight="bold" mono uppercase tone="inkMuted" style={styles.title}>
-                Edit {node?.type ?? 'object'}
-              </Txt>
-              <View style={styles.fields}>
-                <TextField value={emoji} onChangeText={setEmoji} placeholder="Emoji" accessibilityLabel="Emoji" containerStyle={styles.emoji} />
-                <TextField value={title} onChangeText={setTitle} placeholder="Title" accessibilityLabel="Title" autoFocus containerStyle={styles.titleField} />
-              </View>
-              <View style={styles.row}>
-                <Button label="Save" variant="primary" size="sm" onPress={save} />
-                <Button label="Cancel" variant="ghost" size="sm" onPress={() => setOpen(false)} />
-                <View style={styles.spacer} />
-                <Button
-                  label="Archive"
-                  variant="danger"
-                  size="sm"
-                  iconName="trash"
-                  onPress={() => {
-                    setOpen(false);
-                    onArchive();
-                  }}
-                />
-              </View>
-            </Pressable>
+      <IconButton
+        name="dots"
+        size={18}
+        color={colors.ink}
+        // Don't open against an unloaded node — there'd be nothing to rename yet.
+        onPress={() => { if (node) setOpen(true); }}
+        tooltip={`${label} options`}
+        accessibilityLabel="Object actions"
+      />
+      <Sheet visible={open} onClose={() => setOpen(false)} title={label}>
+        <View style={styles.identityRow}>
+          {/* Icon tile: opens the picker (anchored popover on wide, sheet on narrow).
+              Ghost smile glyph when no emoji — no forced default icon. */}
+          <Pressable
+            ref={iconRef}
+            accessibilityRole="button"
+            accessibilityLabel={node?.emoji ? 'Change icon' : 'Add icon'}
+            onPress={() => setPickerOpen(true)}
+            style={({ pressed }) => [
+              styles.iconTile,
+              { backgroundColor: pressed ? colors.pressed : colors.paperAlt, borderColor: colors.lineSoft },
+            ]}
+          >
+            {node?.emoji ? (
+              <Txt variant="title" center>{node.emoji}</Txt>
+            ) : (
+              <Icon name="emoji" size={18} color={colors.inkMuted} />
+            )}
           </Pressable>
-        </KAV>
-      </Modal>
+          <AutosaveField
+            initialText={node?.title ?? ''}
+            placeholder="Untitled"
+            onCommit={(text) => onRename({ title: text.trim() })}
+            accessibilityLabel="Title"
+            autoFocus={false}
+            containerStyle={styles.titleField}
+          />
+        </View>
+        <Menu>
+          {Platform.OS === 'web' ? <MenuItem icon="link" label="Copy link" onPress={() => void copyLink()} /> : null}
+          {Platform.OS === 'web' ? <MenuSeparator /> : null}
+          <MenuItem icon="trash" label="Archive" danger onPress={archive} />
+        </Menu>
+        <EmojiPicker
+          visible={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          anchorRef={iconRef}
+          current={node?.emoji ?? null}
+          onSelect={(emoji) => onRename({ emoji: emoji ?? undefined })}
+        />
+      </Sheet>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  kav: { flex: 1 },
-  backdrop: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { paddingTop: spacing.md, paddingBottom: spacing.lg, paddingHorizontal: spacing.lg, gap: spacing.md, borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet },
-  title: { paddingBottom: spacing.xs },
-  fields: { flexDirection: 'row', gap: spacing.sm },
-  emoji: { width: 72 },
+  identityRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  iconTile: {
+    width: spacing.controlMinHeight,
+    height: spacing.controlMinHeight,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   titleField: { flex: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  spacer: { flex: 1 },
 });

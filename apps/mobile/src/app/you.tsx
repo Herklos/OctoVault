@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { spacing } from '@/theme';
-import { useProfile } from '@/lib/profile-context';
+import { layout, spacing } from '@/theme';
+import { useProfileAutosave } from '@/lib/use-profile-autosave';
 import { useInShell } from '@/lib/use-responsive';
 import { useSession } from '@/lib/session-context';
 import { useTheme } from '@/lib/use-theme';
@@ -11,6 +11,7 @@ import { AppLockRow } from '@/components/settings/AppLockRow';
 import { DebugStatsCard } from '@/components/settings/DebugStatsCard';
 import { UpdateSettingsCard } from '@/components/settings/UpdateSettingsCard';
 import { AppBar } from '@/components/ui/AppBar';
+import { AutosaveField } from '@/components/ui/AutosaveField';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -19,18 +20,23 @@ import { Icon } from '@/components/ui/Icon';
 import { Row } from '@/components/ui/Row';
 import { SignInPrompt } from '@/components/ui/SignInPrompt';
 import { StackScreen } from '@/components/ui/StackScreen';
-import { TextField } from '@/components/ui/TextField';
 import { Txt } from '@/components/ui/Txt';
 
+/**
+ * Account settings, sectioned (Profile / Accounts / Security / Updates) on the
+ * shared settings reading column. Edits autosave like everywhere else in the app
+ * (no dirty-tracked Save button); the diagnostics card is a dev tool and stays
+ * behind `__DEV__`.
+ */
 export default function YouScreen() {
   const { colors } = useTheme();
   const inShell = useInShell();
   const { fullSignOut, accounts, activeBootstrapOrigin } = useSession();
   const nostrPubHex = activeBootstrapOrigin?.kind === 'secp256k1' ? activeBootstrapOrigin.pubHex : null;
-  const { profile, draft, setDraft, dirty, save, saving, avatarDraft, pickAvatar, removeAvatar, avatarError } =
-    useProfile();
+  const { profile, loading, saving, commitName, pickAvatar, removeAvatar, avatarDraft, avatarError } =
+    useProfileAutosave();
 
-  // Reached by pushing /you from the Chat header (mobile) — needs a back action;
+  // Pushed from the mobile Vault header / space switcher — needs a back action;
   // on the desktop shell it sits in the main pane, where the sidebar is the nav.
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/work'));
 
@@ -53,17 +59,12 @@ export default function YouScreen() {
           title="Profile"
           onBack={inShell ? undefined : goBack}
           right={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Save profile"
-              accessibilityState={{ disabled: !dirty || saving }}
-              disabled={!dirty || saving}
-              onPress={save}
-            >
-              <Txt variant="subhead" weight="semibold" tone={dirty || saving ? 'accent' : 'inkMuted'}>
-                {saving ? 'Saving…' : 'Save'}
+            // Quiet autosave status — replaces the dirty-tracked manual Save.
+            saving ? (
+              <Txt variant="caption" mono tone="inkMuted">
+                Saving…
               </Txt>
-            </Pressable>
+            ) : undefined
           }
         />
       }
@@ -72,11 +73,22 @@ export default function YouScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Change profile photo"
-          onPress={pickAvatar}
+          onPress={() => void pickAvatar()}
           style={styles.avatarWrap}
         >
           <Avatar label={initials} image={avatarDraft} size={68} />
-          <View style={[styles.cameraBadge, { backgroundColor: colors.accent, borderColor: colors.paper }]}>
+          <View
+            style={[
+              styles.cameraBadge,
+              {
+                width: layout.avatarBadgeSize,
+                height: layout.avatarBadgeSize,
+                borderRadius: layout.avatarBadgeSize / 2,
+                backgroundColor: colors.accent,
+                borderColor: colors.paper,
+              },
+            ]}
+          >
             <Icon name="camera" size={12} color={colors.onAccent} />
           </View>
         </Pressable>
@@ -88,7 +100,7 @@ export default function YouScreen() {
             {profile.handle}
           </Txt>
           <View style={styles.avatarActions}>
-            <Pressable accessibilityRole="button" onPress={pickAvatar} hitSlop={6}>
+            <Pressable accessibilityRole="button" onPress={() => void pickAvatar()} hitSlop={6}>
               <Txt variant="footnote" weight="semibold" tone="accent">
                 {avatarDraft ? 'Change photo' : 'Upload photo'}
               </Txt>
@@ -109,23 +121,24 @@ export default function YouScreen() {
         </View>
       </View>
 
-      <Card title="ABOUT">
+      <Card title="PROFILE">
         <View style={styles.field}>
           <Txt variant="micro" weight="semibold" mono uppercase tone="inkMuted">
             Display name
           </Txt>
-          <TextField
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Your display name"
-            autoCapitalize="words"
-            autoCorrect={false}
-            maxLength={40}
-            returnKeyType="done"
-            onSubmitEditing={() => {
-              if (dirty) save();
-            }}
-          />
+          {/* Seed-once inline editor: mount only after the persisted pseudo has
+              loaded (the field reads `initialText` exactly once), keyed per
+              account so switching identities re-seeds it. */}
+          {!loading ? (
+            <AutosaveField
+              key={profile.userId}
+              initialText={profile.name}
+              onCommit={(text) => commitName(text)}
+              autoFocus={false}
+              placeholder="Your display name"
+              accessibilityLabel="Display name"
+            />
+          ) : null}
         </View>
       </Card>
 
@@ -153,7 +166,7 @@ export default function YouScreen() {
         <Row
           iconName="devices"
           title="Add a device"
-          detail="Show pairing QR · PIN-sealed"
+          detail="One-time transfer PIN + QR"
           onPress={() => router.push('/account/add-device')}
         />
         <AppLockRow />
@@ -161,7 +174,8 @@ export default function YouScreen() {
 
       <UpdateSettingsCard />
 
-      <DebugStatsCard />
+      {/* Server reachability is a developer diagnostic, not an end-user setting. */}
+      {__DEV__ ? <DebugStatsCard /> : null}
 
       {accounts.length > 1 ? (
         <Button
@@ -180,16 +194,20 @@ export default function YouScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg, paddingBottom: 96, maxWidth: 600, width: '100%', alignSelf: 'center' },
+  content: {
+    padding: spacing.screenX,
+    gap: spacing.lg,
+    paddingBottom: spacing.xxxl * 2,
+    maxWidth: layout.settingsColumnWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
   identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   avatarWrap: { position: 'relative' },
   cameraBadge: {
     position: 'absolute',
     right: -2,
     bottom: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

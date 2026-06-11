@@ -10,6 +10,7 @@ import {
   patchObject,
   reorderObjects,
   reparentObject,
+  subtreeIds,
   type NewObjectInput,
   type ObjectTreeNode,
 } from './starfish/objects';
@@ -25,6 +26,9 @@ import { useRoomLiveSync } from './use-room-live-sync';
 export interface ObjectsHook {
   tree: ObjectTreeNode[];
   nodes: ObjectNode[];
+  /** The RAW node list including archived entries — the Trash view's source.
+   *  Everything else should keep reading `nodes`/`tree` (archived filtered out). */
+  allNodes: ObjectNode[];
   breadcrumbs: (id: ID) => ObjectNode[];
   /** Root→parent trail (EXCLUSIVE of `id`) for a detail screen's breadcrumb. */
   ancestors: (id: ID) => ObjectNode[];
@@ -45,6 +49,14 @@ export interface ObjectsHook {
   move: (id: ID, parentId: ID | null) => void;
   reorder: (orderById: Record<ID, number>) => void;
   archive: (id: ID) => void;
+  /** Un-archive a node and its whole subtree — the "Undo" of {@link archive} and
+   *  the Trash view's Restore. Restores the SAME id set archive cascaded over. */
+  restore: (id: ID) => void;
+  /** Delete-forever: drop a node + subtree from the index. Best-effort under
+   *  union-merge — a stale replica that re-pushes its copy resurrects the nodes,
+   *  but they come back `archived: true` (the flag rides each node), so the
+   *  failure mode is "reappears in Trash", never "reappears in the workspace". */
+  purge: (id: ID) => void;
   /** Apply an arbitrary stamped reducer to the node list (for composite ops like the
    *  room/category helpers in {@link useRooms}). Returns false when not writable yet. */
   mutate: (reducer: (nodes: ObjectNode[], now: number) => ObjectNode[]) => boolean;
@@ -122,6 +134,25 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
     applyNodes((cur) => archiveObjectNodes(cur, id, now));
   }, [stamp, applyNodes]);
 
+  const restore = useCallback((id: ID) => {
+    const now = stamp();
+    applyNodes((cur) => {
+      const ids = subtreeIds(cur, id);
+      return cur.map((n) => (ids.has(n.id) && n.archived ? { ...n, archived: false, updatedAt: now } : n));
+    });
+  }, [stamp, applyNodes]);
+
+  const purge = useCallback((id: ID) => {
+    applyNodes((cur) => {
+      const ids = subtreeIds(cur, id);
+      // Only drop ARCHIVED members: a live node can sit inside an archived subtree
+      // (created concurrently on another device, merged in later) — buildTree
+      // already renders it as a root orphan, and deleting it here would destroy
+      // content the user never archived.
+      return cur.filter((n) => !(ids.has(n.id) && n.archived));
+    });
+  }, [applyNodes]);
+
   const mutate = useCallback((reducer: (nodes: ObjectNode[], now: number) => ObjectNode[]) => {
     const now = stamp();
     return applyNodes((cur) => reducer(cur, now));
@@ -133,5 +164,5 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   const ancestors = useCallback((id: ID) => ancestorsOf(objects, id), [objects]);
   const get = useCallback((id: ID) => objects.find((n) => n.id === id), [objects]);
 
-  return { tree, nodes, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, pull, create, rename, move, reorder, archive, mutate };
+  return { tree, nodes, allNodes: objects, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, pull, create, rename, move, reorder, archive, restore, purge, mutate };
 }

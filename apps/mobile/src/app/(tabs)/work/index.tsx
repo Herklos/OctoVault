@@ -1,21 +1,46 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { layout, spacing } from '@/theme';
+import { initialsFor } from '@/lib/format';
+import { useProfile } from '@/lib/profile-context';
+import { useQuickCreate } from '@/lib/use-quick-create';
+import { useInShell } from '@/lib/use-responsive';
 import { useSpaces } from '@/lib/use-spaces';
 import { AppBar } from '@/components/ui/AppBar';
+import { Avatar } from '@/components/ui/Avatar';
 import { IconButton } from '@/components/ui/IconButton';
 import { Stage } from '@/components/ui/Stage';
 import { StackScreen } from '@/components/ui/StackScreen';
+import { SpaceSwitcher } from '@/components/work/SpaceSwitcher';
+import { WorkNoSpaces } from '@/components/work/WorkEmpty';
+import { WorkHome } from '@/components/work/WorkHome';
 import { WorkObjects } from '@/components/work/WorkObjects';
 
-/** Vault tab — the active space's live pages + boards tree from the unified object
- *  index (see {@link WorkObjects}). Space context comes from {@link useSpaces}. A gear
- *  in the header opens the active space's details (see `app/space/[id]`). */
+/**
+ * Vault tab — the workspace landing. On phones the AppBar title IS the space
+ * switcher (the only mobile path between spaces) with quick-create + profile on
+ * the right; the body is the live tree ({@link WorkObjects}). On desktop the
+ * sidebar already shows the tree, so the main pane renders {@link WorkHome}
+ * (recents + quick create) instead of mirroring it. Zero spaces — a brand-new
+ * identity — gets a live "create your first space" door, never disabled chrome.
+ */
 export default function WorkScreen() {
   const router = useRouter();
-  const { spaces, activeId } = useSpaces();
+  const inShell = useInShell();
+  const { spaces, activeId, loading } = useSpaces();
+  const { profile } = useProfile();
+  const { newPage } = useQuickCreate();
   const space = spaces.find((s) => s.id === activeId) ?? spaces[0];
+
+  if (!loading && spaces.length === 0) {
+    return (
+      <StackScreen inTabs header={<AppBar title="OctoVault" />} contentStyle={styles.content}>
+        <WorkNoSpaces />
+      </StackScreen>
+    );
+  }
+
   return (
     <StackScreen
       inTabs
@@ -23,13 +48,32 @@ export default function WorkScreen() {
       header={
         <AppBar
           title={space?.name ?? 'Vault'}
-          subtitle="Workspace"
+          titleNode={<SpaceSwitcher variant="appbar" />}
+          right={
+            <>
+              <IconButton name="plus" onPress={newPage} tooltip="New page" accessibilityLabel="New page" />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Profile & accounts"
+                hitSlop={8}
+                onPress={() => router.push('/you')}
+              >
+                <Avatar label={initialsFor(profile?.name ?? '')} image={profile?.avatar} size={28} />
+              </Pressable>
+            </>
+          }
+        />
+      }
+      desktopHeader={
+        <AppBar
+          title={space?.name ?? 'Vault'}
           right={
             space ? (
               <IconButton
                 name="gear"
                 onPress={() => router.push({ pathname: '/space/[id]', params: { id: space.id } })}
-                accessibilityLabel="Space details"
+                tooltip="Space settings"
+                accessibilityLabel="Space settings"
               />
             ) : null
           }
@@ -38,13 +82,14 @@ export default function WorkScreen() {
       contentStyle={styles.content}
     >
       <Stage maxWidth={layout.listMaxWidth} style={styles.stage}>
-        <WorkObjects spaceId={space?.id ?? null} hero />
+        {inShell ? <WorkHome spaceId={space?.id ?? null} /> : <WorkObjects spaceId={space?.id ?? null} hero />}
       </Stage>
     </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: spacing.sm, paddingBottom: 96 },
+  // Deep bottom inset so the last rows clear the tab bar / scroll comfortably.
+  content: { paddingTop: spacing.sm, paddingBottom: spacing.xxxl * 2 },
   stage: { paddingTop: spacing.sm },
 });

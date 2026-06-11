@@ -9,10 +9,15 @@ import { IconButton } from './IconButton';
 import { Txt } from './Txt';
 
 interface AppBarProps {
-  title: string;
+  title?: string;
+  /** Replaces the title text with an interactive node (e.g. the Vault tab's
+   *  SpaceSwitcher trigger). `title` still feeds accessibility/fallbacks. */
+  titleNode?: ReactNode;
   /** String renders as a centered caption; node lets you compose icons. */
   subtitle?: ReactNode;
-  /** Convenience: renders a back chevron on the left. */
+  /** Convenience: renders a back chevron on the left — MOBILE ONLY. Inside the
+   *  desktop shell the sidebar + breadcrumb trail are the back affordance, so a
+   *  stack chevron is suppressed (it misreads as browser-back there). */
   onBack?: () => void;
   /** Override the left region entirely. */
   left?: ReactNode;
@@ -24,12 +29,12 @@ interface AppBarProps {
  * iOS-style header: symmetric flexible side regions with a centered title +
  * optional sub-line. Used across every pushed screen.
  */
-export function AppBar({ title, subtitle, onBack, left, right }: AppBarProps) {
+export function AppBar({ title, titleNode, subtitle, onBack, left, right }: AppBarProps) {
   const { colors } = useTheme();
   const inShell = useInShell();
   const leftNode =
     left ??
-    (onBack ? (
+    (onBack && !inShell ? (
       <IconButton name="arrow-l" size={20} color={colors.ink} onPress={onBack} accessibilityLabel="Back" />
     ) : null);
 
@@ -42,9 +47,11 @@ export function AppBar({ title, subtitle, onBack, left, right }: AppBarProps) {
         <View style={styles.side} />
       ) : null}
       <View style={[styles.center, inShell && styles.centerShell]}>
-        <Txt variant="heading" weight="semibold" numberOfLines={1}>
-          {title}
-        </Txt>
+        {titleNode ?? (
+          <Txt variant="heading" weight="semibold" numberOfLines={1}>
+            {title}
+          </Txt>
+        )}
         {subtitle != null ? (
           typeof subtitle === 'string' ? (
             <Txt variant="caption" tone="inkMuted" numberOfLines={1}>

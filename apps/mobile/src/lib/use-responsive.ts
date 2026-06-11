@@ -37,28 +37,15 @@ export function useResponsive(): Responsive {
 }
 
 /**
- * Whether the persistent desktop shell (spaces rail + room sidebar) is active:
- * a wide viewport, a signed-in identity, and not on the onboarding stack. The
- * single source of truth shared by `AppFrame`, `StackScreen` and `AppBar` so
- * the chrome and the routed content never disagree about which layout is live.
+ * Whether the persistent desktop shell (spaces rail + workspace sidebar) is
+ * active: a wide viewport, a signed-in identity, and not on the onboarding
+ * stack. The single source of truth shared by `AppFrame`, `StackScreen` and
+ * `AppBar` so the chrome and the routed content never disagree about which
+ * layout is live.
  */
 export function useInShell(): boolean {
   const { isWide } = useResponsive();
   const { session } = useSession();
   const segments = useSegments();
   return isWide && !!session && segments[0] !== '(onboarding)';
-}
-
-/** Root routes that aren't scoped to a space, so they drop the room sidebar. */
-const PERSONAL_ROUTES = ['you'];
-
-/**
- * Whether the active route is a space view that warrants the room sidebar.
- * The profile route (`/you`) is global, not scoped to a space, so it hides the
- * sidebar and lets the routed content use the full shell width. Every other
- * route (rooms, room, thread, space, members, search, threads) keeps it.
- */
-export function useRoomSidebarVisible(): boolean {
-  const segments = useSegments() as string[];
-  return !PERSONAL_ROUTES.includes(segments[0]);
 }

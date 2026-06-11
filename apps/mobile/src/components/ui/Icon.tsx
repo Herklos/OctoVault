@@ -91,6 +91,34 @@ const ICONS = {
   palette: { lib: MaterialCommunityIcons, n: 'palette-outline' },
   grip: { lib: MaterialCommunityIcons, n: 'drag-vertical' },
   expand: { lib: Feather, n: 'maximize-2' },
+  // Slash/turn-into menu: one glyph per insertable block type, named for what
+  // it inserts (the presentation-table aliases consumers reach for first).
+  h1: { lib: MaterialCommunityIcons, n: 'format-header-1' },
+  h2: { lib: MaterialCommunityIcons, n: 'format-header-2' },
+  'quote-mark': { lib: MaterialCommunityIcons, n: 'format-quote-close' },
+  'code-block': { lib: Feather, n: 'code' },
+  'list-bullet': { lib: MaterialCommunityIcons, n: 'format-list-bulleted' },
+  'list-number': { lib: MaterialCommunityIcons, n: 'format-list-numbered' },
+  'toggle-chev': { lib: MaterialCommunityIcons, n: 'menu-right' },
+  page: { lib: Feather, n: 'file-text' },
+  // Todo / done states as true squares (the rounded `todo` glyph stays for menus).
+  square: { lib: Feather, n: 'square' },
+  'square-check': { lib: Feather, n: 'check-square' },
+  drag: { lib: MaterialCommunityIcons, n: 'drag-vertical' },
+  // Context menus, tooltips & shell chrome (row actions, breadcrumb trails…).
+  duplicate: { lib: Feather, n: 'copy' },
+  'move-to': { lib: Feather, n: 'corner-up-right' },
+  restore: { lib: Feather, n: 'rotate-ccw' },
+  sidebar: { lib: Feather, n: 'sidebar' },
+  external: { lib: Feather, n: 'external-link' },
+  emoji: { lib: Feather, n: 'smile' },
+  'chev-down': { lib: Feather, n: 'chevron-down' },
+  'chev-right': { lib: Feather, n: 'chevron-right' },
+  'arrow-up': { lib: Feather, n: 'arrow-up' },
+  'arrow-down': { lib: Feather, n: 'arrow-down' },
+  // Keyboard hints (shortcut captions in menus and tooltips).
+  enter: { lib: Feather, n: 'corner-down-left' },
+  command: { lib: Feather, n: 'command' },
 } satisfies Record<string, IconDef>;
 
 export type IconName = keyof typeof ICONS;

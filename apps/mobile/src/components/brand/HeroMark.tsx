@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { glowShadow, motion, radii } from '@/theme';
+import { glowShadow, motion } from '@/theme';
 import { useTheme } from '@/lib/use-theme';
 import { PulseHalo } from '@/components/ui/PulseHalo';
 

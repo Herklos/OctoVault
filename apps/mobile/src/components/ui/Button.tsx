@@ -1,14 +1,17 @@
+import { useState } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated from 'react-native-reanimated';
 
-import { fonts, glowShadow, opacity, radii, shadows, spacing, type as typeScale } from '@/theme';
+import { glowShadow, opacity, radii, shadows, spacing, type as typeScale } from '@/theme';
+import { focusRingStyle, useFocusRing } from '@/lib/focus';
 import { useHover } from '@/lib/use-hover';
 import { useScalePress } from '@/lib/use-scale-press';
 import { useTheme, type Palette } from '@/lib/use-theme';
 
 import { Icon, type IconName } from './Icon';
+import { Txt } from './Txt';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -32,9 +35,9 @@ interface ButtonProps {
 }
 
 const SIZES = {
-  sm: { paddingVertical: 6, paddingHorizontal: 12, fontSize: typeScale.footnote.fontSize, gap: 6, minHeight: 32 },
-  md: { paddingVertical: 10, paddingHorizontal: 16, fontSize: typeScale.body.fontSize, gap: 8, minHeight: 42 },
-  lg: { paddingVertical: 13, paddingHorizontal: 20, fontSize: typeScale.subhead.fontSize, gap: 8, minHeight: spacing.controlMinHeight },
+  sm: { paddingVertical: 6, paddingHorizontal: 12, txt: 'footnote', iconSize: typeScale.footnote.fontSize + 2, gap: 6, minHeight: 32 },
+  md: { paddingVertical: 10, paddingHorizontal: 16, txt: 'body', iconSize: typeScale.body.fontSize + 2, gap: 8, minHeight: 42 },
+  lg: { paddingVertical: 13, paddingHorizontal: 20, txt: 'subhead', iconSize: typeScale.subhead.fontSize + 2, gap: 8, minHeight: spacing.controlMinHeight },
 } as const;
 
 function variantColors(c: Palette, variant: ButtonVariant) {
@@ -50,8 +53,9 @@ function variantColors(c: Palette, variant: ButtonVariant) {
   }
 }
 
-/** Generic pressable button — 4 variants × 3 sizes, with press spring, web
- *  hover and (primary) a marine gradient + bioluminescent glow. */
+/** Generic pressable button — 4 variants × 3 sizes, with press spring +
+ *  pressed fill, web hover wash, keyboard focus ring and (primary) an accent
+ *  gradient with a restrained glow. */
 export function Button({
   label,
   onPress,
@@ -67,19 +71,31 @@ export function Button({
   const v = variantColors(colors, variant);
   const s = SIZES[size];
   const { hovered, hoverProps } = useHover();
+  const { focused, focusProps } = useFocusRing();
   const { animStyle, onPressIn, onPressOut } = useScalePress({ scaleTo: 0.97 });
+  // Pressed fill complements the scale dip so a press also reads as a wash on
+  // flat surfaces (and on touch, where there is no hover precursor).
+  const [pressed, setPressed] = useState(false);
 
   const isPrimary = variant === 'primary';
-  const hoverWash = !hovered ? null : isPrimary ? colors.brightWash : colors.hover;
+  const wash = pressed ? colors.pressed : hovered ? (isPrimary ? colors.brightWash : colors.hover) : null;
 
   return (
     <AnimatedPressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading}
       onPress={onPress}
       {...hoverProps}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
+      {...focusProps}
+      onPressIn={() => {
+        setPressed(true);
+        onPressIn();
+      }}
+      onPressOut={() => {
+        setPressed(false);
+        onPressOut();
+      }}
       style={[
         styles.base,
         {
@@ -94,6 +110,7 @@ export function Button({
           width: full ? '100%' : undefined,
         },
         isPrimary ? glowShadow(colors.glow, hovered ? 0.34 : 0.18, hovered ? 12 : 9) : variant === 'secondary' && hovered ? shadows.sm : null,
+        focused && focusRingStyle(colors),
         animStyle,
         style,
       ]}
@@ -104,15 +121,15 @@ export function Button({
           style={[StyleSheet.absoluteFill, styles.fill]}
         />
       ) : null}
-      {hoverWash ? <View style={[StyleSheet.absoluteFill, styles.fill, { backgroundColor: hoverWash }]} /> : null}
+      {wash ? <View style={[StyleSheet.absoluteFill, styles.fill, { backgroundColor: wash }]} /> : null}
       {loading ? (
         <ActivityIndicator size="small" color={v.fg} />
       ) : iconName ? (
-        <Icon name={iconName} size={s.fontSize + 2} color={v.fg} />
+        <Icon name={iconName} size={s.iconSize} color={v.fg} />
       ) : null}
-      <Text style={[styles.label, { color: v.fg, fontSize: s.fontSize }]} numberOfLines={1}>
+      <Txt variant={s.txt} weight="semibold" color={v.fg} numberOfLines={1}>
         {label}
-      </Text>
+      </Txt>
     </AnimatedPressable>
   );
 }
@@ -126,9 +143,4 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
   },
   fill: { borderRadius: radii.lg },
-  label: {
-    fontFamily: fonts.bodySemibold,
-    letterSpacing: 0.1,
-    includeFontPadding: false,
-  },
 });

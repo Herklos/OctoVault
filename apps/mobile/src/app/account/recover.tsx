@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Redirect, router } from 'expo-router';
-import { StyleSheet } from 'react-native';
 
-import { spacing } from '@/theme';
+import { humanizeError } from '@/lib/errors';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { IconButton } from '@/components/ui/IconButton';
-import { StackScreen } from '@/components/ui/StackScreen';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
 import { SeedRecoverForm } from '@/components/onboarding/SeedRecoverForm';
 
 /** Add-account · recover: append an existing seed to the unlocked vault and
@@ -27,36 +26,23 @@ export default function RecoverAccountScreen() {
       await addAccount(words);
       router.replace('/(tabs)/work');
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(humanizeError(e, 'Couldn’t add that account. Check the words and try again.'));
       setBusy(false);
     }
   };
 
   return (
-    <StackScreen
-      scroll
-      contentStyle={styles.content}
+    <AuthScreen
       header={
         <AppBar
           title="Recover identity"
           subtitle="Add an existing account"
           onBack={() => router.back()}
-          right={<IconButton name="x" onPress={() => router.back()} accessibilityLabel="Cancel" />}
+          right={<IconButton name="x" onPress={() => router.back()} accessibilityLabel="Cancel" tooltip="Cancel" />}
         />
       }
     >
       <SeedRecoverForm submitLabel="Add account" busy={busy} error={error} onSubmit={add} />
-    </StackScreen>
+    </AuthScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    padding: spacing.xl,
-    gap: spacing.lg,
-    maxWidth: 600,
-    width: '100%',
-    alignSelf: 'center',
-    justifyContent: 'center',
-  },
-});

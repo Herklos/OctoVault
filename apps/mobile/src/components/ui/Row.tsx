@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/theme';
+import { focusRingStyle, useFocusRing } from '@/lib/focus';
 import { useHover } from '@/lib/use-hover';
 import { useTheme } from '@/lib/use-theme';
 
@@ -23,6 +24,7 @@ interface RowProps {
 export function Row({ iconName, iconColor, title, detail, detailMono, right, onPress }: RowProps) {
   const { colors } = useTheme();
   const { hovered, hoverProps } = useHover();
+  const { focused, focusProps } = useFocusRing();
   const content = (
     <>
       {iconName ? <Icon name={iconName} size={18} color={iconColor ?? colors.accent} /> : null}
@@ -46,7 +48,15 @@ export function Row({ iconName, iconColor, title, detail, detailMono, right, onP
         accessibilityRole="button"
         onPress={onPress}
         {...hoverProps}
-        style={[styles.row, styles.pressable, hovered && { backgroundColor: colors.hover }]}
+        {...focusProps}
+        style={({ pressed }) => [
+          styles.row,
+          styles.pressable,
+          hovered && { backgroundColor: colors.hover },
+          // Pressed wins over hover — one step deeper, so touch gets feedback too.
+          pressed && { backgroundColor: colors.pressed },
+          focused && focusRingStyle(colors),
+        ]}
       >
         {content}
       </Pressable>

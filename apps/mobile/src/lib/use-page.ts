@@ -24,8 +24,22 @@ export interface PageHook {
   setBlockText: (id: string, text: string) => void;
   setBlockType: (id: string, type: BlockType) => void;
   setBlockChecked: (id: string, checked: boolean) => void;
+  setBlockIndent: (id: string, indent: number) => void;
+  setBlockCollapsed: (id: string, collapsed: boolean) => void;
+  /** Point a `page` block at the child Object it links to. */
+  setBlockRef: (id: string, ref: string) => void;
   removeBlock: (id: string) => void;
   moveBlock: (id: string, toIndex: number) => void;
+  /** Enter-to-split: rewrite `id` to `head`, insert the tail block below it as ONE
+   *  op batch. Returns the new block id (null/undefined when the doc isn't open
+   *  or the block vanished under a concurrent edit). */
+  splitBlock: (id: string, head: string, init?: NewBlock) => string | null | undefined;
+  /** Backspace-at-start: fold `id` into the previous block; returns the survivor
+   *  and the caret seam. `textOverride` carries the field's live value. */
+  mergeBlockIntoPrevious: (id: string, textOverride?: string) => { prevId: string; offset: number } | null | undefined;
+  duplicateBlock: (id: string) => string | null | undefined;
+  /** Undo for a structural delete — re-insert with the ORIGINAL id at `index`. */
+  restoreBlock: (index: number, block: Block) => void;
 }
 
 /**
@@ -87,7 +101,14 @@ export function usePage(spaceId: string, pageId: string, opts: { enabled?: boole
     setBlockText: (id, text) => mut((d) => page.setBlockText(d, id, text)),
     setBlockType: (id, type) => mut((d) => page.setBlockType(d, id, type)),
     setBlockChecked: (id, checked) => mut((d) => page.setBlockChecked(d, id, checked)),
+    setBlockIndent: (id, indent) => mut((d) => page.setBlockIndent(d, id, indent)),
+    setBlockCollapsed: (id, collapsed) => mut((d) => page.setBlockCollapsed(d, id, collapsed)),
+    setBlockRef: (id, ref) => mut((d) => page.setBlockRef(d, id, ref)),
     removeBlock: (id) => mut((d) => page.removeBlock(d, id)),
     moveBlock: (id, toIndex) => mut((d) => page.moveBlock(d, id, toIndex)),
+    splitBlock: (id, head, init) => mut((d) => page.splitBlock(d, id, head, init)),
+    mergeBlockIntoPrevious: (id, textOverride) => mut((d) => page.mergeBlockIntoPrevious(d, id, textOverride)),
+    duplicateBlock: (id) => mut((d) => page.duplicateBlock(d, id)),
+    restoreBlock: (index, block) => mut((d) => page.restoreBlock(d, index, block)),
   };
 }

@@ -3,20 +3,21 @@ import { router } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
-import { useTheme } from '@/lib/use-theme';
+import { humanizeError } from '@/lib/errors';
+import { setAuthFlow } from '@/lib/onboarding-steps';
+import { useResponsive } from '@/lib/use-responsive';
 import { useSession } from '@/lib/session-context';
 import { hasNostrSignSchnorr, loginWithNostrExtension } from '@/lib/nostr';
 import { HeroMark } from '@/components/brand/HeroMark';
 import { Wordmark } from '@/components/brand/Wordmark';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
 import { Button } from '@/components/ui/Button';
-import { Divider } from '@/components/ui/Divider';
-import { Icon } from '@/components/ui/Icon';
-import { Screen } from '@/components/ui/Screen';
+import { Reveal } from '@/components/ui/Reveal';
 import { Txt } from '@/components/ui/Txt';
 
 export default function Welcome() {
-  const { colors } = useTheme();
   const { prepareNostrSignIn } = useSession();
+  const { isWide } = useResponsive();
   // NIP-07 extensions inject `window.nostr` from their content script. Timing is
   // not guaranteed against React mount, so probe at mount AND on tab focus — and
   // only render the button once we've actually seen the provider.
@@ -34,6 +35,9 @@ export default function Welcome() {
   }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Expert paths (device pairing, Nostr) fold behind one quiet disclosure so the
+  // front door stays a two-decision page: create, or recover.
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const onNostrLogin = async () => {
     if (busy) return;
@@ -42,25 +46,33 @@ export default function Welcome() {
     try {
       const root = await loginWithNostrExtension();
       prepareNostrSignIn(root);
+      setAuthFlow('nostr');
       router.push('/(onboarding)/lock');
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(humanizeError(e, 'The Nostr extension didn’t respond. Try again.'));
       setBusy(false);
     }
   };
 
   return (
-    <Screen style={styles.screen}>
-      <View style={styles.hero}>
-        <HeroMark size={128} />
-        <View style={styles.lockup}>
-          <Wordmark hideMark size={32} />
-          <Txt variant="subhead" weight="medium" tone="inkSoft" center>
-            Your end-to-end encrypted{'\n'}knowledge vault.
-          </Txt>
+    <AuthScreen
+      brand={
+        <View style={styles.hero}>
+          {/* Larger lockup + type at desktop scale — the one screen allowed a
+              full staged brand moment. */}
+          <HeroMark size={isWide ? 156 : 128} />
+          <View style={styles.lockup}>
+            <Wordmark hideMark size={isWide ? 40 : 32} />
+            <Txt variant={isWide ? 'heading' : 'subhead'} weight="medium" tone="inkSoft" center>
+              Your end-to-end encrypted{'\n'}knowledge vault.
+            </Txt>
+            <Txt variant="caption" tone="inkMuted" center>
+              Pages, boards and notes — sealed with keys only you hold.
+            </Txt>
+          </View>
         </View>
-      </View>
-
+      }
+    >
       <View style={styles.actions}>
         <Button
           label="Create new identity"
@@ -76,59 +88,59 @@ export default function Welcome() {
           full
           onPress={() => router.push('/(onboarding)/recover')}
         />
+
         <Button
-          label="Scan QR from existing device"
+          label={moreOpen ? 'Fewer options' : 'More options'}
           variant="ghost"
-          size="md"
+          size="sm"
           full
-          iconName="qr"
-          onPress={() => router.push('/pair')}
+          iconName={moreOpen ? 'chevron-up' : 'chevron-down'}
+          onPress={() => setMoreOpen((v) => !v)}
         />
-        {nostrAvailable ? (
-          <>
-            <Button
-              label="Login with Nostr extension"
-              variant="ghost"
-              size="md"
-              full
-              iconName="key"
-              loading={busy}
-              onPress={onNostrLogin}
-            />
-            {error ? (
-              <Txt variant="footnote" tone="danger" center>
-                {error}
-              </Txt>
-            ) : (
-              <Txt variant="caption" tone="inkMuted" center>
-                Use a deterministic NIP-07 extension (nos2x, Alby) — a randomized signer would lock you out on reinstall.
-              </Txt>
-            )}
-          </>
+        {moreOpen ? (
+          <Reveal>
+            <View style={styles.more}>
+              <Button
+                // The web build has no camera scanner — promise the paste flow
+                // it actually delivers; native promises the scan it has.
+                label={Platform.OS === 'web' ? 'Pair from an existing device' : 'Scan QR from existing device'}
+                variant="ghost"
+                size="md"
+                full
+                iconName={Platform.OS === 'web' ? 'devices' : 'qr'}
+                onPress={() => router.push('/pair')}
+              />
+              {nostrAvailable ? (
+                <>
+                  <Button
+                    label="Login with Nostr extension"
+                    variant="ghost"
+                    size="md"
+                    full
+                    iconName="key"
+                    loading={busy}
+                    onPress={onNostrLogin}
+                  />
+                  <Txt variant="caption" tone="inkMuted" center>
+                    Use a deterministic NIP-07 extension (nos2x, Alby) — a randomized signer would lock you out on reinstall.
+                  </Txt>
+                </>
+              ) : null}
+            </View>
+          </Reveal>
         ) : null}
 
-        <Divider style={styles.rule} />
-        <View style={styles.trust}>
-          <Icon name="lock" size={12} color={colors.accent} />
-          <Txt variant="caption" tone="inkMuted">
-            No email, no phone, no password.
+        {error ? (
+          <Txt variant="footnote" tone="danger" center>
+            {error}
           </Txt>
-        </View>
+        ) : null}
       </View>
-    </Screen>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
-    justifyContent: 'center',
-    gap: spacing.xxxl,
-    maxWidth: 440,
-    width: '100%',
-    alignSelf: 'center',
-  },
   hero: {
     alignItems: 'center',
     gap: spacing.xl,
@@ -140,14 +152,7 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.md,
   },
-  rule: {
-    marginTop: spacing.sm,
-  },
-  trust: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+  more: {
+    gap: spacing.md,
   },
 });

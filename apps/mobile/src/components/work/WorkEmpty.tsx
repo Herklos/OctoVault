@@ -1,61 +1,53 @@
+import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { paperBorder, radii, spacing } from '@/theme';
-import { useTheme } from '@/lib/use-theme';
+import { spacing } from '@/theme';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon, type IconName } from '@/components/ui/Icon';
-import { Txt } from '@/components/ui/Txt';
-
-const FACETS: { iconName: IconName; label: string; meta: string }[] = [
-  { iconName: 'file', label: 'Pages', meta: 'Nested blocks, merged per keystroke' },
-  { iconName: 'work', label: 'Boards', meta: 'Kanban that converges across devices' },
-];
 
 /**
- * Empty state for the workspace — shown once the object index has loaded and holds
- * no pages/boards (gated on `loaded`). Built on the shared {@link EmptyState} with two
- * LIVE create CTAs wired to `useObjects.create` and a chip per content type.
+ * Empty state for a space with no content yet — shown once the object index has
+ * loaded and holds no pages/boards (gated on `loaded`). Plain-spoken copy (the
+ * encryption/CRDT story belongs in onboarding, not an empty screen) over two
+ * LIVE create CTAs wired to `useObjects.create`.
  */
 export function WorkEmpty({ onNewPage, onNewBoard, disabled }: { onNewPage: () => void; onNewBoard: () => void; disabled?: boolean }) {
   return (
     <View style={styles.floor}>
       <EmptyState
         iconName="book"
-        title="Your encrypted workspace"
-        subtitle="Pages of blocks and kanban boards — end-to-end-encrypted and CRDT-synced across your devices. Create your first one to begin."
+        title="Write your first page"
+        subtitle="Pages hold your notes and documents; boards track work in columns. Everything here is private to this space and syncs to all your devices."
       >
         <View style={styles.actions}>
           <Button label="New page" variant="primary" iconName="plus" size="sm" disabled={disabled} onPress={onNewPage} />
           <Button label="New board" variant="secondary" iconName="plus" size="sm" disabled={disabled} onPress={onNewBoard} />
-        </View>
-        <View style={styles.facets}>
-          {FACETS.map((f) => (
-            <FacetChip key={f.label} iconName={f.iconName} label={f.label} meta={f.meta} />
-          ))}
         </View>
       </EmptyState>
     </View>
   );
 }
 
-function FacetChip({ iconName, label, meta }: { iconName: IconName; label: string; meta: string }) {
-  const { colors } = useTheme();
+/**
+ * Zero-SPACE state for the Vault tab — a brand-new identity has no space yet,
+ * and the object store is disabled without one, so the create buttons above
+ * would sit disabled forever ("Opening workspace…", the old dead end). This is
+ * a live door instead: one CTA into the create/join flow.
+ */
+export function WorkNoSpaces() {
+  const router = useRouter();
   return (
-    <View style={[styles.chip, paperBorder(colors)]}>
-      <Icon name={iconName} size={15} color={colors.accent} />
-      <View style={styles.chipText}>
-        <Txt variant="footnote" weight="semibold">{label}</Txt>
-        <Txt variant="caption" tone="inkMuted" numberOfLines={1}>{meta}</Txt>
-      </View>
-    </View>
+    <EmptyState
+      iconName="lock"
+      title="Create your first space"
+      subtitle="A space is a private home for your pages and boards — end-to-end encrypted, shared only with people you invite."
+    >
+      <Button label="Create a space" variant="primary" iconName="plus" onPress={() => router.push('/join')} />
+    </EmptyState>
   );
 }
 
 const styles = StyleSheet.create({
   floor: { minHeight: 320 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm },
-  facets: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.xs },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.lg, borderWidth: 1 },
-  chipText: { minWidth: 0, gap: 1 },
 });

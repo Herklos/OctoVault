@@ -25,7 +25,10 @@ const KAV = Platform.OS === 'web' ? View : KeyboardAvoidingView;
 interface StackScreenProps {
   /** Header node (usually <AppBar/>); its safe-area inset is painted paper. */
   header?: ReactNode;
-  /** Replaces `header` inside the desktop shell (e.g. a <DesktopChatTopbar/>). */
+  /** Replaces `header` inside the desktop shell. Convention for detail routes:
+   *  pass the breadcrumb topbar (full trail INCLUDING the current node, plus
+   *  right-side actions) — the sidebar is the back affordance there, so no
+   *  back chevron. */
   desktopHeader?: ReactNode;
   /** Pinned footer node (usually <Composer/> or a CTA). */
   footer?: ReactNode;

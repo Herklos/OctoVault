@@ -1,66 +1,65 @@
-import { useMemo, useState } from 'react';
-import { router } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
-import { spacing } from '@/theme';
-import { iconForNode } from '@/lib/object-types';
-import { useObjects } from '@/lib/use-objects';
-import { useSpaces } from '@/lib/use-spaces';
-import type { ObjectNode } from '@/lib/types';
+import { layout, spacing } from '@/theme';
+import { quickFindKeyHandlers, useQuickFind } from '@/lib/use-quick-find';
+import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Row } from '@/components/ui/Row';
+import { QuickFindResults } from '@/components/ui/CommandPalette';
+import { SignInPrompt } from '@/components/ui/SignInPrompt';
 import { StackScreen } from '@/components/ui/StackScreen';
 import { TextField } from '@/components/ui/TextField';
 
-/** Workspace search — filter the active space's pages + boards by title. (Full-text
- *  block search over the WAL documents is a future addition.) */
+/**
+ * Search tab — the touch shell around Quick Find. Same brain and result list
+ * as the mod+K palette (`lib/use-quick-find` + {@link QuickFindResults}), just
+ * full-screen: autofocused input, recents while the query is empty, ranked
+ * title matches with highlights/breadcrumbs after, and the create-page escape
+ * hatch so no search dead-ends. The list is a FlatList so long result sets
+ * scroll instead of clipping.
+ */
 export default function SearchScreen() {
-  const { spaces, activeId } = useSpaces();
-  const space = spaces.find((s) => s.id === activeId) ?? spaces[0];
-  const { nodes } = useObjects(space?.id ?? '', { enabled: !!space });
-  const [query, setQuery] = useState('');
-  const q = query.trim().toLowerCase();
+  const { session } = useSession();
+  // Hook order: called before the signed-out gate (it is safe without a
+  // session — the shared index store is simply empty then).
+  const find = useQuickFind();
 
-  const results = useMemo(
-    () =>
-      q.length < 1
-        ? []
-        : nodes
-            .filter((n) => (n.type === 'page' || n.type === 'board') && n.title.toLowerCase().includes(q))
-            .slice(0, 50),
-    [nodes, q],
-  );
-
-  const open = (n: ObjectNode) =>
-    router.push({
-      pathname: n.type === 'board' ? '/work/board/[id]' : '/work/page/[id]',
-      params: { id: n.id, spaceId: space?.id ?? '', emoji: n.emoji ?? '', label: n.title },
-    });
+  if (!session) {
+    return (
+      <StackScreen header={<AppBar title="Search" />}>
+        <SignInPrompt subtitle="Sign in to search your workspace." />
+      </StackScreen>
+    );
+  }
 
   return (
-    <StackScreen header={<AppBar title="Search" />} contentStyle={styles.content}>
+    <StackScreen
+      header={<AppBar title="Search" subtitle={find.spaceName ?? undefined} />}
+      contentStyle={styles.content}
+    >
       <TextField
         leadingIcon="search"
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search pages & boards…"
+        value={find.query}
+        onChangeText={find.setQuery}
+        placeholder={find.spaceName ? `Search ${find.spaceName}…` : 'Search pages & boards…'}
+        autoFocus
         autoCorrect={false}
         autoCapitalize="none"
+        returnKeyType="go"
+        blurOnSubmit={false}
+        {...quickFindKeyHandlers(find, { escapeClears: true })}
       />
-      {q.length < 1 ? (
-        <EmptyState iconName="search" title="Search your workspace" subtitle="Find pages and boards by title." />
-      ) : results.length === 0 ? (
-        <EmptyState iconName="search" title="No matches" subtitle={`Nothing for “${query.trim()}”.`} />
-      ) : (
-        results.map((n) => (
-          <Row key={n.id} iconName={iconForNode(n)} title={n.title || 'Untitled'} onPress={() => open(n)} />
-        ))
-      )}
+      <QuickFindResults find={find} scroll />
     </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.screenX, paddingTop: spacing.md, gap: spacing.md, maxWidth: 680, width: '100%', alignSelf: 'center' },
+  content: {
+    paddingHorizontal: spacing.screenX,
+    paddingTop: spacing.md,
+    gap: spacing.md,
+    maxWidth: layout.listMaxWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
 });

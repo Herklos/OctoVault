@@ -62,12 +62,20 @@ export interface Palette {
   // ── Interaction (web pointer states) ─────────────────────────────────────
   /** Translucent fill painted under a hovered control/row. */
   hover: string;
+  /** Active/pressed fill — one step past `hover`; pairs with the scale dip so a
+   *  press reads on flat (border-less) controls too. */
+  pressed: string;
   /** Persistent fill under a selected/active nav or tree row (distinct from hover). */
   selected: string;
   /** Hover wash for already-selected (accentSoft) rows. */
   accentSoftHover: string;
   /** White brightening wash layered over a solid/gradient fill on hover. */
   brightWash: string;
+  /** Keyboard focus ring (web `:focus-visible`) — applied via
+   *  `focusRingStyle()` in `src/lib/focus.ts`, never as a static border. */
+  focusRing: string;
+  /** Wash over a valid drag-over target (block drop zone, kanban column). */
+  dropTarget: string;
 
   // ── Indigo accent system ─────────────────────────────────────────────────
   accent: string;
@@ -114,6 +122,11 @@ export interface Palette {
   overlay: string;
   /** Foreground (icons/text) drawn on top of `scrim` — light in both themes. */
   onScrim: string;
+  /** Inverted tooltip chip — warm near-ink in BOTH schemes so the hint floats
+   *  above any surface without competing with the document. */
+  tooltipBg: string;
+  /** Text/glyph on `tooltipBg`. */
+  onTooltip: string;
 }
 
 const light: Palette = {
@@ -143,9 +156,12 @@ const light: Palette = {
   hairlineHi: 'rgba(255,255,255,0.9)',
 
   hover: 'rgba(27,26,23,0.045)',
+  pressed: 'rgba(27,26,23,0.08)',
   selected: 'rgba(88,71,201,0.10)',
   accentSoftHover: 'rgba(88,71,201,0.18)',
   brightWash: 'rgba(255,255,255,0.14)',
+  focusRing: 'rgba(88,71,201,0.55)',
+  dropTarget: 'rgba(88,71,201,0.10)',
 
   accent: '#5847c9',
   accentStrong: '#473aa6',
@@ -179,6 +195,8 @@ const light: Palette = {
   scrim: 'rgba(27,26,23,0.50)',
   overlay: 'rgba(27,26,23,0.32)',
   onScrim: '#fffdf8',
+  tooltipBg: '#2c2a24',
+  onTooltip: '#f4f1ea',
 };
 
 const dark: Palette = {
@@ -208,9 +226,12 @@ const dark: Palette = {
   hairlineHi: 'rgba(236,232,223,0.08)',
 
   hover: 'rgba(244,241,234,0.06)',
+  pressed: 'rgba(244,241,234,0.10)',
   selected: 'rgba(139,124,240,0.16)',
   accentSoftHover: 'rgba(139,124,240,0.18)',
   brightWash: 'rgba(255,255,255,0.12)',
+  focusRing: 'rgba(139,124,240,0.60)',
+  dropTarget: 'rgba(139,124,240,0.14)',
 
   accent: '#8b7cf0',
   accentStrong: '#a499f5',
@@ -244,6 +265,8 @@ const dark: Palette = {
   scrim: 'rgba(8,7,5,0.66)',
   overlay: 'rgba(8,7,5,0.45)',
   onScrim: '#fffdf8',
+  tooltipBg: '#3c382f',
+  onTooltip: '#ece8df',
 };
 
 export const colors: Record<ColorScheme, Palette> = { light, dark };
@@ -427,6 +450,35 @@ export function paperBorder(p: Palette, border: string = p.lineSoft) {
   } as const;
 }
 
+/**
+ * z-index scale for everything that floats. Overlay primitives (Popover, Sheet,
+ * Tooltip, Toast) and shell chrome consume these instead of ad-hoc zIndex /
+ * Modal mount-order, so stacking stays predictable as surfaces compose
+ * (e.g. a tooltip inside a popover, a toast over a panel).
+ */
+export const layers = {
+  header: 10,
+  sidebar: 20,
+  panel: 50,
+  popover: 100,
+  tooltip: 150,
+  toast: 200,
+  modal: 300,
+} as const;
+
+/**
+ * Shared easing curves as web CSS timing functions — for `FadeView` and other
+ * CSS-transition-driven web motion. (Native/reanimated interactions use
+ * `motion.spring`; these keep web enter/exit curves consistent instead of the
+ * browser default `ease`.) `out` decelerates entrances, `in` accelerates
+ * exits, `inOut` moves things already on screen.
+ */
+export const easing = {
+  out: 'cubic-bezier(0.2,0,0,1)',
+  in: 'cubic-bezier(0.4,0,1,1)',
+  inOut: 'cubic-bezier(0.4,0,0.2,1)',
+} as const;
+
 export const motion = {
   fast: 140,
   base: 220,
@@ -444,6 +496,10 @@ export const motion = {
    *  a permanent entry — longer so transient keystrokes don't bloat the log; blur/
    *  unmount is the primary trigger). */
   autosaveLog: 1500,
+  /** Hover dwell before a Tooltip chip appears — long enough not to chase the pointer. */
+  tooltipDelay: 450,
+  /** Default time a toast stays up — long enough to read and reach "Undo". */
+  toastDuration: 4000,
   /** Spring config for press / drag interactions (Reanimated). */
   spring: { damping: 18, stiffness: 220, mass: 0.8 },
 } as const;
@@ -470,6 +526,9 @@ export const layout = {
   railTileSize: 40,
   /** Workspace sidebar between the rail and the main pane. */
   sidebarWidth: 248,
+  /** Sidebar width when collapsed (mod+\\) — fully tucked away; a floating
+   *  control in the main pane reopens it. */
+  sidebarCollapsedWidth: 0,
   /** Fixed width of a kanban column. */
   boardColumnWidth: 236,
   /** Width of the task detail pane shown beside the board on wide screens. */
@@ -489,12 +548,20 @@ export const layout = {
   coverHeight: 184,
   /** Editorial reading column for a workspace list landing (Vault home, search). */
   listMaxWidth: 760,
+  /** Shared column for onboarding/auth screens (welcome, seed, lock, pair…). */
+  authColumnWidth: 460,
+  /** Reading column for settings surfaces (/you, /space/[id]). */
+  settingsColumnWidth: 640,
   /** Side panel for an opened board task on wide screens (replaces the bottom sheet). */
   taskPanelWidth: 380,
+  /** Right-docked side-peek pane (board task detail on wide screens). */
+  peekPaneWidth: 380,
   /** Block editor: left gutter that holds the hover "+" / drag handle. */
   blockGutterWidth: 26,
   /** Block editor: drag/add handle glyph size. */
   blockHandleSize: 18,
+  /** Square todo-block / card done checkbox. */
+  checkboxSize: 16,
   /** Block editor: vertical gap between block rows. */
   blockRowGap: 2,
   /** Block editor: per-nesting-level indent (reserved for nested blocks). */
@@ -517,6 +584,17 @@ export const layout = {
   avatarBadgeSize: 24,
   /** Anchored popover (account/space context menu) width. */
   popoverWidth: 264,
+  /** Minimum width of an anchored Menu so short option lists don't shrink-wrap. */
+  menuMinWidth: 220,
+  /** Quick-find / command palette card (mod+K). */
+  quickFindWidth: 560,
+  /** Centered Sheet dialog width cap (confirm dialogs, pickers on wide screens). */
+  dialogMaxWidth: 480,
+  /** Viewport-top offset of an `align="top"` Sheet dialog (the command palette
+   *  sits high, Notion-style, so results grow downward instead of jumping). */
+  dialogTopOffset: 120,
+  /** Toast chip width in the desktop shell stack. */
+  toastWidth: 360,
   /**
    * Draggable title strip reserved at the top of the macOS desktop shell so the
    * window's traffic-light buttons (hiddenInset titleBarStyle) don't overlap the

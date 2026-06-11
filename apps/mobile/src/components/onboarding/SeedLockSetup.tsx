@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { spacing } from '@/theme';
+import { spacing, type as typeScale } from '@/theme';
+import { humanizeError } from '@/lib/errors';
+import { usePinKeys } from '@/lib/use-pin-keys';
 import { enrollPasskey } from '@/lib/starfish/passkey';
 import type { SeedLock } from '@/lib/starfish/storage-types';
 import { Button } from '@/components/ui/Button';
@@ -27,7 +29,9 @@ type Stage = 'enter' | 'confirm' | 'passkey';
 /**
  * Sets the lock for the web-persisted seed: pick a 6-digit PIN (entered twice),
  * then optionally enroll a passkey. The seed is sealed behind whatever is chosen
- * and only then written to disk.
+ * and only then written to disk. Fully keyboard-operable on web (digits,
+ * Backspace, paste — see `usePinKeys`); a mismatch shakes the dots instead of
+ * shifting the layout with an inserted banner.
  */
 export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSetupProps) {
   const [stage, setStage] = useState<Stage>('enter');
@@ -35,6 +39,7 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
   const [entry, setEntry] = useState(''); // current pad buffer
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shake, setShake] = useState(0);
 
   const submit = async (lock: SeedLock) => {
     setBusy(true);
@@ -43,7 +48,7 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
       await onSubmit(lock);
       onDone();
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(humanizeError(e, 'Couldn’t secure your vault. Try again.'));
       setBusy(false);
     }
   };
@@ -57,7 +62,7 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
       const passkey = await enrollPasskey('OctoVault');
       await submit({ pin, passkey }); // submit owns its own error/busy handling
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(humanizeError(e, 'Couldn’t add the passkey. Try again or use PIN only.'));
       setBusy(false);
     }
   };
@@ -77,7 +82,8 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
     }
     // stage === 'confirm'
     if (next !== pin) {
-      setError('PINs did not match — try again.');
+      setError('PINs didn’t match — start again.');
+      setShake((k) => k + 1);
       setPin('');
       setEntry('');
       setStage('enter');
@@ -90,6 +96,12 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
     }
     void submit({ pin: next });
   };
+
+  const onDelete = () => setEntry((c) => c.slice(0, -1));
+
+  // The hardware keyboard mirrors the on-screen pad (web only). Hooks before the
+  // passkey-stage early return; `enabled` keeps it quiet there and mid-derive.
+  usePinKeys({ onDigit, onDelete, enabled: stage !== 'passkey' && !busy });
 
   if (stage === 'passkey') {
     return (
@@ -139,22 +151,26 @@ export function SeedLockSetup({ passkeyAvailable, onSubmit, onDone }: SeedLockSe
         <Txt variant="caption" weight="semibold" mono uppercase tone="inkSoft" center>
           {stage === 'enter' ? 'Create a PIN' : 'Re-enter PIN'}
         </Txt>
-        <PinDots length={PIN_LENGTH} filled={entry.length} />
+        <PinDots length={PIN_LENGTH} filled={entry.length} shake={shake} />
+        {/* Reserved slot: errors appear here without pushing the pad downward. */}
+        <View style={styles.errorSlot}>
+          {error ? (
+            <Txt variant="footnote" tone="danger" center>
+              {error}
+            </Txt>
+          ) : null}
+        </View>
       </View>
 
-      {error ? (
-        <Callout tone="danger" iconName="alert">
-          {error}
-        </Callout>
-      ) : null}
-
-      <PinPad onDigit={onDigit} onDelete={() => setEntry((c) => c.slice(0, -1))} />
+      <PinPad onDigit={onDigit} onDelete={onDelete} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  block: { gap: spacing.xl },
+  block: { gap: spacing.lg },
   pinBlock: { gap: spacing.md },
   actions: { gap: spacing.md },
+  // Two footnote lines reserved so a long error wraps without layout shift.
+  errorSlot: { minHeight: typeScale.footnote.lineHeight * 2, justifyContent: 'center' },
 });

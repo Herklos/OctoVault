@@ -29,6 +29,11 @@ export interface SpaceMember {
   /** 2-letter monogram for the avatar fallback. */
   monogram: string;
   isOwner: boolean;
+  /** True while the profile cache may still resolve a name — render a Skeleton in
+   *  the name slot instead of flashing the raw fingerprint on first paint. Flips
+   *  false when a name lands OR the grace window passes (a user with no profile
+   *  doc keeps the fingerprint as their permanent label). */
+  resolving: boolean;
 }
 
 export interface SpaceMembers {
@@ -44,6 +49,12 @@ export interface SpaceMembers {
 }
 
 const monogramOf = (id: string) => id.slice(0, 2).toUpperCase();
+
+/** How long an unresolved name keeps its Skeleton before falling back to the
+ *  fingerprint. The profile cache resolves in one batched roundtrip, so anything
+ *  still nameless after this window is a user with no profile doc — for them the
+ *  fingerprint IS the name, and a Skeleton would shimmer forever. */
+const PROFILE_RESOLVE_GRACE_MS = 2500;
 
 export function useSpaceMembers(spaceId: string): SpaceMembers {
   // Opt out of React-Compiler memoization: the resolved member id set is stable, so
@@ -87,20 +98,35 @@ export function useSpaceMembers(spaceId: string): SpaceMembers {
     void refresh();
   }, [refresh]);
 
+  // Grace window for name resolution: starts once the roster ids land, after which
+  // an unresolved member stops skeleton-ing and shows their fingerprint (see
+  // PROFILE_RESOLVE_GRACE_MS). State (not a ref) so the flip re-renders the rows.
+  const [graceOver, setGraceOver] = useState(false);
+  const hasIds = ids.length > 0;
+  useEffect(() => {
+    if (!hasIds) return;
+    const t = setTimeout(() => setGraceOver(true), PROFILE_RESOLVE_GRACE_MS);
+    return () => clearTimeout(t);
+  }, [hasIds]);
+
   // Resolve names + avatars through the shared cache (one batched fetch). These return
   // accessors over a module cache; the rows below are rebuilt every render so the
   // listener tick (a fetched profile) reaches the screen — see header note.
   const pseudo = usePseudos(ids);
   const avatar = useAvatars(ids);
 
-  const members: SpaceMember[] = ids.map((userId) => ({
-    userId,
-    name: pseudo(userId),
-    avatar: avatar(userId),
-    fingerprint: fingerprintFromUserId(userId),
-    monogram: monogramOf(userId),
-    isOwner: userId === owner,
-  }));
+  const members: SpaceMember[] = ids.map((userId) => {
+    const name = pseudo(userId);
+    return {
+      userId,
+      name,
+      avatar: avatar(userId),
+      fingerprint: fingerprintFromUserId(userId),
+      monogram: monogramOf(userId),
+      isOwner: userId === owner,
+      resolving: name === undefined && !graceOver,
+    };
+  });
 
   const removeMember = useCallback(
     async (memberUserId: string) => {

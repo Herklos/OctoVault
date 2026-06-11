@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { motion, spacing } from '@/theme';
+import { motion, spacing, type as typeScale } from '@/theme';
+import { humanizeError } from '@/lib/errors';
+import { usePinKeys } from '@/lib/use-pin-keys';
 import type { UnlockMethod } from '@/lib/starfish/storage-types';
 import { useTheme } from '@/lib/use-theme';
 import { Button } from '@/components/ui/Button';
@@ -26,12 +28,18 @@ interface SeedUnlockProps {
   onForget?: () => void;
 }
 
-/** Cold-start unlock: PIN pad plus, when enrolled, a one-tap passkey unlock. */
+/**
+ * Cold-start unlock: PIN pad plus, when enrolled, a one-tap passkey unlock.
+ * Keyboard-first on web — digits, Backspace and paste all work without touching
+ * the mouse (`usePinKeys`). A wrong PIN shakes the dots and reports inside a
+ * reserved slot so the keypad never jumps.
+ */
 export function SeedUnlock({ methods, onUnlock, onDone, onForget }: SeedUnlockProps) {
   const { colors } = useTheme();
   const [entry, setEntry] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shake, setShake] = useState(0);
   const hasPasskey = methods.includes('passkey');
 
   // Slow-unlock flourish: while busy the keypad fades out (over ~2s, on the
@@ -49,7 +57,8 @@ export function SeedUnlock({ methods, onUnlock, onDone, onForget }: SeedUnlockPr
       await onUnlock(method, pin);
       onDone();
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(humanizeError(e, method === 'pin' ? 'Wrong PIN — try again.' : 'Couldn’t unlock. Try again.'));
+      setShake((k) => k + 1);
       setEntry('');
       setBusy(false);
     }
@@ -61,6 +70,11 @@ export function SeedUnlock({ methods, onUnlock, onDone, onForget }: SeedUnlockPr
     setEntry(next);
     if (next.length === PIN_LENGTH) void run('pin', next);
   };
+
+  const onDelete = () => setEntry((c) => c.slice(0, -1));
+
+  // Hardware keyboard mirrors the pad (web). Disabled while the unlock crunches.
+  usePinKeys({ onDigit, onDelete, enabled: !busy });
 
   return (
     <View style={styles.block}>
@@ -99,16 +113,18 @@ export function SeedUnlock({ methods, onUnlock, onDone, onForget }: SeedUnlockPr
             <Txt variant="caption" weight="semibold" mono uppercase tone="inkSoft" center>
               Enter PIN
             </Txt>
-            <PinDots length={PIN_LENGTH} filled={entry.length} />
+            <PinDots length={PIN_LENGTH} filled={entry.length} shake={shake} />
           </>
         )}
+        {/* Reserved slot: wrong-PIN copy lands here without shifting the keypad. */}
+        <View style={styles.errorSlot}>
+          {error && !busy ? (
+            <Txt variant="footnote" tone="danger" center>
+              {error}
+            </Txt>
+          ) : null}
+        </View>
       </View>
-
-      {error ? (
-        <Callout tone="danger" iconName="alert">
-          {error}
-        </Callout>
-      ) : null}
 
       {/* Crossfade: the keypad fades out (slowly, during the unlock) and an OctoVault
           fact fades in once it has cleared, to fill the Argon2id wait. The keypad
@@ -117,7 +133,7 @@ export function SeedUnlock({ methods, onUnlock, onDone, onForget }: SeedUnlockPr
           pointerEvents off the pad while busy — onDigit already no-ops too. */}
       <View>
         <FadeView visible={!busy} duration={busy ? motion.unlockFade : motion.fast} pointerEvents={busy ? 'none' : 'auto'}>
-          <PinPad onDigit={onDigit} onDelete={() => setEntry((c) => c.slice(0, -1))} />
+          <PinPad onDigit={onDigit} onDelete={onDelete} />
         </FadeView>
         <FadeView
           visible={busy}
@@ -140,10 +156,12 @@ export function SeedUnlock({ methods, onUnlock, onDone, onForget }: SeedUnlockPr
 }
 
 const styles = StyleSheet.create({
-  block: { gap: spacing.xl },
+  block: { gap: spacing.lg },
   passkeyBlock: { gap: spacing.md },
   // minHeight keeps the slot from collapsing when the dots swap for the spinner.
   pinBlock: { gap: spacing.md, minHeight: 56, justifyContent: 'center' },
   unlocking: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   tip: { justifyContent: 'center', paddingHorizontal: spacing.sm },
+  // One reserved footnote line so a wrong-PIN message never jolts the keypad.
+  errorSlot: { minHeight: typeScale.footnote.lineHeight, justifyContent: 'center' },
 });

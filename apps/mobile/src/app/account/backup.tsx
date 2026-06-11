@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Redirect, router } from 'expo-router';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 
-import { spacing } from '@/theme';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { Callout } from '@/components/ui/Callout';
 import { IconButton } from '@/components/ui/IconButton';
-import { StackScreen } from '@/components/ui/StackScreen';
 import { Txt } from '@/components/ui/Txt';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
 import { SeedBackup } from '@/components/onboarding/SeedBackup';
 import { SeedUnlock } from '@/components/onboarding/SeedUnlock';
 
@@ -30,15 +29,13 @@ export default function BackupSeedScreen() {
   if (!gated && !seed && !nostrLinked) return <Redirect href="/" />;
 
   return (
-    <StackScreen
-      scroll
-      contentStyle={styles.content}
+    <AuthScreen
       header={
         <AppBar
           title="Recovery seed"
           subtitle={nostrLinked ? 'Linked to Nostr' : seed ? 'Back up this account' : 'Confirm it’s you'}
           onBack={() => router.back()}
-          right={<IconButton name="x" onPress={() => router.back()} accessibilityLabel="Close" />}
+          right={<IconButton name="x" onPress={() => router.back()} accessibilityLabel="Close" tooltip="Close" />}
         />
       }
     >
@@ -76,10 +73,6 @@ export default function BackupSeedScreen() {
           />
         </>
       )}
-    </StackScreen>
+    </AuthScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  content: { padding: spacing.screenX, gap: spacing.lg, maxWidth: 560, width: '100%', alignSelf: 'center' },
-});

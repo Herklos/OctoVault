@@ -1,44 +1,71 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
-import { fonts, radii, spacing, type as typeScale } from '@/theme';
+import { spacing, type as typeScale } from '@/theme';
+import { humanizeError } from '@/lib/errors';
+import { usePinKeys } from '@/lib/use-pin-keys';
 import { completeDevicePairing, type PairResult } from '@/lib/starfish/pairing';
 import { useSession } from '@/lib/session-context';
-import { useTheme } from '@/lib/use-theme';
 import { AppBar } from '@/components/ui/AppBar';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
-import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { StackScreen } from '@/components/ui/StackScreen';
+import { TextField } from '@/components/ui/TextField';
 import { Txt } from '@/components/ui/Txt';
+import { AuthScreen } from '@/components/onboarding/AuthScreen';
+import { PinDots } from '@/components/onboarding/PinDots';
+import { PinPad } from '@/components/onboarding/PinPad';
 import { QrScanner } from '@/components/onboarding/QrScanner';
 import { SeedLockSetup } from '@/components/onboarding/SeedLockSetup';
 
+const PIN_LENGTH = 6;
+
+/** New-device side of pairing: capture the code (camera on native, paste on web),
+ *  then re-enter the 6-digit transfer PIN on the same PinPad it was created on —
+ *  full entry parity with `account/add-device` instead of a free-form TextInput. */
 export default function PairScreen() {
-  const { colors } = useTheme();
   const { addLinkedDevice, session, passkeyAvailable } = useSession();
   const [code, setCode] = useState('');
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shake, setShake] = useState(0);
   const [result, setResult] = useState<PairResult | null>(null);
 
-  const pair = async (payload?: string) => {
-    const c = (payload ?? code).trim();
-    if (!c || pin.length < 1 || busy) return;
+  const pair = async (payload: string, enteredPin: string) => {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      setResult(await completeDevicePairing(c, pin));
+      setResult(await completeDevicePairing(payload.trim(), enteredPin));
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(humanizeError(e, 'Pairing failed. Check the code and the transfer PIN, then try again.'));
+      setShake((k) => k + 1);
+      setPin(''); // also prevents the auto-pair effect from re-firing the same attempt
     } finally {
       setBusy(false);
     }
   };
+
+  // Auto-pair the moment both halves are present — order-independent, so pasting
+  // the code after typing the PIN works too. A failed attempt clears the PIN,
+  // which keeps this from looping on the same bad pair.
+  useEffect(() => {
+    if (result || busy) return;
+    if (code.trim() && pin.length === PIN_LENGTH) void pair(code, pin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pair is stable enough; deps below are the actual triggers
+  }, [code, pin, result, busy]);
+
+  const onDigit = (d: string) => {
+    if (busy) return;
+    setPin((p) => (p.length < PIN_LENGTH ? p + d : p));
+  };
+  const onDelete = () => setPin((p) => p.slice(0, -1));
+  // Hardware-keyboard parity (web). Off once paired — the success state may host
+  // SeedLockSetup, which runs its own PIN listener.
+  usePinKeys({ onDigit, onDelete, enabled: !busy && !result });
 
   if (result) {
     const linked = { userId: result.userId, keys: result.deviceKeys, capCert: result.capCert };
@@ -46,18 +73,18 @@ export default function PairScreen() {
     // sealed. Native (Keychain) and an already-unlocked web vault add without one.
     const needsLock = Platform.OS === 'web' && !session;
     return (
-      <StackScreen
-        scroll={needsLock}
-        contentStyle={needsLock ? styles.content : styles.center}
-        header={<AppBar title="Device paired" onBack={() => router.back()} />}
+      <AuthScreen
+        header={<AppBar title="Device paired" subtitle="New device" onBack={() => router.back()} />}
       >
-        <Pill tone="success" label="VERIFIED ✓" mono />
-        <Txt variant="title" weight="bold" center>
-          Fingerprint matches
-        </Txt>
-        <Txt variant="callout" mono tone="inkSoft" center>
-          {result.fingerprint}
-        </Txt>
+        <View style={styles.verified}>
+          <Pill tone="success" label="VERIFIED ✓" mono />
+          <Txt variant="title" weight="bold" center>
+            Fingerprint matches
+          </Txt>
+          <Txt variant="callout" mono tone="inkSoft" center>
+            {result.fingerprint}
+          </Txt>
+        </View>
         <Callout tone="info" iconName="shield">
           Pairing validated for identity {result.userId.slice(0, 8)}…. Your owned spaces
           are ready on this device; spaces you only joined need a re-invite from their
@@ -89,70 +116,72 @@ export default function PairScreen() {
                 await addLinkedDevice(linked);
                 router.replace('/(tabs)/work');
               } catch (e) {
-                setError(String((e as Error)?.message ?? e));
+                setError(humanizeError(e, 'Couldn’t add this device. Try again.'));
                 setAdding(false);
               }
             }}
           />
         )}
-      </StackScreen>
+      </AuthScreen>
     );
   }
 
-  const input = (value: string, set: (v: string) => void, placeholder: string, secure = false) => (
-    <TextInput
-      value={value}
-      onChangeText={set}
-      placeholder={placeholder}
-      placeholderTextColor={colors.inkMuted}
-      underlineColorAndroid="transparent"
-      style={[styles.input, { color: colors.ink, backgroundColor: colors.paperAlt, borderColor: colors.lineSoft }]}
-      autoCapitalize="none"
-      autoCorrect={false}
-      secureTextEntry={secure}
-      keyboardType={secure ? 'number-pad' : 'default'}
-    />
-  );
-
   return (
-    <StackScreen
-      scroll
-      contentStyle={styles.content}
-      header={<AppBar title="Scan QR from existing device" subtitle="step 2 of 2 · new device" onBack={() => router.back()} />}
+    <AuthScreen
+      header={
+        <AppBar title="Pair this device" subtitle="New device" onBack={() => router.back()} />
+      }
     >
       {Platform.OS !== 'web' ? <QrScanner onScan={(d) => setCode(d)} /> : null}
 
-      <Card title="PAIRING CODE">
+      <View style={styles.section}>
+        <Txt variant="micro" weight="semibold" mono uppercase tone="inkMuted">
+          Pairing code
+        </Txt>
         <Txt variant="footnote" tone="inkSoft">
           {Platform.OS === 'web'
-            ? 'Paste the code shown under the QR on your existing device.'
+            ? 'Paste the code from “Copy code” on your existing device.'
             : 'Scan the QR above, or paste the code.'}
         </Txt>
-        {input(code, setCode, 'octovault-pair:…')}
-      </Card>
+        <TextField
+          value={code}
+          onChangeText={setCode}
+          placeholder="octovault-pair:…"
+          mono
+          multiline
+          minHeight={72}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
 
-      <Card title="DEVICE PIN">{input(pin, setPin, 'Enter the PIN', true)}</Card>
+      <View style={styles.pinBlock}>
+        <Txt variant="caption" weight="semibold" mono uppercase tone="inkSoft" center>
+          {busy ? 'Pairing…' : 'Enter the transfer PIN'}
+        </Txt>
+        <PinDots length={PIN_LENGTH} filled={pin.length} shake={shake} />
+        {/* Reserved slot: a failed pair reports here without jolting the pad. */}
+        <View style={styles.errorSlot}>
+          {error ? (
+            <Txt variant="footnote" tone="danger" center>
+              {error}
+            </Txt>
+          ) : null}
+        </View>
+      </View>
 
-      <Button label={busy ? 'Pairing…' : 'Pair device'} variant="primary" size="lg" full disabled={busy} onPress={() => pair()} />
-      {error ? (
-        <Callout tone="danger" iconName="alert">
-          {error}
-        </Callout>
-      ) : null}
-    </StackScreen>
+      <PinPad onDigit={onDigit} onDelete={onDelete} />
+
+      <Txt variant="caption" tone="inkMuted" center>
+        The 6-digit PIN was created on your existing device when it showed the QR.
+      </Txt>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.xl, gap: spacing.lg, maxWidth: 480, width: '100%', alignSelf: 'center', justifyContent: 'center' },
-  center: { padding: spacing.xl, gap: spacing.md, alignItems: 'center', justifyContent: 'center' },
-  input: {
-    height: 44,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    fontFamily: fonts.mono,
-    fontSize: typeScale.footnote.fontSize,
-    includeFontPadding: false,
-  },
+  verified: { alignItems: 'center', gap: spacing.sm },
+  section: { gap: spacing.xs },
+  pinBlock: { gap: spacing.md },
+  errorSlot: { minHeight: typeScale.footnote.lineHeight, justifyContent: 'center' },
 });

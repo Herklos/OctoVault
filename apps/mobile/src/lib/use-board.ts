@@ -7,9 +7,10 @@ import { useRoomOpen } from './use-room-open-flow';
 import { useRoomLiveSync } from './use-room-live-sync';
 import { useWalDoc } from './use-wal-doc';
 import * as board from './board-model';
-import type { Board, TaskStatus } from './board-model';
+import type { Board, Task, TaskStatus } from './board-model';
 
 export type { Board, Column, Task, TaskStatus } from './board-model';
+export { orderBetween } from './board-model';
 
 const EMPTY_BOARD: Board = { columns: [], tasksByColumn: {}, done: 0, total: 0 };
 
@@ -23,12 +24,25 @@ export interface BoardHook {
   /** Returns the new column id (or undefined before the doc is open). */
   addColumn: (title: string) => string | undefined;
   renameColumn: (id: string, title: string) => void;
-  /** Returns the new task id (or undefined before the doc is open). */
-  addTask: (columnId: string, title: string) => string | undefined;
+  /** Reorder a column to `toIndex` within the strip. */
+  moveColumn: (id: string, toIndex: number) => void;
+  /** Flag/unflag a column as the board's "Done" group (cards in it count done). */
+  setColumnDone: (id: string, done: boolean) => void;
+  /** Delete a column; its cards re-home to `moveTasksTo` or are deleted with it. */
+  deleteColumn: (id: string, opts?: { moveTasksTo?: string | null }) => void;
+  /** Seed the canonical To do / In progress / Done starter columns. */
+  seedColumns: () => void;
+  /** Returns the new task id (or undefined before the doc is open). `order`
+   *  defaults to appending after the column's last card. */
+  addTask: (columnId: string, title: string, order?: number) => string | undefined;
+  /** Copy a card into `order` within its column; returns the new id. */
+  duplicateTask: (source: Task, order: number) => string | undefined;
   moveTask: (id: string, columnId: string, order: number) => void;
   changeStatus: (id: string, status: TaskStatus) => void;
   updateTask: (id: string, patch: { title?: string; notes?: string }) => void;
   deleteTask: (id: string) => void;
+  /** Undo a delete from the pre-delete snapshot (drives the toast's "Undo"). */
+  restoreTask: (task: Task) => void;
 }
 
 /**
@@ -85,10 +99,16 @@ export function useBoard(spaceId: string, boardId: string, opts: { enabled?: boo
     },
     addColumn: (title) => mut((d) => board.addColumn(d, title)),
     renameColumn: (id, title) => mut((d) => board.renameColumn(d, id, title)),
-    addTask: (columnId, title) => mut((d) => board.addTask(d, columnId, title)),
+    moveColumn: (id, toIndex) => mut((d) => board.moveColumn(d, id, toIndex)),
+    setColumnDone: (id, done) => mut((d) => board.setColumnDone(d, id, done)),
+    deleteColumn: (id, opts) => mut((d) => board.deleteColumn(d, id, opts)),
+    seedColumns: () => mut((d) => board.seedDefaultColumns(d)),
+    addTask: (columnId, title, order) => mut((d) => board.addTask(d, columnId, title, order)),
+    duplicateTask: (source, order) => mut((d) => board.duplicateTask(d, source, order)),
     moveTask: (id, columnId, order) => mut((d) => board.moveTask(d, id, columnId, order)),
     changeStatus: (id, status) => mut((d) => board.changeStatus(d, id, status)),
     updateTask: (id, patch) => mut((d) => board.updateTask(d, id, patch)),
     deleteTask: (id) => mut((d) => board.deleteTask(d, id)),
+    restoreTask: (task) => mut((d) => board.restoreTask(d, task)),
   };
 }

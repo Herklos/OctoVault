@@ -92,7 +92,8 @@
       "expo-image",
       "expo-status-bar",
       "expo-web-browser",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,

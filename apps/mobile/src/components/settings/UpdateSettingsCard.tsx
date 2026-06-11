@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Txt } from '@/components/ui/Txt';
 
 /**
- * The APP section of the profile screen: the running version plus a manual
+ * The UPDATES section of the profile screen: the running version plus a manual
  * "check for updates". A found update downloads in the background and surfaces
  * the global update banner (with its Restart) at the top of the app; this card
  * only reports the result of the check.
@@ -17,7 +17,7 @@ export function UpdateSettingsCard() {
   const { version, updatedAt, status, checking, pending, check } = useUpdateCheck();
 
   return (
-    <Card title="APP">
+    <Card title="UPDATES">
       <View style={styles.action}>
         <View style={styles.head}>
           <View style={styles.info}>
