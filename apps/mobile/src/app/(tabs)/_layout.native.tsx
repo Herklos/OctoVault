@@ -1,4 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { fonts } from '@/theme';
@@ -7,8 +8,8 @@ import { useTheme } from '@/lib/use-theme';
 
 /**
  * Native (iOS / Android) bottom tabs. Renders the real platform tab bar via Expo
- * Router's `NativeTabs`. OctoVault has two tabs — the workspace (Vault) and global
- * Search (which carries `role="search"` so iOS 26 floats it to the bottom-right).
+ * Router's `NativeTabs`. Four tabs: Vault (workspace), Notes (personal magic space),
+ * Agents (active space automations), and Search (iOS 26 floats it to bottom-right).
  * The web/PWA build keeps the JS `Tabs` renderer in `_layout.tsx`.
  */
 export default function NativeTabsLayout() {
@@ -29,6 +30,14 @@ export default function NativeTabsLayout() {
       <NativeTabs.Trigger name="work">
         <NativeTabs.Trigger.Label>Vault</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={<NativeTabs.Trigger.VectorIcon family={Feather} name="briefcase" />} />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="notes">
+        <NativeTabs.Trigger.Label>Notes</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={<NativeTabs.Trigger.VectorIcon family={Feather} name="book-open" />} />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="agents">
+        <NativeTabs.Trigger.Label>Agents</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="sparkles-outline" />} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search" role="search">
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>

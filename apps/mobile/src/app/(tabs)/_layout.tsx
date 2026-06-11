@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { BottomTabBar } from 'expo-router/build/react-navigation/bottom-tabs';
 import { StyleSheet, View, type ColorValue } from 'react-native';
 
-import { fonts, radii, spacing } from '@/theme';
+import { fonts, glowShadow, radii, spacing, type } from '@/theme';
 import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
 import { Icon, type IconName } from '@/components/ui/Icon';
@@ -14,7 +14,7 @@ import { DesktopUpdateBanner } from '@/components/ui/DesktopUpdateBanner';
 function TabBarIcon({ name, color, size, focused }: { name: IconName; color: string; size: number; focused: boolean }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.iconWrap, focused && { backgroundColor: colors.accentBg }]}>
+    <View style={[styles.iconWrap, focused && { backgroundColor: colors.accentBg, ...glowShadow(colors.glow, 0.18, 12) }]}>
       <Icon name={name} size={size} color={color} />
     </View>
   );
@@ -43,7 +43,7 @@ export default function TabsLayout() {
         tabBarStyle: isWide
           ? { display: 'none' }
           : { backgroundColor: colors.paper, borderTopColor: colors.lineSoft },
-        tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: 10 },
+        tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: type.micro.fontSize },
         tabBarIconStyle: { marginTop: 2 },
       }}
       // Wraps the default tab bar so the update banner sits just above it on
@@ -56,9 +56,12 @@ export default function TabsLayout() {
         </View>
       )}
     >
-      {/* OctoVault's tabs: the workspace (Vault) + global Search. */}
-      <Tabs.Screen name="work" options={{ title: 'Vault', tabBarIcon: tabIcon('work') }} />
-      <Tabs.Screen name="search" options={{ title: 'Search', tabBarIcon: tabIcon('search') }} />
+      {/* OctoVault's tabs: Vault (workspace) · Notes (personal magic space) ·
+          Agents (active space automations) · Search (global). */}
+      <Tabs.Screen name="work"   options={{ title: 'Vault',   tabBarIcon: tabIcon('work')   }} />
+      <Tabs.Screen name="notes"  options={{ title: 'Notes',   tabBarIcon: tabIcon('book')   }} />
+      <Tabs.Screen name="agents" options={{ title: 'Agents',  tabBarIcon: tabIcon('agents') }} />
+      <Tabs.Screen name="search" options={{ title: 'Search',  tabBarIcon: tabIcon('search') }} />
     </Tabs>
   );
 }
