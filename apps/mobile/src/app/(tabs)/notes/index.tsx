@@ -1,14 +1,11 @@
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { spacing } from '@/theme';
-import { initialsFor } from '@/lib/format';
-import { useProfile } from '@/lib/profile-context';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
-import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
+import { ProfileButton } from '@/components/ui/ProfileButton';
 import { SignInPrompt } from '@/components/ui/SignInPrompt';
 import { StackScreen } from '@/components/ui/StackScreen';
 
@@ -19,9 +16,7 @@ import { StackScreen } from '@/components/ui/StackScreen';
  * Business logic (note list, creation) is wired in a later pass.
  */
 export default function NotesScreen() {
-  const router = useRouter();
   const { session } = useSession();
-  const { profile } = useProfile();
 
   return (
     <StackScreen
@@ -34,14 +29,7 @@ export default function NotesScreen() {
             session ? (
               <>
                 <IconButton name="plus" onPress={() => {}} tooltip="New note" accessibilityLabel="New note" />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Profile & accounts"
-                  hitSlop={8}
-                  onPress={() => router.push('/you')}
-                >
-                  <Avatar label={initialsFor(profile?.name ?? '')} image={profile?.avatar} size={28} />
-                </Pressable>
+                <ProfileButton ring />
               </>
             ) : undefined
           }

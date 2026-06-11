@@ -1,15 +1,13 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { layout, spacing } from '@/theme';
-import { initialsFor } from '@/lib/format';
-import { useProfile } from '@/lib/profile-context';
 import { useQuickCreate } from '@/lib/use-quick-create';
 import { useInShell } from '@/lib/use-responsive';
 import { useSpaces } from '@/lib/use-spaces';
 import { AppBar } from '@/components/ui/AppBar';
-import { Avatar } from '@/components/ui/Avatar';
 import { IconButton } from '@/components/ui/IconButton';
+import { ProfileButton } from '@/components/ui/ProfileButton';
 import { Stage } from '@/components/ui/Stage';
 import { StackScreen } from '@/components/ui/StackScreen';
 import { SpaceSwitcher } from '@/components/work/SpaceSwitcher';
@@ -29,7 +27,6 @@ export default function WorkScreen() {
   const router = useRouter();
   const inShell = useInShell();
   const { spaces, activeId, loading } = useSpaces();
-  const { profile } = useProfile();
   const { newPage } = useQuickCreate();
   const space = spaces.find((s) => s.id === activeId) ?? spaces[0];
 
@@ -52,14 +49,7 @@ export default function WorkScreen() {
           right={
             <>
               <IconButton name="plus" onPress={newPage} tooltip="New page" accessibilityLabel="New page" />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Profile & accounts"
-                hitSlop={8}
-                onPress={() => router.push('/you')}
-              >
-                <Avatar label={initialsFor(profile?.name ?? '')} image={profile?.avatar} size={28} />
-              </Pressable>
+              <ProfileButton ring />
             </>
           }
         />

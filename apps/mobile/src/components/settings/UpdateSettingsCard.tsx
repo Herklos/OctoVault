@@ -17,7 +17,7 @@ export function UpdateSettingsCard() {
   const { version, updatedAt, status, checking, pending, check } = useUpdateCheck();
 
   return (
-    <Card title="UPDATES">
+    <Card title="APP">
       <View style={styles.action}>
         <View style={styles.head}>
           <View style={styles.info}>

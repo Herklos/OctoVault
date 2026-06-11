@@ -1,13 +1,10 @@
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { layout, spacing } from '@/theme';
-import { initialsFor } from '@/lib/format';
-import { useProfile } from '@/lib/profile-context';
 import { quickFindKeyHandlers, useQuickFind } from '@/lib/use-quick-find';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
-import { Avatar } from '@/components/ui/Avatar';
+import { ProfileButton } from '@/components/ui/ProfileButton';
 import { QuickFindResults } from '@/components/ui/CommandPalette';
 import { SignInPrompt } from '@/components/ui/SignInPrompt';
 import { StackScreen } from '@/components/ui/StackScreen';
@@ -22,9 +19,7 @@ import { TextField } from '@/components/ui/TextField';
  * scroll instead of clipping.
  */
 export default function SearchScreen() {
-  const router = useRouter();
   const { session } = useSession();
-  const { profile } = useProfile();
   // Hook order: called before the signed-out gate (it is safe without a
   // session — the shared index store is simply empty then).
   const find = useQuickFind();
@@ -35,16 +30,7 @@ export default function SearchScreen() {
         header={
           <AppBar
             title="Search"
-            right={
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Profile & accounts"
-                hitSlop={8}
-                onPress={() => router.push('/you')}
-              >
-                <Avatar label={initialsFor(profile?.name ?? '')} image={profile?.avatar} size={28} />
-              </Pressable>
-            }
+            right={<ProfileButton ring />}
           />
         }
       >
@@ -59,16 +45,7 @@ export default function SearchScreen() {
         <AppBar
           title="Search"
           subtitle={find.spaceName ?? undefined}
-          right={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Profile & accounts"
-              hitSlop={8}
-              onPress={() => router.push('/you')}
-            >
-              <Avatar label={initialsFor(profile?.name ?? '')} image={profile?.avatar} size={28} />
-            </Pressable>
-          }
+          right={<ProfileButton ring />}
         />
       }
       contentStyle={styles.content}

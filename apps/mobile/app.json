@@ -20,10 +20,29 @@
         "android.permission.CAMERA",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.drakkarsoftware.octovault",
       "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "ov.drakkar.software",
+              "pathPrefix": "/open"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
         {
           "action": "VIEW",
           "autoVerify": true,
@@ -45,6 +64,7 @@
       "buildNumber": "1",
       "bundleIdentifier": "com.drakkarsoftware.octovault",
       "associatedDomains": [
+        "applinks:ov.drakkar.software",
         "applinks:ov.drakkar.software"
       ],
       "infoPlist": {
@@ -106,6 +126,12 @@
       "eas": {
         "projectId": "d948d498-d957-4ae6-abe8-4b2487dec9f5"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d948d498-d957-4ae6-abe8-4b2487dec9f5"
     }
   }
 }

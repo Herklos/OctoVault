@@ -1,14 +1,11 @@
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { spacing } from '@/theme';
-import { initialsFor } from '@/lib/format';
-import { useProfile } from '@/lib/profile-context';
 import { useSession } from '@/lib/session-context';
 import { useSpaces } from '@/lib/use-spaces';
 import { AppBar } from '@/components/ui/AppBar';
-import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ProfileButton } from '@/components/ui/ProfileButton';
 import { SignInPrompt } from '@/components/ui/SignInPrompt';
 import { StackScreen } from '@/components/ui/StackScreen';
 import { SpaceSwitcher } from '@/components/work/SpaceSwitcher';
@@ -20,10 +17,8 @@ import { SpaceSwitcher } from '@/components/work/SpaceSwitcher';
  * later pass — for now the screen shows an empty state.
  */
 export default function AgentsScreen() {
-  const router = useRouter();
   const { session } = useSession();
   const { activeId } = useSpaces();
-  const { profile } = useProfile();
 
   return (
     <StackScreen
@@ -33,18 +28,7 @@ export default function AgentsScreen() {
         <AppBar
           title="Agents"
           titleNode={<SpaceSwitcher variant="appbar" />}
-          right={
-            session ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Profile & accounts"
-                hitSlop={8}
-                onPress={() => router.push('/you')}
-              >
-                <Avatar label={initialsFor(profile?.name ?? '')} image={profile?.avatar} size={28} />
-              </Pressable>
-            ) : undefined
-          }
+          right={session ? <ProfileButton ring /> : undefined}
         />
       }
       contentStyle={styles.content}

@@ -9,7 +9,7 @@ against a **Starfish** server (default `http://localhost:8787`, override with
 (BIP-39 seed → Ed25519/Kyber keys → per-space keyrings).
 
 Its document layer is built on the Starfish **WAL/CRDT** primitive
-(`@drakkar.software/starfish-wal`, 3.0.0-alpha.21): each page/board is an
+(`@drakkar.software/starfish-wal`, 3.0.0-alpha.26): each page/board is an
 append-only op-log of CRDT ops folded client-side (commutative + idempotent),
 so concurrent/offline edits converge with full history and a trusted snapshot
 for fast cold-start.
@@ -23,7 +23,7 @@ for fast cold-start.
 
 pnpm workspace, `nodeLinker: hoisted` (React Native / Metro need a flat
 `node_modules`). The `@drakkar.software/starfish-*` SDK is consumed as pinned npm
-deps (`3.0.0-alpha.21` — the line that ships `starfish-wal`).
+deps (`3.0.0-alpha.26` — the line that ships `starfish-wal`).
 `apps/mobile/metro.config.js` watches the workspace root, enables package
 `exports`, and blocks the Node-only `apps/server` from the app bundle.
 

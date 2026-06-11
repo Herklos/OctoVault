@@ -8,7 +8,10 @@ import { useSession } from '@/lib/session-context';
 import { useTheme } from '@/lib/use-theme';
 import { AccountSwitcher } from '@/components/account/AccountSwitcher';
 import { AppLockRow } from '@/components/settings/AppLockRow';
+import { AiSettingsCard } from '@/components/settings/AiSettingsCard';
 import { DebugStatsCard } from '@/components/settings/DebugStatsCard';
+import { NotificationSettingsCard } from '@/components/settings/NotificationSettingsCard';
+import { SettingsSection } from '@/components/settings/SettingsSection';
 import { UpdateSettingsCard } from '@/components/settings/UpdateSettingsCard';
 import { AppBar } from '@/components/ui/AppBar';
 import { AutosaveField } from '@/components/ui/AutosaveField';
@@ -23,10 +26,9 @@ import { StackScreen } from '@/components/ui/StackScreen';
 import { Txt } from '@/components/ui/Txt';
 
 /**
- * Account settings, sectioned (Profile / Accounts / Security / Updates) on the
- * shared settings reading column. Edits autosave like everywhere else in the app
- * (no dirty-tracked Save button); the diagnostics card is a dev tool and stays
- * behind `__DEV__`.
+ * Account settings, grouped into three sections (Identity / Preferences / This
+ * device) on the shared settings reading column. Edits autosave like everywhere
+ * else in the app (no dirty-tracked Save button).
  */
 export default function YouScreen() {
   const { colors } = useTheme();
@@ -69,6 +71,7 @@ export default function YouScreen() {
         />
       }
     >
+      {/* Identity hero: avatar + name + handle */}
       <View style={styles.identity}>
         <Pressable
           accessibilityRole="button"
@@ -121,61 +124,71 @@ export default function YouScreen() {
         </View>
       </View>
 
-      <Card title="PROFILE">
-        <View style={styles.field}>
-          <Txt variant="micro" weight="semibold" mono uppercase tone="inkMuted">
-            Display name
-          </Txt>
-          {/* Seed-once inline editor: mount only after the persisted pseudo has
-              loaded (the field reads `initialText` exactly once), keyed per
-              account so switching identities re-seeds it. */}
-          {!loading ? (
-            <AutosaveField
-              key={profile.userId}
-              initialText={profile.name}
-              onCommit={(text) => commitName(text)}
-              autoFocus={false}
-              placeholder="Your display name"
-              accessibilityLabel="Display name"
+      {/* ── Identity ──────────────────────────────────────────── */}
+      <SettingsSection title="Identity">
+        <Card title="ABOUT">
+          <View style={styles.field}>
+            <Txt variant="micro" weight="semibold" mono uppercase tone="inkMuted">
+              Display name
+            </Txt>
+            {/* Seed-once inline editor: mount only after the persisted pseudo has
+                loaded (the field reads `initialText` exactly once), keyed per
+                account so switching identities re-seeds it. */}
+            {!loading ? (
+              <AutosaveField
+                key={profile.userId}
+                initialText={profile.name}
+                onCommit={(text) => commitName(text)}
+                autoFocus={false}
+                placeholder="Your display name"
+                accessibilityLabel="Display name"
+              />
+            ) : null}
+          </View>
+        </Card>
+
+        <Card title="ACCOUNTS">
+          <AccountSwitcher />
+        </Card>
+
+        <Card title="SECURITY">
+          {nostrPubHex ? (
+            <Row
+              iconName="key"
+              title="Linked to Nostr"
+              detail={`${nostrPubHex.slice(0, 8)}…${nostrPubHex.slice(-8)} · sign in with the same extension`}
+              detailMono
             />
-          ) : null}
-        </View>
-      </Card>
-
-      <Card title="ACCOUNTS">
-        <AccountSwitcher />
-      </Card>
-
-      <Card title="SECURITY">
-        {nostrPubHex ? (
+          ) : (
+            <Row
+              iconName="shield"
+              title="Recovery seed"
+              detail="12 words · view or back up"
+              onPress={() => router.push('/account/backup')}
+            />
+          )}
+          <Divider style={styles.divider} />
           <Row
-            iconName="key"
-            title="Linked to Nostr"
-            detail={`${nostrPubHex.slice(0, 8)}…${nostrPubHex.slice(-8)} · sign in with the same extension`}
-            detailMono
+            iconName="devices"
+            title="Add a device"
+            detail="One-time transfer PIN + QR"
+            onPress={() => router.push('/account/add-device')}
           />
-        ) : (
-          <Row
-            iconName="shield"
-            title="Recovery seed"
-            detail="12 words · view or back up"
-            onPress={() => router.push('/account/backup')}
-          />
-        )}
-        <Divider style={styles.divider} />
-        <Row
-          iconName="devices"
-          title="Add a device"
-          detail="One-time transfer PIN + QR"
-          onPress={() => router.push('/account/add-device')}
-        />
-        <AppLockRow />
-      </Card>
+          <AppLockRow />
+        </Card>
+      </SettingsSection>
 
-      <UpdateSettingsCard />
+      {/* ── Preferences ───────────────────────────────────────── */}
+      <SettingsSection title="Preferences">
+        <AiSettingsCard />
+        <NotificationSettingsCard />
+      </SettingsSection>
 
-      {/* Server reachability is a developer diagnostic, not an end-user setting. */}
-      {__DEV__ ? <DebugStatsCard /> : null}
+      {/* ── This device ───────────────────────────────────────── */}
+      <SettingsSection title="This device">
+        <UpdateSettingsCard />
+        <DebugStatsCard />
+      </SettingsSection>
 
       {accounts.length > 1 ? (
         <Button

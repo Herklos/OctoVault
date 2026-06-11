@@ -2,6 +2,8 @@ import 'react-native-gesture-handler';
 
 import { configureStarfishPlatform } from '@/lib/starfish/platform';
 import { registerServiceWorker } from '@/lib/pwa';
+import { AiSettingsProvider } from '@/lib/ai-settings-context';
+import { NotificationSettingsProvider } from '@/lib/notification-settings-context';
 import { ProfileProvider } from '@/lib/profile-context';
 import { RoomsRegistryProvider } from '@/lib/rooms-registry-context';
 import { SessionProvider } from '@/lib/session-context';
@@ -47,25 +49,30 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-          {/* Provider tree for OctoVault: the session, the user's spaces, the per-space
-              access registry (read by the workspace open flow), and the profile. */}
+          {/* Provider tree for OctoVault: the session, per-identity prefs
+              (notifications, AI), the user's spaces, the per-space access
+              registry (read by the workspace open flow), and the profile. */}
           <SessionProvider>
-            <SpacesProvider>
-              <RoomsRegistryProvider>
-                <ProfileProvider>
-                  <SpaceObjectsProvider>
-                    <AppFrame>
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          contentStyle: { backgroundColor: palette.canvas },
-                        }}
-                      />
-                    </AppFrame>
-                  </SpaceObjectsProvider>
-                </ProfileProvider>
-              </RoomsRegistryProvider>
-            </SpacesProvider>
+            <NotificationSettingsProvider>
+              <AiSettingsProvider>
+                <SpacesProvider>
+                  <RoomsRegistryProvider>
+                    <ProfileProvider>
+                      <SpaceObjectsProvider>
+                        <AppFrame>
+                          <Stack
+                            screenOptions={{
+                              headerShown: false,
+                              contentStyle: { backgroundColor: palette.canvas },
+                            }}
+                          />
+                        </AppFrame>
+                      </SpaceObjectsProvider>
+                    </ProfileProvider>
+                  </RoomsRegistryProvider>
+                </SpacesProvider>
+              </AiSettingsProvider>
+            </NotificationSettingsProvider>
           </SessionProvider>
         </KeyboardProvider>
       </SafeAreaProvider>
