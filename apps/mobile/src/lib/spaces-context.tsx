@@ -49,6 +49,9 @@ interface SpacesContextValue {
 
 const Ctx = createContext<SpacesContextValue | null>(null);
 
+/** Hides DM spaces (OctoChat `dm-` prefix) that may appear in a shared backend. */
+const visibleSpace = (s: Space) => !s.id.startsWith('dm-');
+
 /** Seed pick for the active space: the persisted last-active space when it still
  *  exists in the list (cold-start restore), else the first space. */
 function pickActive(list: Space[]): string | null {
@@ -96,7 +99,7 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     if (!session) return;
     const { spaces: list, mutes, reads } = await readSpaces(session.accountClient, session.userId);
-    setSpaces(list);
+    setSpaces(list.filter(visibleSpace));
     setActiveIdState((prev) => prev ?? pickActive(list));
     // This `_spaces` re-pull runs on every navigation (effect below) and on app
     // foreground. Re-hydrate the read marks and mute prefs from it too (they share the
@@ -135,8 +138,9 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
       // `readSpaces`; the SDK pull cache now serves the last-synced `_spaces` doc on
       // the refresh below, so fall through to it instead of locking in empty.
       if (primed && primed.length > 0) {
-        setSpaces(primed);
-        setActiveIdState((prev) => prev ?? pickActive(primed));
+        const visible = primed.filter(visibleSpace);
+        setSpaces(visible);
+        setActiveIdState((prev) => prev ?? pickActive(visible));
         setLoading(false);
         // Kick a background refresh to pick up the latest spaces + read/mute marks now.
         void refresh().catch(() => {});

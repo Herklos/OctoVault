@@ -182,6 +182,10 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
       </View>
     );
 
+  const agentsRow = (
+    <CreateControl label="Agents" iconName="agents" onPress={() => router.navigate('/(tabs)/agents')} />
+  );
+
   const archivedRow =
     archivedCount > 0 ? (
       <CreateControl label="Archived" iconName="trash" onPress={() => router.push('/space/trash')} />
@@ -199,6 +203,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
           <CreateControl label="New page" iconName="file" onPress={() => newPage()} disabled={!ready} />
           <CreateControl label="New board" iconName="layers" onPress={() => newBoard()} disabled={!ready} />
         </View>
+        {agentsRow}
         {archivedRow}
       </View>
     );
@@ -214,6 +219,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
           <CreateControl label="New page" iconName="plus" onPress={() => newPage()} disabled={!ready} grow />
           <FootMenu onNewBoard={() => newBoard()} disabled={!ready} />
         </View>
+        {agentsRow}
         {archivedRow}
       </View>
     </View>
