@@ -4,7 +4,6 @@ import { layout, spacing } from '@/theme';
 import { quickFindKeyHandlers, useQuickFind } from '@/lib/use-quick-find';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
-import { ProfileButton } from '@/components/ui/ProfileButton';
 import { QuickFindResults } from '@/components/ui/CommandPalette';
 import { SignInPrompt } from '@/components/ui/SignInPrompt';
 import { StackScreen } from '@/components/ui/StackScreen';
@@ -30,7 +29,6 @@ export default function SearchScreen() {
         header={
           <AppBar
             title="Search"
-            right={<ProfileButton ring />}
           />
         }
       >
@@ -45,7 +43,6 @@ export default function SearchScreen() {
         <AppBar
           title="Search"
           subtitle={find.spaceName ?? undefined}
-          right={<ProfileButton ring />}
         />
       }
       contentStyle={styles.content}

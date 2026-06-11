@@ -5,7 +5,6 @@ import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
-import { ProfileButton } from '@/components/ui/ProfileButton';
 import { SignInPrompt } from '@/components/ui/SignInPrompt';
 import { StackScreen } from '@/components/ui/StackScreen';
 
@@ -27,10 +26,7 @@ export default function NotesScreen() {
           title="My Notes"
           right={
             session ? (
-              <>
-                <IconButton name="plus" onPress={() => {}} tooltip="New note" accessibilityLabel="New note" />
-                <ProfileButton ring />
-              </>
+              <IconButton name="plus" onPress={() => {}} tooltip="New note" accessibilityLabel="New note" />
             ) : undefined
           }
         />
