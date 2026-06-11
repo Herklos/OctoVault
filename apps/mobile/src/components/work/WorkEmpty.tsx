@@ -42,7 +42,9 @@ export function WorkNoSpaces() {
       title="Create your first space"
       subtitle="A space is a private home for your pages and boards — end-to-end encrypted, shared only with people you invite."
     >
-      <Button label="Create a space" variant="primary" iconName="plus" onPress={() => router.push('/join')} />
+      <View style={styles.buttonWrap}>
+        <Button label="Create a space" variant="primary" iconName="plus" onPress={() => router.push('/join')} />
+      </View>
     </EmptyState>
   );
 }
@@ -50,4 +52,5 @@ export function WorkNoSpaces() {
 const styles = StyleSheet.create({
   floor: { minHeight: 320 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm },
+  buttonWrap: { alignItems: 'center' },
 });
