@@ -22,7 +22,7 @@ import {
   setAiSettings,
   subscribeAiSettings,
   type AiSettings,
-} from './ai-settings';
+} from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 
 interface AiSettingsValue {

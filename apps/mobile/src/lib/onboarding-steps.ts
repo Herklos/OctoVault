@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 
-import { generateSeedWords } from './starfish/identity';
+import { generateSeedWords } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useSpaces } from './use-spaces';
 

@@ -14,15 +14,15 @@ import { Platform } from 'react-native';
 
 import { useSession } from './session-context';
 import { useSpaces } from './use-spaces';
-import { inviteToSpace } from './starfish/members';
-import { createPublicInvite, isPublicSpaceId } from './starfish/pubspace';
-import { WEB_BASE } from './starfish/config';
+import { inviteToSpace } from '@drakkar.software/octovault-sdk';
+import { createPublicInvite, isPublicSpaceId } from '@drakkar.software/octovault-sdk';
+import { getWebBase } from '@drakkar.software/octovault-sdk';
 
 /** The app's public web origin for invite links: the live origin on web, else the
  *  configured `WEB_BASE` (native has no `window`; empty → a host-less `/join#…`). */
 function inviteOrigin(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') return window.location.origin;
-  return WEB_BASE;
+  return getWebBase();
 }
 
 export interface SpaceInviteState {

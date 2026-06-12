@@ -4,7 +4,7 @@ import type { View as ViewType, ViewProps } from 'react-native';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { layers, layout, paperBorder, radii, shadows, spacing } from '@/theme';
-import { BLOCK_SECTIONS, BLOCK_TYPES, REF_BLOCK_TYPES, type BlockTypeDef } from '@/lib/blocks';
+import { BLOCK_SECTIONS, BLOCK_TYPES, REF_BLOCK_TYPES, type BlockTypeDef } from '@drakkar.software/octovault-sdk';
 import { useHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';

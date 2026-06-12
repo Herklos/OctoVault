@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { useSpaces } from '@/lib/use-spaces';
 import { AppBar } from '@/components/ui/AppBar';

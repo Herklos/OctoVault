@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { radii, spacing, type SwatchName } from '@/theme';
-import type { TypeDef, EditorKind, ContentKind } from '@/lib/starfish/object-types-store';
+import type { TypeDef, EditorKind, ContentKind } from '@drakkar.software/octovault-sdk';
 import { useSpaceTypes } from '@/lib/space-types-context';
 import { useTheme } from '@/lib/use-theme';
 import { AutosaveField } from '@/components/ui/AutosaveField';

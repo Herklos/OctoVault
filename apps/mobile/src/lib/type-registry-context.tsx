@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
-import { makeRegistry, BUILTIN_REGISTRY, type TypeRegistry } from './object-types';
+import { makeRegistry, BUILTIN_REGISTRY, type TypeRegistry } from '@drakkar.software/octovault-sdk';
 import { useSpaceTypes } from './space-types-context';
 
 const TypeRegistryContext = createContext<TypeRegistry>(BUILTIN_REGISTRY);

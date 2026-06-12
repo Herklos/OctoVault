@@ -19,13 +19,13 @@ import {
 import { AppState } from 'react-native';
 import { router, usePathname } from 'expo-router';
 
-import type { Space } from '@/lib/types';
+import type { Space } from '@drakkar.software/octovault-sdk';
 
-import { createSpace as createSpaceDoc, onSpaceMeta, readSpaces, reorderSpaces as reorderSpacesDoc } from './starfish/registry';
-import { createPublicSpace } from './starfish/pubspace';
-import { consumePrimedSpaces } from './spaces-prime';
-import { hydrateMutes } from './mutes';
-import { flushReadsNow, hydrateReads } from './reads';
+import { createSpace as createSpaceDoc, onSpaceMeta, readSpaces, reorderSpaces as reorderSpacesDoc } from '@drakkar.software/octovault-sdk';
+import { createPublicSpace } from '@drakkar.software/octovault-sdk';
+import { consumePrimedSpaces } from '@drakkar.software/octovault-sdk';
+import { hydrateMutes } from '@drakkar.software/octovault-sdk';
+import { flushReadsNow, hydrateReads } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { getNavPrefs, hydrateNavPrefs, resetNavPrefs, setActiveSpacePref } from './use-nav-prefs';
 

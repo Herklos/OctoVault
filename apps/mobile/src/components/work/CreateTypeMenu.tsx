@@ -2,10 +2,10 @@ import type { RefObject } from 'react';
 import type { View as ViewType } from 'react-native';
 
 import { layout } from '@/theme';
-import type { CreatableTypeEntry } from '@/lib/object-types';
+import type { CreatableTypeEntry } from '@drakkar.software/octovault-sdk';
 import { useTypeRegistry } from '@/lib/type-registry-context';
 import { useResponsive } from '@/lib/use-responsive';
-import type { ObjectType } from '@/lib/types';
+import type { ObjectType } from '@drakkar.software/octovault-sdk';
 import { Menu, MenuItem } from '@/components/ui/Menu';
 import { Popover } from '@/components/ui/Popover';
 import { Sheet } from '@/components/ui/Sheet';

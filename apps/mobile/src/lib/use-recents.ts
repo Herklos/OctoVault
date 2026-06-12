@@ -15,7 +15,7 @@
  */
 import { useEffect, useSyncExternalStore } from 'react';
 
-import { kvGet, kvSet } from './starfish/kv';
+import { kvGet, kvSet } from '@drakkar.software/octovault-sdk';
 
 export interface RecentVisit {
   spaceId: string;

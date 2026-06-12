@@ -3,10 +3,10 @@ import { Redirect, router } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { spacing, type as typeScale } from '@/theme';
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { stepSubtitle } from '@/lib/onboarding-steps';
 import { usePinKeys } from '@/lib/use-pin-keys';
-import { startDevicePairing } from '@/lib/starfish/pairing';
+import { startDevicePairing } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { successFeedback } from '@/lib/haptics';
 import { AppBar } from '@/components/ui/AppBar';

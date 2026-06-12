@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { layout, motion, radii, spacing } from '@/theme';
-import { leaveSpace } from '@/lib/starfish/registry';
+import { leaveSpace } from '@drakkar.software/octovault-sdk';
 import { useConfirm } from '@/lib/use-confirm';
 import { useSession } from '@/lib/session-context';
 import { useInShell } from '@/lib/use-responsive';

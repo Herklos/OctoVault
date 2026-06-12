@@ -12,7 +12,7 @@ import {
   type WalTransport,
 } from '@drakkar.software/starfish-wal';
 
-import * as page from './page-content';
+import * as page from '@drakkar.software/octovault-sdk';
 
 // Node's vitest has no btoa/atob — wire base64 so the protocol's author signer works.
 beforeAll(() => {

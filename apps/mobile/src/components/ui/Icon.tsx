@@ -1,7 +1,10 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ComponentType } from 'react';
 
+import type { IconName } from '@drakkar.software/octovault-sdk';
 import { useTheme } from '@/lib/use-theme';
+
+export type { IconName };
 
 // Each vendor set types `name` as its own literal union; we map to a generic
 // component and pass the resolved glyph name through.
@@ -121,7 +124,6 @@ const ICONS = {
   command: { lib: Feather, n: 'command' },
 } satisfies Record<string, IconDef>;
 
-export type IconName = keyof typeof ICONS;
 export const ICON_NAMES: IconName[] = Object.keys(ICONS) as IconName[];
 
 interface IconProps {

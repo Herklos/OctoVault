@@ -2,7 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import type { Encryptor, StarfishClient } from '@drakkar.software/starfish-client';
 import type { WalDocument } from '@drakkar.software/starfish-wal';
 
-import { createWalDocument } from './starfish/wal';
+import { createWalDocument } from '@drakkar.software/octovault-sdk';
 
 export interface WalDocHandle {
   /** The opened WAL document, or null until `open()` resolves. */

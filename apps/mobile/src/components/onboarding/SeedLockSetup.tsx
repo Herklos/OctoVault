@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing, type as typeScale } from '@/theme';
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { usePinKeys } from '@/lib/use-pin-keys';
-import { enrollPasskey } from '@/lib/starfish/passkey';
-import type { SeedLock } from '@/lib/starfish/storage-types';
+import { enrollPasskey } from '@drakkar.software/octovault-sdk/platform';
+import type { SeedLock } from '@drakkar.software/octovault-sdk';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Txt } from '@/components/ui/Txt';

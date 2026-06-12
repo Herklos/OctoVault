@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View, ViewProps } from 'react-native';
 import { Platform } from 'react-native';
 
-import type { Task } from './task-model';
+import type { Task } from '@drakkar.software/octovault-sdk';
 
 /** Pointer travel (px) before a pressed card becomes a drag, not a click. */
 const DRAG_THRESHOLD = 5;

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { motion, spacing, type as typeScale } from '@/theme';
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { usePinKeys } from '@/lib/use-pin-keys';
-import type { UnlockMethod } from '@/lib/starfish/storage-types';
+import type { UnlockMethod } from '@drakkar.software/octovault-sdk';
 import { useTheme } from '@/lib/use-theme';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';

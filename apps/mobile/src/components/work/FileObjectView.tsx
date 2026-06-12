@@ -12,13 +12,13 @@ import { Image } from 'expo-image';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
-import type { ByteSealer } from '@/lib/starfish/attachments';
-import { loadObjectBlob } from '@/lib/starfish/object-blobs';
-import { getSpaceEncryptor } from '@/lib/starfish/space-encryptor';
+import type { ByteSealer } from '@drakkar.software/octovault-sdk';
+import { loadObjectBlob } from '@drakkar.software/octovault-sdk';
+import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { useObjectFiles } from '@/lib/use-object-files';
-import type { PropValue } from '@/lib/types';
+import type { PropValue } from '@drakkar.software/octovault-sdk';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Txt } from '@/components/ui/Txt';

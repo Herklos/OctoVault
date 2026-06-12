@@ -8,7 +8,7 @@ import { focusRingStyle, useFocusRing } from '@/lib/focus';
 import { useHover } from '@/lib/use-hover';
 import { useSpaces } from '@/lib/use-spaces';
 import { useTheme } from '@/lib/use-theme';
-import type { Space } from '@/lib/types';
+import type { Space } from '@drakkar.software/octovault-sdk';
 import { AccountSwitcher } from '@/components/account/AccountSwitcher';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';

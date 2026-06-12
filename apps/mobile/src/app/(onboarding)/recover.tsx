@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { Platform } from 'react-native';
 
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { setAuthFlow, stepSubtitle, useFirstRunSpace } from '@/lib/onboarding-steps';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';

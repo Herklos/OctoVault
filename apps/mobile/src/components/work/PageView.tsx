@@ -17,13 +17,13 @@ import {
   variantFor,
   type BlockTypeDef,
   type MdShortcutMatch,
-} from '@/lib/blocks';
-import { REF_BLOCK_TYPES, visibleBlocks } from '@/lib/page-content';
+} from '@drakkar.software/octovault-sdk';
+import { REF_BLOCK_TYPES, visibleBlocks } from '@drakkar.software/octovault-sdk';
 import { usePage, type Block, type BlockType } from '@/lib/use-page';
-import { isPublicSpaceId } from '@/lib/starfish/pubspace';
-import { iconForNode } from '@/lib/object-types';
+import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
+import { iconForNode } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from '@/lib/space-objects-context';
-import type { ObjectNode } from '@/lib/types';
+import type { ObjectNode } from '@drakkar.software/octovault-sdk';
 import { useCopy } from '@/lib/clipboard';
 import { useHover, useRowHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';

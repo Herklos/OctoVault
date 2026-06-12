@@ -8,7 +8,7 @@ import { layout, opacity, paperBorder, radii, shadows, spacing } from '@/theme';
 import type { BoardHook, Column, Task } from '@/lib/use-board';
 import { orderBetween, useBoard } from '@/lib/use-board';
 import { useBoardDrag, type BoardDrag } from '@/lib/use-board-drag';
-import { isPublicSpaceId } from '@/lib/starfish/pubspace';
+import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import { tapFeedback } from '@/lib/haptics';
 import { useConfirm } from '@/lib/use-confirm';
 import { useHover, useRowHover } from '@/lib/use-hover';

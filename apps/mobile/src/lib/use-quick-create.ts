@@ -14,7 +14,7 @@
 import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
 
-import type { ObjectType } from './types';
+import type { ObjectType } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from './space-objects-context';
 
 export function useQuickCreate(): {

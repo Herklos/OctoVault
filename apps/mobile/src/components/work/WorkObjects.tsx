@@ -6,13 +6,13 @@ import { useRouter } from 'expo-router';
 
 import { layout, opacity, radii, spacing } from '@/theme';
 import { copyText } from '@/lib/clipboard';
-import { objectLink, routeForNode } from '@/lib/object-types';
+import { objectLink, routeForNode } from '@drakkar.software/octovault-sdk';
 import { useTypeRegistry } from '@/lib/type-registry-context';
-import type { ObjectType } from '@/lib/types';
-import { relativeTime } from '@/lib/relative-time';
+import type { ObjectType } from '@drakkar.software/octovault-sdk';
+import { relativeTime } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from '@/lib/space-objects-context';
-import { buildTree, type ObjectTreeNode } from '@/lib/starfish/objects';
-import type { ID, ObjectNode } from '@/lib/types';
+import { buildTree, type ObjectTreeNode } from '@drakkar.software/octovault-sdk';
+import type { ID, ObjectNode } from '@drakkar.software/octovault-sdk';
 import { useHover } from '@/lib/use-hover';
 import { useRecents } from '@/lib/use-recents';
 import { useTheme } from '@/lib/use-theme';

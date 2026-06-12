@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import type { BootstrapOrigin, RootIdentity } from '@drakkar.software/starfish-identities';
 
-import { clearAttachmentCache } from './starfish/attachments';
+import { clearAttachmentCache } from '@drakkar.software/octovault-sdk';
 import {
   buildLinkedSession,
   buildSession,
@@ -11,18 +11,19 @@ import {
   rootIdentityOf,
   type LinkedIdentity,
   type Session,
-} from './starfish/identity';
-import { clearMemberCaps, hydrateMemberCaps } from './starfish/member-caps';
-import { recoverPubspaceAccess } from './starfish/pubspace';
-import { clearPubspaceCaps, hydratePubspaceCaps } from './starfish/pubspace-caps';
-import { readSpaces } from './starfish/registry';
-import { hydrateMutes, resetMutes } from './mutes';
-import { hydrateQuickReactions, resetQuickReactions } from './quick-reactions-settings';
-import { flushReadsNow, hydrateReads, resetReads } from './reads';
-import { activeAccountOf, sessionFromPersisted } from './starfish/session-restore';
-import { clearSpaceEncryptors } from './starfish/space-encryptor';
-import { enrollPasskey, passkeyEnrollable } from './starfish/passkey';
+} from '@drakkar.software/octovault-sdk';
+import { clearMemberCaps, hydrateMemberCaps } from '@drakkar.software/octovault-sdk';
+import { recoverPubspaceAccess } from '@drakkar.software/octovault-sdk';
+import { clearPubspaceCaps, hydratePubspaceCaps } from '@drakkar.software/octovault-sdk';
+import { readSpaces } from '@drakkar.software/octovault-sdk';
+import { hydrateMutes, resetMutes } from '@drakkar.software/octovault-sdk';
+import { hydrateQuickReactions, resetQuickReactions } from '@drakkar.software/octovault-sdk';
+import { flushReadsNow, hydrateReads, resetReads } from '@drakkar.software/octovault-sdk';
+import { activeAccountOf, sessionFromPersisted } from '@drakkar.software/octovault-sdk';
+import { clearSpaceEncryptors } from '@drakkar.software/octovault-sdk';
 import {
+  enrollPasskey,
+  passkeyEnrollable,
   addPasskeyToVault,
   clearVault,
   loadVault,
@@ -30,11 +31,11 @@ import {
   saveVault,
   unlockVault,
   vaultMethods,
-} from './starfish/storage';
+} from '@drakkar.software/octovault-sdk/platform';
 import { disableBiometricLock } from './app-lock';
-import type { PersistedSession, SeedLock, UnlockMethod, Vault } from './starfish/storage-types';
-import { clearRoomEventsBus } from './room-events-bus';
-import { clearPrimedSpaces, primeSpaces } from './spaces-prime';
+import type { PersistedSession, SeedLock, UnlockMethod, Vault } from '@drakkar.software/octovault-sdk';
+import { clearRoomEventsBus } from '@drakkar.software/octovault-sdk';
+import { clearPrimedSpaces, primeSpaces } from '@drakkar.software/octovault-sdk';
 import { clearPseudoCache, primeProfile } from './use-pseudos';
 
 /** One row in the account switcher — enough to render and target a switch/logout. */

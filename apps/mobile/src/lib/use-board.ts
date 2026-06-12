@@ -2,12 +2,12 @@ import { useCallback, useMemo } from 'react';
 
 import { useObjectContent } from './use-object-content';
 import { useSpaceObjects } from './space-objects-context';
-import * as boardContent from './board-content';
-import * as taskModel from './task-model';
+import * as boardContent from '@drakkar.software/octovault-sdk';
+import * as taskModel from '@drakkar.software/octovault-sdk';
 
-export type { Column } from './board-content';
-export type { Task, TaskStatus } from './task-model';
-export { orderBetween } from './board-content';
+export type { Column } from '@drakkar.software/octovault-sdk';
+export type { Task, TaskStatus } from '@drakkar.software/octovault-sdk';
+export { orderBetween } from '@drakkar.software/octovault-sdk';
 
 export interface Board {
   columns: boardContent.Column[];

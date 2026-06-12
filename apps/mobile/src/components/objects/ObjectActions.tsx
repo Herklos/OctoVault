@@ -4,9 +4,9 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/theme';
 import { copyText } from '@/lib/clipboard';
-import { objectDescriptor, objectLink } from '@/lib/object-types';
+import { objectDescriptor, objectLink } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from '@/lib/space-objects-context';
-import type { ObjectNode } from '@/lib/types';
+import type { ObjectNode } from '@drakkar.software/octovault-sdk';
 import { useTheme } from '@/lib/use-theme';
 import { AutosaveField } from '@/components/ui/AutosaveField';
 import { EmojiPicker } from '@/components/ui/EmojiPicker';

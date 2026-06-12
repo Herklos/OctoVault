@@ -17,7 +17,7 @@
  */
 import { useEffect, useState } from 'react';
 
-import { onSseStatus } from './room-events-bus';
+import { onSseStatus } from '@drakkar.software/octovault-sdk';
 
 const OFFLINE_GRACE_MS = 5000;
 

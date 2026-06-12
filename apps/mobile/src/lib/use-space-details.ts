@@ -25,13 +25,13 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { Space } from '@/lib/types';
+import type { Space } from '@drakkar.software/octovault-sdk';
 
 import { pickAndProcessAvatar } from './avatar-image';
 import { useSession } from './session-context';
 import { useSpaces } from './use-spaces';
-import { isPublicSpaceId, updatePublicSpaceMeta } from './starfish/pubspace';
-import { broadcastSpaceMeta, readRooms, writeRooms } from './starfish/registry';
+import { isPublicSpaceId, updatePublicSpaceMeta } from '@drakkar.software/octovault-sdk';
+import { broadcastSpaceMeta, readRooms, writeRooms } from '@drakkar.software/octovault-sdk';
 
 /** Hard cap on a space name (the old field's maxLength, now enforced in the lib —
  *  the rail tile, switcher and breadcrumbs all assume a short label). */

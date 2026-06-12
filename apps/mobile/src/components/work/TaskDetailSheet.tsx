@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
-import type { Column } from '@/lib/board-content';
-import type { Task } from '@/lib/task-model';
+import type { Column } from '@drakkar.software/octovault-sdk';
+import type { Task } from '@drakkar.software/octovault-sdk';
 import { tapFeedback } from '@/lib/haptics';
 import { useHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';

@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
+import '@/lib/octovault-init'; // SDK DI seam: configures sync URL + KV before providers mount
 
-import { configureStarfishPlatform } from '@/lib/starfish/platform';
+import { configureStarfishPlatform } from '@drakkar.software/octovault-sdk/platform';
 import { registerServiceWorker } from '@/lib/pwa';
 import { AiSettingsProvider } from '@/lib/ai-settings-context';
 import { NotificationSettingsProvider } from '@/lib/notification-settings-context';

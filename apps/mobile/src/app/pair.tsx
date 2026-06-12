@@ -3,9 +3,9 @@ import { router } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { spacing, type as typeScale } from '@/theme';
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { usePinKeys } from '@/lib/use-pin-keys';
-import { completeDevicePairing, type PairResult } from '@/lib/starfish/pairing';
+import { completeDevicePairing, type PairResult } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { Button } from '@/components/ui/Button';

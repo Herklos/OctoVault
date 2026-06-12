@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
-import { iconForNode } from '@/lib/object-types';
+import { iconForNode } from '@drakkar.software/octovault-sdk';
 import {
   QUICK_FIND_SCOPE,
   closeQuickFind,
@@ -14,7 +14,7 @@ import {
   type QuickFindItem,
 } from '@/lib/use-quick-find';
 import { useShortcut, useShortcutScope } from '@/lib/use-shortcuts';
-import type { MatchRange } from '@/lib/search-match';
+import type { MatchRange } from '@drakkar.software/octovault-sdk';
 import { useTheme } from '@/lib/use-theme';
 
 import { Icon } from './Icon';

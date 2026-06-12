@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
 import { focusRingStyle, useFocusRing } from '@/lib/focus';
-import { initialsFor } from '@/lib/format';
+import { initialsFor } from '@drakkar.software/octovault-sdk';
 import { useHover } from '@/lib/use-hover';
 import { setSidebarCollapsedPref } from '@/lib/use-nav-prefs';
 import { useOpenObjectId } from '@/lib/use-open-object-id';
@@ -13,7 +13,7 @@ import { useQuickCreate } from '@/lib/use-quick-create';
 import { formatShortcut } from '@/lib/use-shortcuts';
 import { useSpaces } from '@/lib/use-spaces';
 import { useTheme } from '@/lib/use-theme';
-import type { Space } from '@/lib/types';
+import type { Space } from '@drakkar.software/octovault-sdk';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';

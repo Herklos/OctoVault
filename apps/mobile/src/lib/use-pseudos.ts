@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { readProfiles } from './starfish/client';
+import { readProfiles } from '@drakkar.software/octovault-sdk';
 
 // Public profiles (pseudo + avatar) keyed by userId, shared across every consumer
 // so the same author resolved in the message stream, a thread and a search result

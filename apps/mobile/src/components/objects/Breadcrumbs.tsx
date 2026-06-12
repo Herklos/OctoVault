@@ -7,7 +7,7 @@ import { layout, radii, spacing } from '@/theme';
 import { useHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
-import type { ObjectNode } from '@/lib/types';
+import type { ObjectNode } from '@drakkar.software/octovault-sdk';
 import { Icon } from '@/components/ui/Icon';
 import { Menu, MenuItem } from '@/components/ui/Menu';
 import { Popover } from '@/components/ui/Popover';

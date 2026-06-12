@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { initialsFor } from '@/lib/format';
+import { initialsFor } from '@drakkar.software/octovault-sdk';
 import { useProfile } from '@/lib/profile-context';
 import { useScalePress } from '@/lib/use-scale-press';
 import { Avatar } from '@/components/ui/Avatar';

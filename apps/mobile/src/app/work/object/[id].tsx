@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { layout, spacing } from '@/theme';
-import { relativeTime } from '@/lib/relative-time';
+import { relativeTime } from '@drakkar.software/octovault-sdk';
 import { useRecordVisit } from '@/lib/use-recents';
 import { useSpaces } from '@/lib/use-spaces';
 import { useSpaceObjects } from '@/lib/space-objects-context';

@@ -1,8 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
-import type { PropField } from '@/lib/object-types';
-import type { PropValue } from '@/lib/types';
+import type { PropField } from '@drakkar.software/octovault-sdk';
+import type { PropValue } from '@drakkar.software/octovault-sdk';
 import { Txt } from '@/components/ui/Txt';
 import { PropertyField } from './PropertyField';
 

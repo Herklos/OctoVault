@@ -11,7 +11,7 @@
  */
 import { Platform } from 'react-native';
 
-import { kvGet, kvSet } from './starfish/kv';
+import { kvGet, kvSet } from '@drakkar.software/octovault-sdk';
 
 export interface NotificationSettings {
   /** Master switch — off silences everything. */

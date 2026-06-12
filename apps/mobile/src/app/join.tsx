@@ -3,10 +3,10 @@ import { router, type Href } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { layout, spacing } from '@/theme';
-import { humanizeError } from '@/lib/errors';
-import { previewInvite, type InvitePreview } from '@/lib/invite-preview';
-import { acceptSpaceInvite, makeJoinRequest } from '@/lib/starfish/members';
-import { joinPublicSpace } from '@/lib/starfish/pubspace';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
+import { previewInvite, type InvitePreview } from '@drakkar.software/octovault-sdk';
+import { acceptSpaceInvite, makeJoinRequest } from '@drakkar.software/octovault-sdk';
+import { joinPublicSpace } from '@drakkar.software/octovault-sdk';
 import { useInviteFragment } from '@/lib/use-invite-link';
 import { useSession } from '@/lib/session-context';
 import { useSpaces } from '@/lib/use-spaces';

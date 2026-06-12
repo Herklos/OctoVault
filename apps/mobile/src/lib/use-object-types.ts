@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 
-import { isPublicSpaceId } from './starfish/pubspace';
-import { typesIndexName, typesIndexPull, typesIndexPush } from './starfish/paths';
-import * as store from './starfish/object-types-store';
-import type { TypesDoc } from './starfish/object-types-store';
+import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
+import { typesIndexName, typesIndexPull, typesIndexPush } from '@drakkar.software/octovault-sdk';
+import * as store from '@drakkar.software/octovault-sdk';
+import type { TypesDoc } from '@drakkar.software/octovault-sdk';
 import { useMergeDoc } from './use-merge-doc';
 
-export type { TypeDef, FieldDef, SelectOption, PropKind, EditorKind, ContentKind } from './starfish/object-types-store';
+export type { TypeDef, FieldDef, SelectOption, PropKind, EditorKind, ContentKind } from '@drakkar.software/octovault-sdk';
 
 export interface ObjectTypesHook {
   types: store.TypeDef[];

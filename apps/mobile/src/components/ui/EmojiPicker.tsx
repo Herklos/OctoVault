@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
-import { EMOJI_CATEGORIES, searchEmoji, type EmojiMatch } from '@/lib/emoji';
+import { EMOJI_CATEGORIES, searchEmoji, type EmojiCategory, type EmojiMatch } from '@drakkar.software/octovault-sdk';
 import { tapFeedback } from '@/lib/haptics';
 import { useHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';
@@ -75,7 +75,7 @@ export function EmojiPicker({ visible, onClose, onSelect, anchorRef, current }: 
         {query.trim() ? (
           <SearchResults query={query} onPick={pick} />
         ) : (
-          EMOJI_CATEGORIES.map((cat) => (
+          EMOJI_CATEGORIES.map((cat: EmojiCategory) => (
             <View key={cat.id}>
               <Txt variant="micro" weight="semibold" mono uppercase tone="inkMuted" style={styles.section}>
                 {cat.label}

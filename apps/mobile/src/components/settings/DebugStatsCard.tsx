@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
-import { SYNC_BASE } from '@/lib/starfish/config';
+import { getSyncBase } from '@drakkar.software/octovault-sdk';
 import { useServerHealth, type HealthStatus } from '@/lib/use-server-health';
 import { useTheme } from '@/lib/use-theme';
 import { Card } from '@/components/ui/Card';
@@ -29,7 +29,7 @@ export function DebugStatsCard() {
       <Row
         iconName="globe"
         title="Server"
-        detail={SYNC_BASE}
+        detail={getSyncBase()}
         detailMono
         onPress={recheck}
         right={

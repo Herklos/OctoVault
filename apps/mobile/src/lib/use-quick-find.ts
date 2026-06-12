@@ -24,13 +24,13 @@ import { router } from 'expo-router';
 import type { IconName } from '@/components/ui/Icon';
 
 import { useTypeRegistry } from './type-registry-context';
-import { rankResults, type MatchRange } from './search-match';
-import { relativeTimeShort } from './relative-time';
+import { rankResults, type MatchRange } from '@drakkar.software/octovault-sdk';
+import { relativeTimeShort } from '@drakkar.software/octovault-sdk';
 import { recordVisit, useRecents } from './use-recents';
 import { useSpaceObjects } from './space-objects-context';
 import { useSpaces } from './use-spaces';
 import { formatShortcut } from './use-shortcuts';
-import type { ObjectNode } from './types';
+import type { ObjectNode } from '@drakkar.software/octovault-sdk';
 
 /** Scope the palette pushes while open — silences the shell's global bindings. */
 export const QUICK_FIND_SCOPE = 'quick-find';

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-import { registerPull, onSseStatus } from './room-events-bus';
+import { registerPull, onSseStatus } from '@drakkar.software/octovault-sdk';
 import { useObjects, type ObjectsHook } from './use-objects';
 import { useSpaces } from './use-spaces';
 

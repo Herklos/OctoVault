@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 
-import { objIndexPull, objIndexPush, pubObjIndexPull, pubObjIndexPush } from './starfish/paths';
+import { objIndexPull, objIndexPush, pubObjIndexPull, pubObjIndexPush } from '@drakkar.software/octovault-sdk';
 import {
   addObject,
   ancestors as ancestorsOf,
@@ -15,8 +15,8 @@ import {
   subtreeIds,
   type NewObjectInput,
   type ObjectTreeNode,
-} from './starfish/objects';
-import type { ID, ObjectNode, PropValue } from './types';
+} from '@drakkar.software/octovault-sdk';
+import type { ID, ObjectNode, PropValue } from '@drakkar.software/octovault-sdk';
 import { useMergeDoc } from './use-merge-doc';
 import { useRoomLiveSync } from './use-room-live-sync';
 

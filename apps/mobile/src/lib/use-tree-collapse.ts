@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { kvGet, kvSet } from './starfish/kv';
-import type { ObjectTreeNode } from './starfish/objects';
-import type { ID } from './types';
+import { kvGet, kvSet } from '@drakkar.software/octovault-sdk';
+import type { ObjectTreeNode } from '@drakkar.software/octovault-sdk';
+import type { ID } from '@drakkar.software/octovault-sdk';
 
 /** Device-local persistence key for one space's collapsed-row set. Per space so
  *  switching spaces never bleeds one tree's disclosure state into another's. */

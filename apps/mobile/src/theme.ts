@@ -607,7 +607,11 @@ export const layout = {
 // Map domain state → token, so screens stay declarative. Each takes the active
 // Palette (from useTheme) since OctoVault is light/dark aware.
 
-export type PresenceStatus = 'online' | 'away' | 'dnd' | 'offline';
+// PresenceStatus and VerificationLevel are owned by the SDK (domain types);
+// imported here for use in function signatures, re-exported so existing app
+// imports (`from '@/theme'`) continue to work.
+import type { PresenceStatus, VerificationLevel } from '@drakkar.software/octovault-sdk';
+export type { PresenceStatus, VerificationLevel };
 
 export function presenceColor(p: Palette, status: PresenceStatus): string {
   switch (status) {
@@ -621,8 +625,6 @@ export function presenceColor(p: Palette, status: PresenceStatus): string {
       return p.inkFaint;
   }
 }
-
-export type VerificationLevel = 'verified' | 'pending' | 'unverified';
 
 export function verificationColor(p: Palette, level: VerificationLevel): string {
   switch (level) {

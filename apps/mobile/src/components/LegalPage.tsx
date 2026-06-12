@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { layout, radii, spacing } from '@/theme';
 import { useTheme } from '@/lib/use-theme';
-import type { LegalDoc } from '@/lib/legal';
+import type { LegalDoc } from '@drakkar.software/octovault-sdk';
 import { IconButton } from '@/components/ui/IconButton';
 import { Txt } from '@/components/ui/Txt';
 

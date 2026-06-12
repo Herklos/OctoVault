@@ -31,20 +31,20 @@ import {
   type ReactNode,
 } from 'react';
 
-import type { AutomationMeta, Room } from '@/lib/types';
+import type { AutomationMeta, Room } from '@drakkar.software/octovault-sdk';
 
-import { kvGet, kvSet } from './starfish/kv';
-import { readRooms, reconcileSpaceMeta } from './starfish/registry';
-import { getSpaceEncryptor } from './starfish/space-encryptor';
-import { readIndexRooms } from './starfish/object-index';
-import { objIndexPull, pubObjIndexPull } from './starfish/paths';
+import { kvGet, kvSet } from '@drakkar.software/octovault-sdk';
+import { readRooms, reconcileSpaceMeta } from '@drakkar.software/octovault-sdk';
+import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
+import { readIndexRooms } from '@drakkar.software/octovault-sdk';
+import { objIndexPull, pubObjIndexPull } from '@drakkar.software/octovault-sdk';
 import {
   isPublicSpaceId,
   publicSpaceAuth,
   publicSpaceClient,
   readPublicRoomsDoc,
-} from './starfish/pubspace';
-import type { Session } from './starfish/identity';
+} from '@drakkar.software/octovault-sdk';
+import type { Session } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useSpacesContext } from './spaces-context';
 

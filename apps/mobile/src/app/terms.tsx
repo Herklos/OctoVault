@@ -1,4 +1,4 @@
-import { terms } from '@/lib/legal';
+import { terms } from '@drakkar.software/octovault-sdk';
 import { LegalPage } from '@/components/LegalPage';
 
 export default function TermsScreen() {

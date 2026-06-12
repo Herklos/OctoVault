@@ -12,9 +12,9 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 
-import { isPublicSpaceId } from './starfish/pubspace';
-import { readRooms, removeSpaceMember as removeSpaceMemberDoc } from './starfish/registry';
-import { fingerprintFromUserId } from './starfish/identity';
+import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
+import { readRooms, removeSpaceMember as removeSpaceMemberDoc } from '@drakkar.software/octovault-sdk';
+import { fingerprintFromUserId } from '@drakkar.software/octovault-sdk';
 import { useAvatars, usePseudos } from './use-pseudos';
 import { useSession } from './session-context';
 

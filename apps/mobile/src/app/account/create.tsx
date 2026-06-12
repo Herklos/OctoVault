@@ -3,9 +3,9 @@ import { Redirect, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing, type as typeScale } from '@/theme';
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { clearPendingSeedWords, pendingSeedWords, stepSubtitle } from '@/lib/onboarding-steps';
-import { useArgon2Progress } from '@/lib/starfish/hash-wasm-shim';
+import { useArgon2Progress } from '@/lib/use-argon2-progress';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { Button } from '@/components/ui/Button';

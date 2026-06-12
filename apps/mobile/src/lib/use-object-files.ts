@@ -9,13 +9,13 @@ import { useCallback } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as FSFile } from 'expo-file-system';
 
-import type { ByteSealer } from './starfish/attachments';
-import { uploadObjectBlob } from './starfish/object-blobs';
-import { getSpaceEncryptor } from './starfish/space-encryptor';
+import type { ByteSealer } from '@drakkar.software/octovault-sdk';
+import { uploadObjectBlob } from '@drakkar.software/octovault-sdk';
+import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
 import type { Encryptor } from '@drakkar.software/starfish-client';
 import { useSession } from './session-context';
 import { useSpaceObjects } from './space-objects-context';
-import type { ID } from './types';
+import type { ID } from '@drakkar.software/octovault-sdk';
 
 export interface UseObjectFilesResult {
   /** Pick a document, upload it as a `file` object, return the created id (or null on cancel). */

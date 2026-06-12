@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Redirect, router } from 'expo-router';
 
-import { humanizeError } from '@/lib/errors';
+import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { IconButton } from '@/components/ui/IconButton';

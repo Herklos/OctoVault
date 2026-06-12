@@ -2,12 +2,12 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/theme';
-import { plural } from '@/lib/format';
+import { plural } from '@drakkar.software/octovault-sdk';
 import { useTypeRegistry } from '@/lib/type-registry-context';
-import { relativeTime } from '@/lib/relative-time';
+import { relativeTime } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from '@/lib/space-objects-context';
-import { subtreeIds } from '@/lib/starfish/objects';
-import type { ObjectNode } from '@/lib/types';
+import { subtreeIds } from '@drakkar.software/octovault-sdk';
+import type { ObjectNode } from '@drakkar.software/octovault-sdk';
 import { useConfirm } from '@/lib/use-confirm';
 import { useRowHover } from '@/lib/use-hover';
 import { useTheme } from '@/lib/use-theme';

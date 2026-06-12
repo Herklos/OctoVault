@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 
-import { registerPull, onSseStatus } from './room-events-bus';
+import { registerPull, onSseStatus } from '@drakkar.software/octovault-sdk';
 
 export function useRoomLiveSync(opts: {
   roomId: string;

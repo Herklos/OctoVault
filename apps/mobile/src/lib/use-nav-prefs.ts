@@ -16,7 +16,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { useGlobalSearchParams, usePathname } from 'expo-router';
 
-import { kvGet, kvSet } from './starfish/kv';
+import { kvGet, kvSet } from '@drakkar.software/octovault-sdk';
 
 export interface NavPrefs {
   /** Last active space id — restored over `spaces[0]` on cold start. */

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Redirect, router } from 'expo-router';
 
 import { flowSteps, getAuthFlow, stepSubtitle, useFirstRunSpace } from '@/lib/onboarding-steps';
-import type { SeedLock } from '@/lib/starfish/storage-types';
+import type { SeedLock } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { AuthScreen } from '@/components/onboarding/AuthScreen';

@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react';
 
 import { useObjectContent } from './use-object-content';
-import * as page from './page-content';
-import type { Block, BlockType, NewBlock } from './page-content';
+import * as page from '@drakkar.software/octovault-sdk';
+import type { Block, BlockType, NewBlock } from '@drakkar.software/octovault-sdk';
 
-export type { Block, BlockType, NewBlock } from './page-content';
+export type { Block, BlockType, NewBlock } from '@drakkar.software/octovault-sdk';
 
 export interface PageHook {
   blocks: Block[];

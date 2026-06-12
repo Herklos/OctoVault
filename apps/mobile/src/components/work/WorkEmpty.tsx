@@ -2,8 +2,8 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
-import { creatableTypes } from '@/lib/object-types';
-import type { ObjectType } from '@/lib/types';
+import { creatableTypes } from '@drakkar.software/octovault-sdk';
+import type { ObjectType } from '@drakkar.software/octovault-sdk';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 

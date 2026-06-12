@@ -13,13 +13,13 @@
 import { useCallback } from 'react';
 import type { WalDocument } from '@drakkar.software/starfish-wal';
 
-import { isPublicSpaceId } from './starfish/pubspace';
-import { objLogName } from './starfish/paths';
+import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
+import { objLogName } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useRoomOpen } from './use-room-open-flow';
 import { useRoomLiveSync } from './use-room-live-sync';
 import { useWalDoc } from './use-wal-doc';
-import type { ObjectContentKind } from './types';
+import type { ObjectContentKind } from '@drakkar.software/octovault-sdk';
 
 export interface ObjectContentHandle {
   /** WAL document — non-null once open (contentKind === 'append'). */

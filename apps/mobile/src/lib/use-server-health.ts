@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { SYNC_BASE, SYNC_NAMESPACE } from './starfish/config';
+import { getSyncBase, getSyncNamespace } from '@drakkar.software/octovault-sdk';
 
 // Reachability probe URL. Local dev (no namespace): the apps/server mounts the
 // sync router at root and always exposes `/health`, with permissive CORS. The
@@ -12,7 +12,9 @@ import { SYNC_BASE, SYNC_NAMESPACE } from './starfish/config';
 // host we probe `/v1/config` instead — it is nginx-routed, CORS-enabled, and a
 // 200 confirms the sync backend is reachable. (Shared across namespaces, which
 // is fine for a liveness signal.)
-const HEALTH_URL = SYNC_NAMESPACE ? `${SYNC_BASE}/v1/config` : `${SYNC_BASE}/health`;
+const HEALTH_URL = getSyncNamespace()
+  ? `${getSyncBase()}/v1/config`
+  : `${getSyncBase()}/health`;
 const POLL_MS = 15_000;
 const TIMEOUT_MS = 4_000;
 

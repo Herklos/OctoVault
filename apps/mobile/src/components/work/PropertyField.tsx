@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/theme';
-import type { PropField } from '@/lib/object-types';
-import type { PropValue } from '@/lib/types';
+import type { PropField } from '@drakkar.software/octovault-sdk';
+import type { PropValue } from '@drakkar.software/octovault-sdk';
 import { useTheme } from '@/lib/use-theme';
 import { AutosaveField } from '@/components/ui/AutosaveField';
 import { Icon } from '@/components/ui/Icon';
