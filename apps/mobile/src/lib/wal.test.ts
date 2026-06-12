@@ -13,7 +13,6 @@ import {
 } from '@drakkar.software/starfish-wal';
 
 import * as page from './page-content';
-import * as board from './board-content';
 
 // Node's vitest has no btoa/atob — wire base64 so the protocol's author signer works.
 beforeAll(() => {
@@ -162,47 +161,3 @@ describe('page-model on WAL', () => {
   });
 });
 
-describe('board-model on WAL', () => {
-  it('two devices adding tasks to different columns converge', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, { nonce: 'A' });
-    const todo = board.addColumn(a, 'Todo');
-    const doing = board.addColumn(a, 'Doing');
-    await a.commit();
-
-    const b = await openDoc(t, { nonce: 'B' });
-    board.addTask(a, todo, 'Task A');
-    board.addTask(b, doing, 'Task B');
-    await a.commit();
-    await b.commit();
-    await a.pull();
-    await b.pull();
-
-    const ba = board.readBoard(a);
-    const bb = board.readBoard(b);
-    expect(ba.total).toBe(2);
-    expect(bb.total).toBe(2);
-    expect(ba.tasksByColumn[todo]!.map((x) => x.title)).toEqual(['Task A']);
-    expect(ba.tasksByColumn[doing]!.map((x) => x.title)).toEqual(['Task B']);
-  });
-
-  it('moving a task across columns and marking it done converges', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, { nonce: 'A' });
-    const todo = board.addColumn(a, 'Todo');
-    const done = board.addColumn(a, 'Done');
-    const task = board.addTask(a, todo, 'Ship it');
-    await a.commit();
-
-    const b = await openDoc(t, { nonce: 'B' });
-    board.moveTask(a, task, done, 1);
-    board.changeStatus(a, task, 'done');
-    await a.commit();
-    await b.pull();
-
-    const folded = board.readBoard(b);
-    expect(folded.tasksByColumn[todo]).toEqual([]);
-    expect(folded.tasksByColumn[done]!.map((x) => x.title)).toEqual(['Ship it']);
-    expect(folded.done).toBe(1);
-  });
-});

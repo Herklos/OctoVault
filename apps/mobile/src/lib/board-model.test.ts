@@ -1,9 +1,8 @@
 /**
- * board-model unit coverage — the column-management + done-column + undo
- * surface added for the kanban redesign. Exercises the PURE model over real
- * {@link WalDocument}s on an in-memory transport (same harness as wal.test.ts)
- * so every assertion is also a convergence check: anything a UI gesture writes
- * must survive a second device's pull.
+ * board-content unit coverage — column management + done-column flag.
+ *
+ * Tasks are now first-class ObjectNodes (see task-model.test.ts). This file
+ * covers only the WAL-backed column operations.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { configurePlatform } from '@drakkar.software/starfish-protocol';
@@ -52,7 +51,7 @@ class FakeTransport implements WalTransport {
   }
 }
 
-const KEY = 'spaces/s/objects/boards/b';
+const KEY = 'spaces/s/objects/logs/b';
 
 async function openDoc(transport: WalTransport, nonce: string) {
   const doc = new WalDocument({ documentKey: KEY, transport, signer: signer(), encryptor: noopEncryptor, sessionNonce: nonce });
@@ -99,8 +98,8 @@ describe('moveColumn', () => {
     await a.commit();
 
     const b = await openDoc(t, 'B');
-    expect(board.readBoard(a).columns.map((c) => c.id)).toEqual([c3, c1, c2]);
-    expect(board.readBoard(b).columns.map((c) => c.id)).toEqual([c3, c1, c2]);
+    expect(board.readColumns(a).map((c) => c.id)).toEqual([c3, c1, c2]);
+    expect(board.readColumns(b).map((c) => c.id)).toEqual([c3, c1, c2]);
   });
 
   it('survives a concurrent rename of an untouched column (minimal RGA diff)', async () => {
@@ -118,10 +117,10 @@ describe('moveColumn', () => {
     await a.pull();
     await b.pull();
 
-    const fa = board.readBoard(a);
-    const fb = board.readBoard(b);
-    expect(fa.columns.map((c) => c.title)).toEqual(fb.columns.map((c) => c.title));
-    expect(fa.columns.find((c) => c.id === c1)?.title).toBe('Renamed');
+    const ca = board.readColumns(a);
+    const cb = board.readColumns(b);
+    expect(ca.map((c) => c.title)).toEqual(cb.map((c) => c.title));
+    expect(ca.find((c) => c.id === c1)?.title).toBe('Renamed');
   });
 
   it('clamps an out-of-range index instead of dropping the column', async () => {
@@ -130,48 +129,24 @@ describe('moveColumn', () => {
     const c1 = board.addColumn(a, 'One');
     const c2 = board.addColumn(a, 'Two');
     board.moveColumn(a, c1, 99);
-    expect(board.readBoard(a).columns.map((c) => c.id)).toEqual([c2, c1]);
+    expect(board.readColumns(a).map((c) => c.id)).toEqual([c2, c1]);
   });
 });
 
 describe('deleteColumn', () => {
-  it('re-homes its cards to the target column, after its last card, in order', async () => {
+  it('removes the column from the strip', async () => {
     const t = new FakeTransport();
     const a = await openDoc(t, 'A');
     const keep = board.addColumn(a, 'Keep');
     const drop = board.addColumn(a, 'Drop');
-    board.addTask(a, keep, 'K1');
-    board.addTask(a, drop, 'D1');
-    board.addTask(a, drop, 'D2');
-    await a.commit();
-
-    board.deleteColumn(a, drop, { moveTasksTo: keep });
-    await a.commit();
-
-    const b = await openDoc(t, 'B');
-    for (const d of [a, b]) {
-      const folded = board.readBoard(d);
-      expect(folded.columns.map((c) => c.title)).toEqual(['Keep']);
-      expect(folded.tasksByColumn[keep]!.map((x) => x.title)).toEqual(['K1', 'D1', 'D2']);
-      expect(folded.total).toBe(3);
-    }
-  });
-
-  it('deletes its cards (and their registers) when no target is given', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, 'A');
-    const keep = board.addColumn(a, 'Keep');
-    const drop = board.addColumn(a, 'Drop');
-    board.addTask(a, drop, 'Gone');
     await a.commit();
 
     board.deleteColumn(a, drop);
     await a.commit();
 
     const b = await openDoc(t, 'B');
-    const folded = board.readBoard(b);
-    expect(folded.columns.map((c) => c.id)).toEqual([keep]);
-    expect(folded.total).toBe(0);
+    expect(board.readColumns(a).map((c) => c.id)).toEqual([keep]);
+    expect(board.readColumns(b).map((c) => c.id)).toEqual([keep]);
   });
 });
 
@@ -180,146 +155,24 @@ describe('done column (coldone register)', () => {
     const t = new FakeTransport();
     const a = await openDoc(t, 'A');
     board.seedDefaultColumns(a);
-    const folded = board.readBoard(a);
-    expect(folded.columns.map((c) => c.title)).toEqual(['To do', 'In progress', 'Done']);
-    expect(folded.columns.map((c) => c.done)).toEqual([false, false, true]);
+    const cols = board.readColumns(a);
+    expect(cols.map((c) => c.title)).toEqual(['To do', 'In progress', 'Done']);
+    expect(cols.map((c) => c.done)).toEqual([false, false, true]);
   });
 
-  it('derives done purely from column membership when a done column exists', async () => {
+  it('setColumnDone toggles the flag and converges', async () => {
     const t = new FakeTransport();
     const a = await openDoc(t, 'A');
-    const todo = board.addColumn(a, 'To do');
-    const done = board.addColumn(a, 'Done');
-    board.setColumnDone(a, done, true);
-    const task = board.addTask(a, todo, 'Ship');
-    // Stale legacy status must NOT override the column once the flag exists —
-    // otherwise a card dragged out of Done stays struck through.
-    board.changeStatus(a, task, 'done');
-    let folded = board.readBoard(a);
-    expect(folded.tasksByColumn[todo]![0]!.done).toBe(false);
-    expect(folded.done).toBe(0);
-
-    board.moveTask(a, task, done, 1);
-    await a.commit();
-    const b = await openDoc(t, 'B');
-    folded = board.readBoard(b);
-    expect(folded.tasksByColumn[done]![0]!.done).toBe(true);
-    expect(folded.done).toBe(1);
-  });
-
-  it('falls back to the legacy status register on boards without a done column', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, 'A');
-    const col = board.addColumn(a, 'Anything');
-    const task = board.addTask(a, col, 'Old-style');
-    board.changeStatus(a, task, 'done');
-    const folded = board.readBoard(a);
-    expect(folded.tasksByColumn[col]![0]!.done).toBe(true);
-    expect(folded.done).toBe(1);
-  });
-});
-
-describe('fractional moveTask + addTask order', () => {
-  it('an explicit top order places the card first', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, 'A');
-    const col = board.addColumn(a, 'Col');
-    board.addTask(a, col, 'First');
-    const first = board.readBoard(a).tasksByColumn[col]![0]!;
-    board.addTask(a, col, 'On top', board.orderBetween(undefined, first.order));
-    expect(board.readBoard(a).tasksByColumn[col]!.map((x) => x.title)).toEqual(['On top', 'First']);
-  });
-
-  it('a between-siblings drop converges across devices', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, 'A');
-    const col = board.addColumn(a, 'Col');
-    board.addTask(a, col, 'One');
-    board.addTask(a, col, 'Two');
-    const other = board.addColumn(a, 'Other');
-    const moved = board.addTask(a, other, 'Moved');
-    await a.commit();
-
-    const [one, two] = board.readBoard(a).tasksByColumn[col]!;
-    board.moveTask(a, moved, col, board.orderBetween(one!.order, two!.order));
+    const col = board.addColumn(a, 'Finished');
+    board.setColumnDone(a, col, true);
     await a.commit();
 
     const b = await openDoc(t, 'B');
-    expect(board.readBoard(b).tasksByColumn[col]!.map((x) => x.title)).toEqual(['One', 'Moved', 'Two']);
-    expect(board.readBoard(b).tasksByColumn[other]).toEqual([]);
-  });
-});
+    expect(board.readColumns(b).find((c) => c.id === col)?.done).toBe(true);
 
-describe('duplicateTask / restoreTask (card menu + undo toast)', () => {
-  it('duplicates title, notes and status right below the source', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, 'A');
-    const col = board.addColumn(a, 'Col');
-    const src = board.addTask(a, col, 'Original');
-    board.updateTask(a, src, { notes: 'details' });
-    board.addTask(a, col, 'After');
+    board.setColumnDone(a, col, false);
     await a.commit();
-
-    const [source, after] = board.readBoard(a).tasksByColumn[col]!;
-    board.duplicateTask(a, source!, board.orderBetween(source!.order, after!.order));
-    await a.commit();
-
-    const b = await openDoc(t, 'B');
-    const folded = board.readBoard(b).tasksByColumn[col]!;
-    expect(folded.map((x) => x.title)).toEqual(['Original', 'Original', 'After']);
-    expect(folded[1]!.notes).toBe('details');
-    expect(folded[1]!.id).not.toBe(source!.id);
-  });
-
-  it('restoreTask revives a deleted card with every register intact', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, 'A');
-    const col = board.addColumn(a, 'Col');
-    const id = board.addTask(a, col, 'Keep me');
-    board.updateTask(a, id, { notes: 'precious' });
-    await a.commit();
-
-    const snapshot = board.readBoard(a).tasksByColumn[col]![0]!;
-    board.deleteTask(a, id);
-    await a.commit();
-    expect(board.readBoard(a).total).toBe(0);
-
-    board.restoreTask(a, snapshot);
-    await a.commit();
-
-    const b = await openDoc(t, 'B');
-    const revived = board.readBoard(b).tasksByColumn[col]![0]!;
-    expect(revived.id).toBe(id);
-    expect(revived.title).toBe('Keep me');
-    expect(revived.notes).toBe('precious');
-    expect(board.readBoard(b).total).toBe(1);
-  });
-});
-
-describe('orphan tasks (stale column register)', () => {
-  it('folds a task whose column vanished into the first column instead of hiding it', async () => {
-    const t = new FakeTransport();
-    const a = await openDoc(t, 'A');
-    const home = board.addColumn(a, 'Home');
-    const doomed = board.addColumn(a, 'Doomed');
-    const task = board.addTask(a, doomed, 'Orphan');
-    await a.commit();
-
-    const b = await openDoc(t, 'B');
-    // Device B drops the column WITHOUT re-homing (it never saw the task land
-    // there — e.g. the moveTask op raced the delete).
-    const docB = b;
-    docB.setField(`task:${task}:col`, 'no-such-column');
-    board.deleteColumn(a, doomed, { moveTasksTo: home });
-    await a.commit();
-    await docB.commit();
-    await a.pull();
-    await docB.pull();
-
-    for (const d of [a, docB]) {
-      const folded = board.readBoard(d);
-      expect(folded.tasksByColumn[home]!.some((x) => x.title === 'Orphan')).toBe(true);
-      expect(folded.total).toBe(1);
-    }
+    await b.pull();
+    expect(board.readColumns(b).find((c) => c.id === col)?.done).toBe(false);
   });
 });

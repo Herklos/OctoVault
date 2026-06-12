@@ -67,6 +67,7 @@ const TASK_PROPS: PropField[] = [
       { id: 'done', label: 'Done' },
     ],
   },
+  { key: 'columnId', label: 'Column', kind: 'text' },
   { key: 'order', label: 'Order', kind: 'number' },
 ];
 

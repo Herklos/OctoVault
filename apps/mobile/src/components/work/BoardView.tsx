@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, TextInputKeyPressEventData, View as ViewType, ViewProps } from 'react-native';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 import { layout, opacity, paperBorder, radii, shadows, spacing } from '@/theme';
 import type { BoardHook, Column, Task } from '@/lib/use-board';
@@ -27,7 +28,6 @@ import { TextField } from '@/components/ui/TextField';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { ObjectHero } from '@/components/work/ObjectHero';
-import { TaskDetailSheet } from '@/components/work/TaskDetailSheet';
 
 /** react-native-web forwards the keydown event, so `preventDefault` and the
  *  composition flag live on it even though RN's type only promises `key`. */
@@ -44,10 +44,6 @@ interface BoardViewProps {
   onRenameTitle?: (text: string) => void;
   /** Persist an icon change from the hero's EmojiPicker (`null` removes it). */
   onChangeEmoji?: (emoji: string | null) => void;
-  /** The open card peek, driven by the route's `?task=` param (deep-linkable;
-   *  Esc/back/backdrop close it by clearing the param via the setter). */
-  openTaskId?: string | null;
-  onOpenTask?: (taskId: string | null) => void;
   /** Set on the CREATING device only (route flag from the create flow): seeds
    *  To do / In progress / Done on the first ready tick of an empty board —
    *  flag-gated so two devices opening the same new board can't both seed. */
@@ -65,7 +61,8 @@ interface BoardViewProps {
  * board-model): the flagged "Done" column IS the property, Notion-style.
  * Title/emoji live on the index node (hero + EmojiPicker edit them in place).
  */
-export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle, onChangeEmoji, openTaskId = null, onOpenTask, seedDefaults = false, focusTitle = false }: BoardViewProps) {
+export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle, onChangeEmoji, seedDefaults = false, focusTitle = false }: BoardViewProps) {
+  const router = useRouter();
   const { colors } = useTheme();
   const { isWide } = useResponsive();
   const board = useBoard(spaceId, objectId);
@@ -138,10 +135,9 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle, onCh
     board.duplicateTask(task, orderBetween(task.order, next?.order));
   };
 
-  /** Delete with a CRDT-honest Undo (restoreTask rewrites every register). */
+  /** Delete with undo toast. */
   const deleteWithUndo = (task: Task) => {
     board.deleteTask(task.id);
-    if (openTaskId === task.id) onOpenTask?.(null);
     toast.show({ message: 'Card deleted', action: { label: 'Undo', onPress: () => board.restoreTask(task) } });
   };
 
@@ -162,20 +158,6 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle, onCh
       board.moveTask(taskId, columnId, orderBetween(without[i - 1]?.order, without[i]?.order));
     },
   });
-
-  // ── The open peek (param-driven) ───────────────────────────────────────────
-  const openTask = useMemo(() => {
-    if (!openTaskId) return null;
-    for (const c of columns) {
-      const found = tasksByColumn[c.id]?.find((t) => t.id === openTaskId);
-      if (found) return found;
-    }
-    return null;
-  }, [openTaskId, columns, tasksByColumn]);
-  // A card deleted on another device while peeked: close instead of blanking.
-  useEffect(() => {
-    if (openTaskId && board.ready && !openTask) onOpenTask?.(null);
-  }, [openTaskId, board.ready, openTask, onOpenTask]);
 
   // ── Strip edge fades (web): overflow must be visible, not discovered ──────
   const [fades, setFades] = useState({ left: false, right: false });
@@ -272,7 +254,7 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle, onCh
                 editing={editingColId === col.id}
                 onEditStart={() => setEditingColId(col.id)}
                 onEditEnd={() => setEditingColId((cur) => (cur === col.id ? null : cur))}
-                onOpenTask={(id) => onOpenTask?.(id)}
+                onOpenTask={(id) => router.push({ pathname: '/work/object/[id]', params: { id, spaceId } })}
                 onToggleDone={toggleDone}
                 onMoveToColumn={moveToEnd}
                 onNudge={nudgeTask}
@@ -313,16 +295,6 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle, onCh
         </View>
       )}
 
-      <TaskDetailSheet
-        task={openTask}
-        columns={columns}
-        onRename={(id, t) => board.updateTask(id, { title: t })}
-        onSetNotes={(id, n) => board.updateTask(id, { notes: n })}
-        onMove={moveToEnd}
-        onToggleDone={toggleDone}
-        onDelete={deleteWithUndo}
-        onClose={() => onOpenTask?.(null)}
-      />
     </View>
   );
 }
@@ -545,9 +517,9 @@ interface TaskCardProps {
 }
 
 /**
- * One card face: square done-check, 2-line title, 1-line notes preview. The
- * whole card is a drag handle on web; right-click (web) / long-press (touch)
- * opens the context menu — the touch path for everything hover-only.
+ * One card face: square done-check, multi-line title. The whole card is a
+ * drag handle on web; right-click (web) / long-press (touch) opens the context
+ * menu — the touch path for everything hover-only.
  */
 function TaskCard({ task, columnId, columns, index, count, drag, dragging, onOpen, onToggleDone, onMoveToColumn, onNudge, onDuplicate, onDelete }: TaskCardProps) {
   const { colors } = useTheme();
@@ -565,8 +537,6 @@ function TaskCard({ task, columnId, columns, index, count, drag, dragging, onOpe
         },
       }
     : {}) as unknown as Partial<ViewProps>;
-
-  const notesPreview = task.notes.trim().split('\n')[0] ?? '';
 
   return (
     <View
@@ -612,11 +582,6 @@ function TaskCard({ task, columnId, columns, index, count, drag, dragging, onOpe
         <Txt variant="subhead" tone={task.title ? 'ink' : 'inkFaint'} numberOfLines={2} style={task.done ? styles.cardDone : undefined}>
           {task.title || 'Untitled'}
         </Txt>
-        {notesPreview ? (
-          <Txt variant="caption" tone="inkMuted" numberOfLines={1}>
-            {notesPreview}
-          </Txt>
-        ) : null}
       </Pressable>
 
       <AdaptiveMenu visible={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={cardRef} title={task.title || 'Card'}>

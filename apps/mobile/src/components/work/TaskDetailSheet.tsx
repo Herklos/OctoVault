@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
-import type { Column, Task } from '@/lib/use-board';
+import type { Column } from '@/lib/board-content';
+import type { Task } from '@/lib/task-model';
 import { tapFeedback } from '@/lib/haptics';
 import { useHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';
@@ -20,7 +21,6 @@ interface TaskDetailSheetProps {
   /** All board columns, for the move-to-column rows. */
   columns: Column[];
   onRename: (taskId: string, title: string) => void;
-  onSetNotes: (taskId: string, notes: string) => void;
   /** Move to another column (the caller no-ops on the current one). */
   onMove: (taskId: string, columnId: string) => void;
   /** Unified done toggle — the caller derives column-vs-status semantics. */
@@ -41,7 +41,7 @@ interface TaskDetailSheetProps {
  * switching cards reseeds. The title autofocuses only when the card is brand
  * new (empty title) — opening an existing card is for reading first.
  */
-export function TaskDetailSheet({ task, columns, onRename, onSetNotes, onMove, onToggleDone, onDelete, onClose }: TaskDetailSheetProps) {
+export function TaskDetailSheet({ task, columns, onRename, onMove, onToggleDone, onDelete, onClose }: TaskDetailSheetProps) {
   const { isWide } = useResponsive();
 
   // Retain the last task through the Sheet's exit animation — `task` nulls the
@@ -76,19 +76,6 @@ export function TaskDetailSheet({ task, columns, onRename, onSetNotes, onMove, o
             textVariant="title"
             placeholder="Untitled"
             accessibilityLabel="Card title"
-          />
-
-          <Txt variant="micro" weight="bold" mono uppercase tone="inkFaint" style={styles.label}>Notes</Txt>
-          <AutosaveField
-            key={`notes-${shown.id}`}
-            initialText={shown.notes ?? ''}
-            onCommit={(t) => onSetNotes(shown.id, t)}
-            autoFocus={false}
-            commitEmpty
-            multiline
-            minHeight={layout.taskContentMinHeight}
-            placeholder="Add details…"
-            accessibilityLabel="Card notes"
           />
 
           {columns.length > 1 ? (

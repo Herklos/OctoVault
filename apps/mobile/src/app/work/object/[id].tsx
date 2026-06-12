@@ -19,6 +19,7 @@ import { ObjectActions } from '@/components/objects/ObjectActions';
 import { PageView } from '@/components/work/PageView';
 import { BoardView } from '@/components/work/BoardView';
 import { FileObjectView } from '@/components/work/FileObjectView';
+import { TaskPropsStrip } from '@/components/work/TaskPropsStrip';
 
 /** Generic object viewer — resolves the editor from the object's type descriptor.
  *  Single route for all object types (page, board, task, file, custom). */
@@ -77,13 +78,15 @@ export default function WorkObjectScreen() {
           title={node?.title || label}
           onRenameTitle={(t) => rename(id, { title: t.trim() || 'Untitled Board' })}
           onChangeEmoji={(glyph) => rename(id, { emoji: glyph ?? '' })}
-          openTaskId={task ?? null}
           seedDefaults={seed === '1'}
           focusTitle={focusTitle === '1'}
         />
       </ErrorBoundary>
     ) : (
       <Stage maxWidth={layout.editorMaxWidth} style={styles.stage}>
+        {node?.type === 'task' ? (
+          <TaskPropsStrip spaceId={spaceId} taskId={id} />
+        ) : null}
         <ErrorBoundary label="Page">
           <PageView
             spaceId={spaceId}
