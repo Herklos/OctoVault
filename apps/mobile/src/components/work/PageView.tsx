@@ -870,6 +870,7 @@ function BlockRow({
               commitEmpty
               plain
               autoGrow
+              newlineOnEnter={isMultiline(block.type)}
               textVariant={variantFor(block.type)}
               mono={monoFor(block.type)}
               multiline={isMultiline(block.type)}

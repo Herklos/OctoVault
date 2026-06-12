@@ -92,6 +92,10 @@ interface AutosaveFieldProps {
    *  the body" doesn't also fire when the user just clicks away. */
   onSubmit?: () => void;
   multiline?: boolean;
+  /** Web only. When true, plain Enter inserts a newline and Shift+Enter splits
+   *  into a new block — the opposite of the default. Useful for paragraph/quote/
+   *  code blocks where Enter-to-newline feels more natural. */
+  newlineOnEnter?: boolean;
   /** Render the value in JetBrains Mono (code blocks). See {@link TextField}. */
   mono?: boolean;
   /** Render the editor at a larger type-scale step (e.g. "display" for an inline
@@ -141,6 +145,7 @@ export function AutosaveField({
   onKeyDownCapture,
   onSubmit,
   multiline = false,
+  newlineOnEnter = false,
   mono = false,
   textVariant,
   plain = false,
@@ -274,13 +279,16 @@ export function AutosaveField({
       onTab(!!ev.shiftKey);
       return;
     }
-    if (key === 'Enter' && !ev.shiftKey && !ev.nativeEvent.isComposing) {
-      if (onEnter) {
+    if (key === 'Enter' && !ev.nativeEvent.isComposing) {
+      // newlineOnEnter: Shift+Enter splits, plain Enter is a natural newline.
+      // default:        plain Enter splits, Shift+Enter is a natural newline.
+      const isSplitKey = newlineOnEnter ? ev.shiftKey : !ev.shiftKey;
+      if (isSplitKey && onEnter) {
         ev.preventDefault?.();
         splitAtCaret();
         return;
       }
-      if (!multiline) {
+      if (!ev.shiftKey && !multiline) {
         ev.preventDefault?.();
         close();
         onSubmit?.();
