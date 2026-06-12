@@ -83,7 +83,9 @@ export function TextField({
   // For multiline, grow the FIELD (not just the outer wrapper) so the bordered
   // box covers the full glow area — otherwise the wrapper's paperAlt glow
   // leaks below the bordered field as a darker strip.
-  const multilineMin = multiline ? { minHeight: minHeight ?? 72 } : null;
+  // Plain fields (doc-editor blocks) are content-sized — no floor; the 72px
+  // default only applies to bordered form textareas.
+  const multilineMin = multiline && !plain ? { minHeight: minHeight ?? 72 } : null;
   // Larger inline-title metrics: override family + size + line-height so the editor
   // reads exactly like the rendered title (placed last so it wins over `multiline`).
   // A mono field keeps the mono family but adopts the variant's metrics — the doc
