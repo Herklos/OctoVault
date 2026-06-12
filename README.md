@@ -1,107 +1,80 @@
-# 🐙 OctoVault
+<div align="center">
+  <img src="logo.png" alt="OctoVault" width="200" />
+</div>
 
-**End-to-end-encrypted knowledge management with an editorial soul. Notes, pages, and boards — everything sealed, searchable, and yours alone.**
+# OctoVault
 
-OctoVault is a Notion/Anytype-style app with a warm, editorial "Ink & Pearl" identity.
-One codebase ships to **iOS, Android, web, and desktop** — and every page, document,
-block and board is sealed with real end-to-end encryption before it ever leaves your
-device. The server syncs ciphertext it can't read.
+**Encrypted knowledge at vault-speed.** Pages, boards, search — all sealed end-to-end. One codebase. iOS, Android, web, desktop. Built on [**Starfish**](https://github.com/Drakkar-Software/Starfish).
 
 > [!NOTE]
-> **OctoVault is a proof of concept.** It exists to show what you can build on
-> top of [**Starfish**](https://github.com/Drakkar-Software/Starfish) — the
-> end-to-end-encrypted sync engine that powers identities, capabilities,
-> keyrings and live sync here. Treat it as a reference app and a demo, not a
-> production-ready product (yet).
+> **Reference app & proof of concept** — shows what real E2EE sync can do. Not production-ready (yet).
 
 ---
 
-## ✨ Why OctoVault
+## Core features
 
-- 🔒 **Real E2EE, not a checkbox.** Onboarding turns a BIP-39 seed phrase into
-  Ed25519 + Kyber keys (kept in your device's secure storage). Every page, block,
-  and board is sealed per-space with space keyrings. The backend only ever sees
-  ciphertext.
-- 📝 **Notion-grade editorial power.** Nested blocks with text, headings, lists,
-  todos, code, callouts, quotes. Drag to reorder, nest infinitely. One editor for
-  pages and one for boards — both built on a WAL/CRDT foundation for real live
-  collaboration.
-- 🎯 **Kanban boards out of the box.** Visual task organization with columns,
-  drag-drop cards, and per-card properties. Built on the same WAL/CRDT primitives
-  as pages, so sync is instant and conflict-free.
-- 🌍 **Truly universal.** One Expo codebase → native iOS & Android, the web, and
-  an Electron desktop app. No "mobile vs. web" fork.
-- ⚡ **Live by default.** REST for sync, SSE for the firehose — changes, presence
-  and activity stream in over a NATS-backed gateway.
-- 🎨 **A theme with a point of view.** Editorial serif (Newsreader) + clean sans
-  (Spline Sans), warm pearl paper, octopus-ink indigo accent. Light and dark,
-  every constant from a single source.
-- 🔑 **Multi-device, multi-account, no passwords.** Hold several spaces and
-  switch live; pair a new device from your seed (passkeys gate sensitive
-  enrollment), or sign in with a **NIP-07** Nostr extension.
-- 📴 **Offline-first.** Pages and boards are served from a local pull cache, so
-  the app opens and reads instantly even with no connection — an offline banner
-  shows when you're disconnected.
-- 🔍 **Instant full-text search.** Search across every page, block, board and
-  document in your vault in real time — no indexing delays.
+**🔒 Real E2EE** — BIP-39 seed → Ed25519 + Kyber keys in secure storage. Pages, blocks, boards sealed per-space. Server sees ciphertext only.
 
-## 📚 What you can do
+**📝 Notion-grade editing** — Nested blocks (text, headings, lists, todos, code, callouts). Drag to reorder. CRDT-backed live collaboration, conflict-free.
 
-- **Spaces & folders** — organize knowledge by project, area, or topic. Public or
-  private spaces with permission-scoped member keys.
-- **Pages & nested blocks** — Notion-style pages with text, headings, lists, todos,
-  code, callouts, quotes, toggles and more. Drag to reorder, nest as deep as you
-  need. All edits sync live across devices.
-- **Kanban boards** — visual task organization with columns and cards. Move cards
-  between columns, add properties (assignee, status, due date), and filter by any
-  property. Built on the same CRDT foundation as pages.
-- **Inline objects** — mention pages, references to other documents, @-mentions to
-  members. Cross-linking builds a knowledge graph in your vault.
-- **Rich inline formatting** — **bold**, *italic*, `code`, ~~strikethrough~~,
-  `links`, and more. Preserved end-to-end encrypted.
-- **Local attachments** — images, files, and media embedded in pages and sealed
-  client-side before upload. Every blob bound to its location so a hostile server
-  can't swap or relocate.
-- **Real-time collaboration** — multiple devices edit the same page simultaneously.
-  Edits merge conflict-free via CRDT; full history preserved.
-- **Mobile + desktop workflows** — capture quick notes on your phone, deep-work on
-  desktop. One vault, all devices, always in sync.
-- **Smart sync** — WAL (Write-Ahead Log) + CRDT foundation means even concurrent
-  offline edits converge correctly when you reconnect, no merge conflicts.
+**🎯 Kanban + boards** — Columns, drag-drop cards, properties (assignee, status, due date). Same CRDT foundation as pages. Instant sync.
 
-## 🔒 Security & encryption
+**🌍 One codebase, all platforms** — Expo SDK 56 → iOS, Android, web, Electron. No "mobile vs. web" fork.
 
-OctoVault is **end-to-end encrypted by design**: plaintext exists only on your
-devices. The server is treated as untrusted infrastructure — it stores and
-relays opaque ciphertext, and never holds a key that could open it.
+**⚡ Live by default** — REST pull + SSE firehose. Presence, activity, changes streamed via NATS.
 
-- **Your seed is the master key.** A 12-word BIP-39 recovery phrase
-  (128 bits of entropy) is stretched with **Argon2id** into your root identity:
-  an **Ed25519** signing keypair and a **Kyber/ML-KEM** key-encapsulation
-  keypair.
-- **Per-space keyrings seal every document.** Each space has one keyring whose
-  CEK seals all pages, blocks, and boards with **AEAD (AES-GCM)**.
-- **Capabilities, not accounts.** Every request is signed by your device key and
-  authorized against a scoped capability certificate (cap-cert).
-- **Encrypted at rest, everywhere.** On native, keys live in the OS secure store.
-  On web, seeds are never stored in cleartext — sealed under a random Vault Master
-  Key, wrapped by a PIN and optionally a WebAuthn passkey.
+**🎨 Design-forward** — Newsreader (editorial serif) + Spline Sans (clean body). Warm pearl, octopus-ink indigo. Light & dark, one source of truth.
 
-> The full technical deep-dive is below in the
-> [Encryption model](#encryption-model) section.
+**🔑 No passwords** — Seed-based. Multi-device pairing via QR + PIN. NIP-07 Nostr sign-in. Hold multiple spaces, switch live.
 
-## 🚀 Quick start
+**📴 Offline-first** — Pages & boards served from local cache. App opens & reads instantly, no connection needed.
+
+**🔍 Instant search** — Full-text across pages, blocks, boards, documents. Real-time, no indexing lag.
+
+## What you build with it
+
+**Spaces & folders** — organize by project, area, topic. Public/private with member key scopes.
+
+**Pages** — Notion-style nested blocks. Text, headings, lists, todos, code, callouts, quotes. Drag to reorder, nest infinitely. Live sync across devices.
+
+**Boards** — Kanban columns + cards. Drag between columns, add properties, filter. CRDT foundation = instant conflict-free sync.
+
+**Cross-linking** — Mention pages, reference documents, @-mention members. Builds a knowledge graph inside your vault.
+
+**Rich formatting** — **bold**, *italic*, `code`, ~~strikethrough~~, links. All encrypted end-to-end.
+
+**Attachments** — Images, files, media embedded & sealed client-side before upload. Storage path bound into the seal's AAD — no hostile swaps.
+
+**Real-time collab** — Multiple devices edit the same page. Edits merge conflict-free. Full history preserved.
+
+**Offline + sync** — WAL/CRDT means concurrent offline edits converge correctly when you reconnect. No merge conflicts.
+
+## 🔒 Encryption by design
+
+Plaintext lives on your devices only. The server is untrusted — stores & relays opaque ciphertext, never holds a key.
+
+**Your seed is everything** — 12-word BIP-39 (128 bits entropy) stretched via Argon2id into your root identity: Ed25519 signing key + Kyber/ML-KEM key-encapsulation pair.
+
+**Per-space keyrings** — Each space has one keyring whose CEK seals all pages, blocks, boards via AEAD (AES-GCM).
+
+**Capabilities, not accounts** — Every request signed by your device key & authorized via scoped cap-cert. No server-side passwords or sessions.
+
+**Sealed at rest everywhere** — Native: keys in OS secure store. Web: seeds sealed under random Vault Master Key, wrapped by PIN + optional WebAuthn passkey.
+
+> Full technical model: [Encryption model](#encryption-model) section below.
+
+## ⚡ Get started in 4 commands
 
 ```bash
 pnpm install
-pnpm infra:up   # NATS in Docker
-pnpm dev        # backend: Starfish :8787 + Whistlers SSE :8080
-pnpm web        # the app, in your browser at :8081
+pnpm infra:up          # NATS in Docker
+pnpm dev               # Starfish :8787 + Whistlers SSE :8080
+pnpm web               # App at localhost:8081
 ```
 
-That's it — open `localhost:8081` and create your first vault.
+Create your first vault. Done.
 
-> Want native or desktop instead of web? `pnpm ios` · `pnpm android` · `pnpm desktop`.
+**Native?** `pnpm ios` · `pnpm android` · `pnpm desktop`
 
 ---
 
@@ -265,13 +238,12 @@ licensed separately — refer to their repositories for terms.
 
 ## Contributing
 
-Contributions are welcome. Please open an issue first to discuss the change, or
-read [`apps/mobile/CLAUDE.md`](apps/mobile/CLAUDE.md) for codebase guidelines.
+Contributions welcome. Open an issue first to discuss, or read [`apps/mobile/CLAUDE.md`](apps/mobile/CLAUDE.md) for guidelines.
 
-## Support & questions
+## Questions? Bugs?
 
-- **Bugs?** Open an issue.
-- **Questions?** Reach out to `paul@drakkar.software`.
+- 🐛 [Open an issue](https://github.com/Drakkar-Software/OctoVault/issues)
+- 💬 `paul@drakkar.software`
 
 ---
 
