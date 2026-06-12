@@ -1,20 +1,19 @@
 /**
- * Membership-binding for a space's per-space room registry
- * (`spaces/{spaceId}/_rooms`), which doubles as the space's access record:
- * `{ owner, members: [...userIds], rooms: [...] }`.
+ * Membership-binding for a space's access record
+ * (`spaces/{spaceId}/_access`): `{ owner, members: [...userIds] }`.
  *
  * The collection is keyed by a free `{spaceId}` path param, so a plain cap role
  * would let any authenticated identity read — or overwrite — any space by id. We
  * gate it on two synthesized roles instead:
  *   - `space:owner`  — the creator (TOFU: first writer stamps `owner`). Gates
- *                      registry/roster WRITES (add channels, invite members).
+ *                      keyring/roster WRITES (invite members, rotate keyring).
  *   - `space:member` — the owner OR any userId listed in `members`. Gates READS
- *                      (see the channel list) and is the role a space invite
- *                      grants by adding the joinee to `members`.
+ *                      and is the role a space invite grants by adding the joinee
+ *                      to `members`.
  *
  * Decided purely from the requester's identity and the space id, as asked, by
  * reading the authoritative owner-written record (trust-on-first-use: the first
- * writer of a space's registry stamps itself as `owner`).
+ * writer of a space's access record stamps itself as `owner`).
  */
 import type { ObjectStore, RoleEnricher } from "@drakkar.software/starfish-server";
 
@@ -45,7 +44,7 @@ export function makeSpaceRoleEnricher(store: ObjectStore): RoleEnricher {
     if (!spaceId || !auth.identity) return [];
     let raw: string | null = null;
     try {
-      raw = await store.getString(`spaces/${spaceId}/_rooms`);
+      raw = await store.getString(`spaces/${spaceId}/_access`);
     } catch {
       raw = null; // store error ⇒ treat as "no registry yet"
     }

@@ -634,6 +634,9 @@ export function verificationColor(p: Palette, level: VerificationLevel): string 
       return p.warning;
     case 'unverified':
       return p.danger;
+    case 'none':
+    default:
+      return p.inkFaint;
   }
 }
 

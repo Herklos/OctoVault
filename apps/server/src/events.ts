@@ -7,7 +7,7 @@
  * per-space membership check that follows).
  *
  * Filter: client declares candidate spaceIds via ?spaces=sp-a,sp-b. PRIVATE
- * (sp-) spaces are validated against `spaces/{id}/_rooms` membership
+ * (sp-) spaces are validated against `spaces/{id}/_access` membership
  * (makeSpaceRoleEnricher). PUBLIC (psp-) spaces are open-gated — authorized for
  * any authenticated caller (their content is link-readable and these events carry
  * no content), bounded by MAX_PUBLIC_TOPICS per connection. The authorized ids map
@@ -170,9 +170,9 @@ export function createEventsRoute(opts: EventsRouteOptions): Hono {
     //      content). Bounded by MAX_PUBLIC_TOPICS to cap upstream fan-out; excess is
     //      silently dropped. NB this is also the path that carries `pubstream` /
     //      `pubspace` change-events, which the enricher would never have authorized.
-    //    - PRIVATE (sp-): validated against `spaces/{id}/_rooms` membership via the
+    //    - PRIVATE (sp-): validated against `spaces/{id}/_access` membership via the
     //      enricher. TOFU note: an unseen private spaceId returns [OWNER, MEMBER] —
-    //      ownership is only stamped on the first registry write.
+    //      ownership is only stamped on the first access-record write.
     const authorized: string[] = [];
     let publicCount = 0;
     let truncatedPublic = false;

@@ -10,16 +10,21 @@ import type { SyncConfig } from "@drakkar.software/starfish-server";
  *   objdoc            — LWW merge-doc for Objects with contentKind "merge" (record-form
  *                        custom types, file captions, …).
  *   objblob           — raw sealed binary blobs for file/image Objects.
- *   objindex          — union-merged tree index (all Objects in a space).
+ *   objindex          — union-merged tree index (all Objects in a space). PLAINTEXT —
+ *                        invite-node titles/emoji stripped client-side before storage.
+ *   objpub            — public node content (access:'public'): world-readable plaintext.
+ *   objinv            — invite-only plaintext content (access:'invite'+enc:false): gated
+ *                        by per-node cap via the sharing plugin, NOT space:member.
  *   typeindex         — union-merged per-space custom-type registry.
+ *   spacekeyring      — space-wide multi-recipient keyring: ONE keyring per space
+ *                        encrypts ALL enc nodes in that space.
  *
- * Encryption is "delegated" (multi-recipient keyring) for content; the keyring,
- * access record, profiles and per-identity registries are plaintext ("none").
+ * The access record lives at spaces/{spaceId}/_access (collection spaceregistry).
  *
  *   {identity}   - resolver enforces it equals the cap-bound user id
- *   {objectId} / {blobId} / {spaceId} / {rendezvousId} - free path params
+ *   {objectId} / {blobId} / {spaceId} / {nodeId} / {rendezvousId} - free path params
  *
- * Keep in sync with apps/mobile/src/lib/starfish/paths.ts (spaceMemberScope.collections)
+ * Keep in sync with packages/sdk/src/starfish/paths.ts (OBJECT_COLLECTIONS)
  * AND Infra/sync/server/drakkar_sync/apps/octovault/collections.py — they are mirrors.
  */
 const JSON_ONLY = ["application/json"];
@@ -27,12 +32,12 @@ const JSON_ONLY = ["application/json"];
 export const config: SyncConfig = {
   version: 1,
   collections: [
-    // SPACE-wide multi-recipient keyring: one keyring (CEK) per space, shared by all
-    // its documents. READ gated on `space:member`, WRITE on `space:owner` (owner adds
-    // recipients on invite / rotates on revoke) — both synthesized by the space-role
-    // enricher from the access record below. Backs the WAL `delegated` sealing.
+    // SPACE-wide multi-recipient keyring: one keyring (CEK) per space. ONE keyring
+    // encrypts ALL enc nodes in the space. READ gated on `space:member`, WRITE on
+    // `space:owner` — both synthesized by the space-role enricher from the access
+    // record below.
     {
-      name: "keyring",
+      name: "spacekeyring",
       storagePath: "spaces/{spaceId}/_keyring",
       readRoles: ["space:member"],
       writeRoles: ["space:owner"],
@@ -42,28 +47,49 @@ export const config: SyncConfig = {
     },
     // SPACE access record `{ owner, members:[…] }`. READ gated on `space:member`,
     // WRITE on `space:owner`. The space-role enricher reads THIS doc to synthesize
-    // space:member / space:owner for every other collection, so its storage leaf stays
-    // the legacy `_rooms` path the shared enricher looks up (the collection name is
-    // OctoVault's own).
+    // space:member / space:owner for every other collection.
     {
       name: "spaceregistry",
-      storagePath: "spaces/{spaceId}/_rooms",
+      storagePath: "spaces/{spaceId}/_access",
       readRoles: ["space:member"],
       writeRoles: ["space:owner"],
       encryption: "none",
       maxBodyBytes: 131_072,
       allowedMimeTypes: JSON_ONLY,
     },
-    // OBJECT TREE (private/E2EE): the union-merged list of every Object in a space —
-    // folders, pages, boards. Titles/emoji are sealed. WRITE is `space:member` (any
-    // member creates pages/boards); the access record stays owner-only so this can't
-    // escalate membership.
+    // OBJECT TREE (plaintext, member-gated): the union-merged list of every Object in
+    // a space. Titles/emoji of `invite` nodes are stripped client-side before storage.
+    // WRITE is `space:member` (any member creates pages/boards/folders).
     {
       name: "objindex",
       storagePath: "spaces/{spaceId}/objects/_index",
       readRoles: ["space:member"],
       writeRoles: ["space:member"],
-      encryption: "delegated",
+      encryption: "none",
+      maxBodyBytes: 262_144,
+      allowedMimeTypes: JSON_ONLY,
+    },
+    // PUBLIC NODE CONTENT (access:'public'): world-readable plaintext merge-doc. Any
+    // anonymous caller may GET it; WRITE is `space:member` (the owner/members publish
+    // content here). The server never validates the content; the client reads it openly.
+    {
+      name: "objpub",
+      storagePath: "spaces/{spaceId}/objects/pub/{nodeId}",
+      readRoles: ["public"],
+      writeRoles: ["space:member"],
+      encryption: "none",
+      maxBodyBytes: 262_144,
+      allowedMimeTypes: JSON_ONLY,
+    },
+    // INVITE-ONLY PLAINTEXT CONTENT (access:'invite'+enc:false): gated by the per-node
+    // cap via the sharing plugin path-match — NOT by space:member. The collection has no
+    // broad role rules; access is entirely cap-scope (objinv + path) controlled.
+    {
+      name: "objinv",
+      storagePath: "spaces/{spaceId}/objects/n/{nodeId}/content",
+      readRoles: [],
+      writeRoles: [],
+      encryption: "none",
       maxBodyBytes: 262_144,
       allowedMimeTypes: JSON_ONLY,
     },

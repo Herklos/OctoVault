@@ -5,8 +5,11 @@
  * At boot, the app calls {@link configureOctoVault} with the env-derived values;
  * all SDK modules call the getter functions below instead of importing the env vars.
  *
- * Mirror of OctoChat's `configureOctoChat` / `getSyncBase` DI pattern.
+ * Also wires the shared `@drakkar.software/octospaces-sdk` config so that all
+ * re-exported octospaces modules (identity, registry, members, object-index, …)
+ * are correctly configured from the same call.
  */
+import { configureOctoSpaces } from '@drakkar.software/octospaces-sdk';
 
 interface OctoVaultConfig {
   syncBase: string;
@@ -27,9 +30,22 @@ let _config: OctoVaultConfig = {
 /**
  * Configure the SDK with the sync server's coordinates. Call once at app boot
  * (before any other SDK function), passing the env-derived values.
+ *
+ * Also configures the shared octospaces-sdk so all re-exported modules work
+ * without requiring a separate `configureOctoSpaces` call at the app level.
  */
 export function configureOctoVault(config: Partial<OctoVaultConfig>): void {
   _config = { ..._config, ...config };
+  // Forward to octospaces-sdk so its internal getters (getSyncBase, getSyncNamespace,
+  // getSyncPrefix, getEventsUrl, getWebBase) are populated. All re-exported octospaces
+  // modules (client, identity, registry, members, object-index, …) delegate to those
+  // getters — they throw if unconfigured.
+  configureOctoSpaces({
+    syncBase: _config.syncBase,
+    syncNamespace: _config.syncNamespace,
+    eventsUrl: _config.eventsUrl,
+    webBase: _config.webBase,
+  });
 }
 
 /** Base URL of the Starfish sync server, e.g. `https://sync.example.com`. */

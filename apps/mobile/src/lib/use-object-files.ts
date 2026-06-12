@@ -59,7 +59,7 @@ export function useObjectFiles(spaceId: string): UseObjectFilesResult {
       type: 'file',
       title: uploaded.name,
       parentId: opts?.parentId,
-      props: { blobId: uploaded.blobId, name: uploaded.name, mime: uploaded.mime, size: uploaded.size },
+      meta: { props: { blobId: uploaded.blobId, name: uploaded.name, mime: uploaded.mime, size: uploaded.size } },
     });
     return id ?? null;
   }, [pickAndUpload, objects]);
@@ -71,7 +71,7 @@ export function useObjectFiles(spaceId: string): UseObjectFilesResult {
       type: 'image',
       title: uploaded.name,
       parentId: opts?.parentId,
-      props: { blobId: uploaded.blobId, name: uploaded.name, mime: uploaded.mime, size: uploaded.size },
+      meta: { props: { blobId: uploaded.blobId, name: uploaded.name, mime: uploaded.mime, size: uploaded.size } },
     });
     return id ?? null;
   }, [pickAndUpload, objects]);

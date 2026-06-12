@@ -26,12 +26,7 @@ import {
 
 import { kvGet, kvSet } from '@drakkar.software/octovault-sdk';
 import { readSpaceAccess, reconcileSpaceMeta } from '@drakkar.software/octovault-sdk';
-import {
-  isPublicSpaceId,
-  publicSpaceAuth,
-  publicSpaceClient,
-  readPublicSpaceDoc,
-} from '@drakkar.software/octovault-sdk';
+import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import type { Session } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useSpacesContext } from './spaces-context';
@@ -132,12 +127,8 @@ export function SpaceRegistryProvider({ children }: { children: ReactNode }) {
   const fetchEntry = useCallback(async (spaceId: string): Promise<SpaceRegistryEntry> => {
     const s = sessionRef.current;
     if (!s) return IDLE;
-    if (isPublicSpaceId(spaceId)) {
-      const auth = publicSpaceAuth(s, spaceId);
-      const { name, image } = await readPublicSpaceDoc(publicSpaceClient(s, spaceId), auth.ownerId, spaceId);
-      void reconcileSpaceMeta(s.accountClient, s.userId, spaceId, { name, image }, spacesRef.current).catch(() => {});
-      return { owner: auth.ownerId, members: [], name, image, hash: null, loading: false, loaded: true };
-    }
+    // isPublicSpaceId always returns false (pubspace removed); all spaces use _access.
+    void isPublicSpaceId; // suppress unused-import warnings until the import is removed
     const { owner, members, name, image, hash } = await readSpaceAccess(s.accountClient, spaceId);
     void reconcileSpaceMeta(s.accountClient, s.userId, spaceId, { name, image }, spacesRef.current).catch(() => {});
     return { owner, members, name, image, hash, loading: false, loaded: true };

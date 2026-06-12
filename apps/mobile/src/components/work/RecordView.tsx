@@ -4,6 +4,7 @@ import { spacing } from '@/theme';
 import { useTypeRegistry } from '@/lib/type-registry-context';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { useTheme } from '@/lib/use-theme';
+import { propsOf } from '@drakkar.software/octovault-sdk';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Txt } from '@/components/ui/Txt';
 import { PropertyPanel } from './PropertyPanel';
@@ -35,7 +36,7 @@ export function RecordView({ spaceId, objectId }: RecordViewProps) {
         spaceId={spaceId}
         objectId={objectId}
         fields={descriptor.props}
-        props={node.props ?? {}}
+        props={propsOf(node)}
         onSetProp={(key, value) => objects.setProps(objectId, { [key]: value })}
       />
     </View>

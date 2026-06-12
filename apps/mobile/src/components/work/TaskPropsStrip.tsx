@@ -12,6 +12,7 @@ import type { TaskStatus } from '@/lib/use-board';
 import { tapFeedback } from '@/lib/haptics';
 import { useHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';
+import { propsOf } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { useTheme } from '@/lib/use-theme';
 import { Icon } from '@/components/ui/Icon';
@@ -33,7 +34,7 @@ export function TaskPropsStrip({ spaceId, taskId }: TaskPropsStripProps) {
   const { board } = useBoard(spaceId, boardId, { enabled: !!boardId });
   const { isWide } = useResponsive();
 
-  const props = node?.props ?? {};
+  const props = node ? propsOf(node) : {};
   const columnId = (props.columnId as string | undefined) ?? '';
   const status = (props.status as TaskStatus | undefined) ?? 'todo';
 

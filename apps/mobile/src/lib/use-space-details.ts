@@ -66,13 +66,13 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
   const { session } = useSession();
   const { spaces } = useSpaces();
   const space = useMemo(() => spaces.find((s) => s.id === spaceId) ?? null, [spaces, spaceId]);
-  const isPublic = isPublicSpaceId(spaceId) || space?.type === 'public';
+  const isPublic = isPublicSpaceId(spaceId); // always false — pubspace removed; all spaces use _access
 
   // The signed-in identity owns this space when its userId is the owner. A public
   // space records the owner inline (`ownerId`); a private space the user CREATED has
   // no separate owner field on its `_spaces` entry, so the `_rooms.owner` is the
   // source of truth — fetched below.
-  const [owner, setOwner] = useState<string | null>(space?.ownerId ?? null);
+  const [owner, setOwner] = useState<string | null>(null); // resolved from _access by readSpaceAccess
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState(space?.name ?? '');
   const [image, setImage] = useState<string | null>(space?.image ?? null);
@@ -93,7 +93,7 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
   // shared, authoritative identity). For a private space this also resolves ownership.
   // Keyed on ownerId/loaded-ness (not the `space` object, whose identity churns on
   // every navigation refresh) so it runs once per space, not once per refresh.
-  const ownerIdHint = space?.ownerId;
+  const ownerIdHint = null; // Space.ownerId removed — owner resolved from _access
   const spaceLoaded = !!space;
   useEffect(() => {
     if (!session || !spaceId) return;

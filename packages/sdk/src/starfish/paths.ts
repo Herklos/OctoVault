@@ -1,269 +1,112 @@
 /**
- * Collection path + cap-scope helpers (ported from the satellite chat example).
- * Paths are signed relative to SYNC_BASE; the server mounts the sync router at
- * root, so they start with /pull or /push.
+ * Collection path + cap-scope helpers for OctoVault.
  *
- * Everything for a space is nested under `spaces/{spaceId}/…` so the `{spaceId}`
- * segment gates it all uniformly through the space:owner/space:member enricher,
- * and a single `spaces/{spaceId}/**` member cap covers a whole space. Keyrings
- * are SPACE-wide (one per space, shared by every channel). A room id is
- * `<spaceId>-<name…>`, so a room's space is derivable from its id.
+ * Re-exports the shared OctoSpaces path/scope surface. OctoVault uses the same
+ * generic `obj*` collection family and the same cap-scope model; no vault-specific
+ * path helpers are needed beyond what octospaces-sdk provides.
+ *
+ * Removed (pubspace subsystem dropped in favour of per-node access:'public'):
+ *   pubObjIndex*, pubspaceAccess*, pubspaceRoom*, pubstreamRoom*, spaceIndex*
+ *   pubspaceScope, pubstreamBotScope, spaceIdFromCap
  */
-import type { ScopePreset } from '@drakkar.software/starfish-identities';
+export {
+  // ── Object collections constant (for cap scopes) ──────────────────────────
+  OBJECT_COLLECTIONS,
 
-/**
- * Request-path helpers. These emit the bare action path (`/pull/…`, `/push/…`);
- * the StarfishClient's `namespace` option prepends `/v1/<namespace>` (deployed) for
- * BOTH the URL and the signed canonical path, so the namespace must NOT be baked in
- * here. Storage-name helpers (keyringName/attachmentName/pubspaceRoomName) stay bare
- * too — they're the object-storage keys / cap-scope paths the server matches after
- * stripping the action+namespace prefix.
- */
-const pull = (rest: string) => `/pull/${rest}`;
-const push = (rest: string) => `/push/${rest}`;
+  // ── Cap scopes ─────────────────────────────────────────────────────────────
+  ownerScope,
+  spaceMemberScope,
+  nodeMemberScope,
+  accountScope,
+  linkedDeviceScope,
 
-/** A room id is `sp-<rand>-<name>`; the space is its first two `-` segments. */
-export const spaceIdFromRoomId = (roomId: string) => roomId.split('-').slice(0, 2).join('-');
+  // ── Space-wide keyring (one per space, encrypts all enc nodes) ────────────
+  keyringName,
+  keyringPull,
+  keyringPush,
 
-// ── Space-wide keyring (one per space, shared by all its channels) ────────────
-export const keyringName = (spaceId: string) => `spaces/${spaceId}`;
-export const keyringPull = (spaceId: string) => pull(`${keyringName(spaceId)}/_keyring`);
-export const keyringPush = (spaceId: string) => push(`${keyringName(spaceId)}/_keyring`);
+  // ── Attachments ────────────────────────────────────────────────────────────
+  attachmentPull,
+  attachmentPush,
 
-// ── Attachments (sealed blobs, in a per-space subtree keyed by room) ──────────
-// Deliberately NOT under `chat/rooms/{roomId}`: the server's FilesystemObjectStore
-// maps a document key to a nested directory path, so a key can't be both a leaf
-// file AND a directory prefix. The room's message doc is the leaf file
-// `…/chat/rooms/{roomId}`, so nesting blobs beneath it made `mkdir` fail with
-// ENOTDIR → an opaque server 500. A separate `attachments/{roomId}/…` subtree
-// avoids the file/dir collision and is still covered by the `spaces/{spaceId}/**`
-// member cap. Keep this in sync with the `attachments` storagePath in apps/server.
-/** Storage path of one attachment blob — also the AAD bound into its seal. */
-export const attachmentName = (roomId: string, blobId: string) =>
-  `spaces/${spaceIdFromRoomId(roomId)}/attachments/${roomId}/${blobId}`;
-export const attachmentPull = (roomId: string, blobId: string) => pull(attachmentName(roomId, blobId));
-export const attachmentPush = (roomId: string, blobId: string) => push(attachmentName(roomId, blobId));
+  // ── Profile + registries ───────────────────────────────────────────────────
+  profilePull,
+  profilePush,
+  spacesPull,
+  spacesPush,
+  // spaceAccessPull/Push now return `_access` (not `_rooms`)
+  spaceAccessPull,
+  spaceAccessPush,
 
-// ── Profile + registries ──────────────────────────────────────────────────────
-export const profilePull = (userId: string) => pull(`user/${userId}/profile`);
-export const profilePush = (userId: string) => push(`user/${userId}/profile`);
+  // ── Object index (plaintext, member-gated) ─────────────────────────────────
+  objIndexPull,
+  objIndexPush,
 
-export const spacesPull = (userId: string) => pull(`user/${userId}/_spaces`);
-export const spacesPush = (userId: string) => push(`user/${userId}/_spaces`);
+  // ── Space-tier & general object content ────────────────────────────────────
+  objLogPull,
+  objLogPush,
+  objDocPull,
+  objDocPush,
+  objectBlobPull,
+  objectBlobPush,
 
-export const spaceAccessPull = (spaceId: string) => pull(`spaces/${spaceId}/_rooms`);
-export const spaceAccessPush = (spaceId: string) => push(`spaces/${spaceId}/_rooms`);
+  // ── Public node content (access:'public', world-readable) ──────────────────
+  objPubName,
+  objPubPull,
+  objPubPush,
 
-// ── Unified Object index + content (private/E2EE) ─────────────────────────────
-// `_index` (the union-merged ObjectNode list) is a leaf under `objects/`; doc
-// content lives in the `objects/docs/` subtree and project logs in `objects/logs/`
-// — distinct dir prefixes so a content id is a leaf without colliding with the
-// `_index` leaf or each other (the file-vs-directory rule, see `attachmentName`).
-// Room CONTENT stays in `chat`/`streams`; only docs/projects add content here.
-// Keep in sync with the objindex/objdoc/objlog collections in apps/server.
-export const objIndexName = (spaceId: string) => `spaces/${spaceId}/objects/_index`;
-export const objIndexPull = (spaceId: string) => pull(objIndexName(spaceId));
-export const objIndexPush = (spaceId: string) => push(objIndexName(spaceId));
-export const objDocName = (spaceId: string, objectId: string) => `spaces/${spaceId}/objects/docs/${objectId}`;
-export const objDocPull = (spaceId: string, objectId: string) => pull(objDocName(spaceId, objectId));
-export const objDocPush = (spaceId: string, objectId: string) => push(objDocName(spaceId, objectId));
-export const objLogName = (spaceId: string, objectId: string) => `spaces/${spaceId}/objects/logs/${objectId}`;
-export const objLogPull = (spaceId: string, objectId: string) => pull(objLogName(spaceId, objectId));
-export const objLogPush = (spaceId: string, objectId: string) => push(objLogName(spaceId, objectId));
+  // ── Invite-only plaintext content (access:'invite'+enc:false, cap-gated) ───
+  objInvName,
+  objInvPull,
+  objInvPush,
 
-// ── User-defined type registry (per-space custom types) ──────────────────────
-// The `types/_index` doc holds { types: TypeDef[] } and is union-merged (whole-doc
-// LWW at the type level). Not encrypted with the space keyring — it travels in the
-// shared `objindex` collection so its path prefix matches `spaces/{spaceId}/**`.
-export const typesIndexName = (spaceId: string) => `spaces/${spaceId}/types/_index`;
-export const typesIndexPull = (spaceId: string) => pull(typesIndexName(spaceId));
-export const typesIndexPush = (spaceId: string) => push(typesIndexName(spaceId));
+  // ── Per-space custom type registry ─────────────────────────────────────────
+  typesIndexPull,
+  typesIndexPush,
 
-// ── Sealed object blob storage (file/image objects) ──────────────────────────
-// Blobs live at `objects/blobs/{blobId}` keyed by space, sealed with the space
-// keyring CEK (the blob id is bound into the seal's AAD). Keep in sync with the
-// `objblob` collection in apps/server/src/config.ts.
-/** Storage path of one sealed object blob — also the AAD bound into its seal. */
-export const objectBlobName = (spaceId: string, blobId: string) => `spaces/${spaceId}/objects/blobs/${blobId}`;
-export const objectBlobPull = (spaceId: string, blobId: string) => pull(objectBlobName(spaceId, blobId));
-export const objectBlobPush = (spaceId: string, blobId: string) => push(objectBlobName(spaceId, blobId));
+  // ── Global object directory (server-maintained projection) ─────────────────
+  objectDirName,
+  objectDirPull,
 
-// ── Unified Object index + content (public/plaintext) ─────────────────────────
-export const pubObjIndexName = (ownerId: string, spaceId: string) => `${pubspaceBase(ownerId, spaceId)}/objects/_index`;
-export const pubObjIndexPull = (ownerId: string, spaceId: string) => pull(pubObjIndexName(ownerId, spaceId));
-export const pubObjIndexPush = (ownerId: string, spaceId: string) => push(pubObjIndexName(ownerId, spaceId));
-export const pubObjDocName = (ownerId: string, spaceId: string, objectId: string) =>
-  `${pubspaceBase(ownerId, spaceId)}/objects/docs/${objectId}`;
-export const pubObjDocPull = (ownerId: string, spaceId: string, objectId: string) => pull(pubObjDocName(ownerId, spaceId, objectId));
-export const pubObjDocPush = (ownerId: string, spaceId: string, objectId: string) => push(pubObjDocName(ownerId, spaceId, objectId));
-export const pubObjLogName = (ownerId: string, spaceId: string, objectId: string) =>
-  `${pubspaceBase(ownerId, spaceId)}/objects/logs/${objectId}`;
-export const pubObjLogPull = (ownerId: string, spaceId: string, objectId: string) => pull(pubObjLogName(ownerId, spaceId, objectId));
-export const pubObjLogPush = (ownerId: string, spaceId: string, objectId: string) => push(pubObjLogName(ownerId, spaceId, objectId));
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  userIdFromEdPub,
+  bytesToHex,
+} from '@drakkar.software/octospaces-sdk';
 
-// ── Public spaces (plaintext; NOT encrypted) ──────────────────────────────────
-// A public space lives under the owner's `pubspaces/{ownerId}/{spaceId}/` subtree:
-// a `_rooms` registry doc + one plaintext message doc per room. The owner manages
-// it with their account cap (gated `pubspace:owner`); a link-bearer reads (and,
-// with a read/write link, writes room docs) via a member cap the owner minted
-// (gated `pubspace:reader`/`pubspace:writer`). See apps/server/src/pubspace-role.ts.
-const pubspaceBase = (ownerId: string, spaceId: string) => `pubspaces/${ownerId}/${spaceId}`;
-export const pubspaceAccessName = (ownerId: string, spaceId: string) => `${pubspaceBase(ownerId, spaceId)}/_rooms`;
-export const pubspaceAccessPull = (ownerId: string, spaceId: string) => pull(pubspaceAccessName(ownerId, spaceId));
-export const pubspaceAccessPush = (ownerId: string, spaceId: string) => push(pubspaceAccessName(ownerId, spaceId));
-export const pubspaceRoomName = (ownerId: string, spaceId: string, roomId: string) =>
-  `${pubspaceBase(ownerId, spaceId)}/${roomId}`;
-export const pubspaceRoomPull = (ownerId: string, spaceId: string, roomId: string) =>
-  pull(pubspaceRoomName(ownerId, spaceId, roomId));
-export const pubspaceRoomPush = (ownerId: string, spaceId: string, roomId: string) =>
-  push(pubspaceRoomName(ownerId, spaceId, roomId));
+// ── Local path-name helpers (not yet in octospaces-sdk public API) ──────────
+// Derived from the same naming convention used internally by octospaces-sdk.
 
-// ── Public stream rooms (plaintext, append-only) ──────────────────────────────
-// A public space's stream rooms live in a `streams/` subtree under the owner's
-// space, in the append-only `pubstream` collection. A bot posts by APPENDING here
-// (POST /push, no pull/merge), authorized by a `createPublicLink` audience cap (see
-// stream-bots.ts). Keep in sync with the `pubstream` collection in apps/server.
-export const pubstreamRoomName = (ownerId: string, spaceId: string, roomId: string) =>
-  `pubspaces/${ownerId}/${spaceId}/streams/${roomId}`;
-export const pubstreamRoomPull = (ownerId: string, spaceId: string, roomId: string) =>
-  pull(pubstreamRoomName(ownerId, spaceId, roomId));
-export const pubstreamRoomPush = (ownerId: string, spaceId: string, roomId: string) =>
-  push(pubstreamRoomName(ownerId, spaceId, roomId));
-
-// ── Public-space directory index (server-maintained projection) ───────────────
-// A read-only list document the server keeps up to date via the `starfish-projection`
-// plugin: every `pubspace` `_rooms` write folds the public space's `{ name, ownerId,
-// image, rooms }` into this one list. `readRoles: ["public"]`, so it's pulled with NO
-// cap (anonymous). The `{shard}` is the space type — only `public` is materialized;
-// see the `spaceindex` collection in apps/server + Infra collections.py.
-export const spaceIndexName = (shard: 'public') => `_index/spaces/${shard}`;
-export const spaceIndexPull = (shard: 'public') => pull(spaceIndexName(shard));
-
-// ── Cap scopes ────────────────────────────────────────────────────────────────
-/** Full owner/device access to every space the identity owns. */
-export function ownerScope(): ScopePreset {
-  return {
-    ops: ['read', 'list', 'write'],
-    collections: ['chat'],
-    paths: ['spaces/**'],
-  };
+/** spaceId prefix from a `{spaceId}-{objectId}`-style room ID. */
+export function spaceIdFromRoomId(roomId: string): string {
+  return roomId.split('-').slice(0, 2).join('-');
 }
 
-/**
- * Member access to one SPACE — its keyring + every channel's messages and
- * attachments + the room registry, all under `spaces/{spaceId}/**`. One cap
- * covers current AND future channels. The keyring/registry stay owner-only:
- * their WRITE is `space:owner`-gated server-side, so a member's path reach does
- * not grant write. (`collections:['chat']` keeps the member-cap shape check
- * happy — it keys off the collection name, never these paths.)
- */
-export function spaceMemberScope(spaceId: string, canWrite: boolean): ScopePreset {
-  const ops: ('read' | 'write' | 'list')[] = canWrite ? ['read', 'list', 'write'] : ['read', 'list'];
-  return {
-    ops,
-    // The grant is path-based (`spaces/{spaceId}/**` covers every space document);
-    // these are the workspace collections a member reads/writes (keyring + the object
-    // tree + the WAL page/board logs & snapshots).
-    collections: ['keyring', 'objindex', 'pagelog', 'pagesnap', 'boardlog', 'boardsnap'],
-    paths: [`spaces/${spaceId}/**`],
-  };
+/** Starfish name for an attachment blob (`spaces/{spaceId}/attachments/{roomId}/{blobId}`). */
+export function attachmentName(roomId: string, blobId: string): string {
+  return `spaces/${spaceIdFromRoomId(roomId)}/attachments/${roomId}/${blobId}`;
 }
 
-/** Personal cap: profile + space registry + device directory + spaces + own public spaces. */
-export function accountScope(userId: string): ScopePreset {
-  return {
-    ops: ['read', 'list', 'write'],
-    collections: ['profile', 'devices', 'spaces', 'rooms', 'pubspace'],
-    paths: [
-      `user/${userId}/profile`,
-      `users/${userId}/_devices`,
-      `user/${userId}/_spaces`,
-      'spaces/**',
-      // The owner's own public spaces — server grants `pubspace:owner` because this is
-      // a device cap (auth.identity = issUserId = userId = the {ownerId} segment).
-      `pubspaces/${userId}/**`,
-    ],
-  };
+/** Starfish name for the object index doc (`spaces/{spaceId}/objects/_index`). */
+export function objIndexName(spaceId: string): string {
+  return `spaces/${spaceId}/objects/_index`;
 }
 
-/**
- * The single cap-cert scope granted to a PAIRED (linked) device. It must serve
- * BOTH clients a normal session splits across two self-minted caps — the chat
- * client ({@link ownerScope}: `chat`/`spaces/**`) AND the account client
- * ({@link accountScope}: profile + `_spaces` registry + devices + own public
- * spaces) — because a paired device cannot self-mint (its fresh keypair ≠ root),
- * so the root device delegates ONE `capCert` here that has to cover everything
- * startup reads. The union of the two presets, deduped.
- */
-export function linkedDeviceScope(userId: string): ScopePreset {
-  return {
-    ops: ['read', 'list', 'write'],
-    collections: ['chat', 'profile', 'devices', 'spaces', 'rooms', 'pubspace'],
-    paths: [
-      'spaces/**',
-      `user/${userId}/profile`,
-      `users/${userId}/_devices`,
-      `user/${userId}/_spaces`,
-      `pubspaces/${userId}/**`,
-    ],
-  };
+/** Starfish name for an object WAL log (`spaces/{spaceId}/objects/logs/{objectId}`). */
+export function objLogName(spaceId: string, objectId: string): string {
+  return `spaces/${spaceId}/objects/logs/${objectId}`;
 }
 
-/**
- * Link-bearer access to ONE public space at `pubspaces/{ownerId}/{spaceId}` —
- * space-wide (every room + the room registry), read-only or read/write. The tight
- * single-space path is the per-space isolation that complements the server's
- * issuer-binding enricher (a holder reaches only this one space); `pubspace:writer`
- * is further withheld on the `_rooms` doc server-side. `collections:['pubspace']` is
- * the bare name the member-cap shape check keys off; the path never matches
- * `pubspace/_keyring`/`pubspace/_members`, so no deny rule is needed (cf.
- * `spaceMemberScope`). The subject is a throwaway ephemeral keypair, so this cap is
- * meaningless without the matching private key shipped alongside it in the link.
- */
-export function pubspaceScope(ownerId: string, spaceId: string, canWrite = false): ScopePreset {
-  const ops: ('read' | 'write' | 'list')[] = canWrite ? ['read', 'list', 'write'] : ['read', 'list'];
-  return {
-    ops,
-    collections: ['pubspace'],
-    paths: [`pubspaces/${ownerId}/${spaceId}/**`],
-  };
+/** Starfish name for an object merge doc (`spaces/{spaceId}/objects/docs/{objectId}`). */
+export function objDocName(spaceId: string, objectId: string): string {
+  return `spaces/${spaceId}/objects/docs/${objectId}`;
 }
 
-/**
- * Bot scope for ONE public stream room — the scope of the `createPublicLink`
- * audience cap an owner mints so a bot/integration can APPEND to that room's log.
- * Pinned to the single room's storage path (least privilege: a leaked link can
- * only append to this one stream, nothing else in the space). `collections` is the
- * bare `pubstream` name the audience-cap shape check keys off; the path is the real
- * `pubspaces/{ownerId}/{spaceId}/streams/{roomId}` storage key (NOT `pubstream/…`),
- * so — like `pubspaceScope` — it never matches `pubstream/_keyring`/`_members` and
- * needs no deny rule. Read+list are kept so the bot can read back its own appends.
- */
-export function pubstreamBotScope(ownerId: string, spaceId: string, roomId: string): ScopePreset {
-  return {
-    ops: ['read', 'list', 'write'],
-    collections: ['pubstream'],
-    paths: [`pubspaces/${ownerId}/${spaceId}/streams/${roomId}`],
-  };
+/** Starfish name for an object blob (`spaces/{spaceId}/objects/blobs/{blobId}`). */
+export function objectBlobName(spaceId: string, blobId: string): string {
+  return `spaces/${spaceId}/objects/blobs/${blobId}`;
 }
 
-/** Extract the single space id a member cap is scoped to (from its `spaces/<id>/**`).
- *  Returns null if the cap names no space path OR more than one distinct space — a
- *  member cap is expected to be scoped to exactly one space, so an ambiguous
- *  multi-space cap is rejected rather than silently read as just its first match. */
-export function spaceIdFromCap(cap: { scope?: { paths?: string[] } }): string | null {
-  let found: string | null = null;
-  for (const p of cap.scope?.paths ?? []) {
-    const m = /^spaces\/([^/]+)\//.exec(p);
-    if (!m) continue;
-    if (found !== null && found !== m[1]) return null; // ambiguous multi-space cap
-    found = m[1]!;
-  }
-  return found;
-}
-
-export function bytesToHex(b: Uint8Array): string {
-  let s = '';
-  for (const x of b) s += x.toString(16).padStart(2, '0');
-  return s;
+/** Starfish name for the custom types index (`spaces/{spaceId}/types/_index`). */
+export function typesIndexName(spaceId: string): string {
+  return `spaces/${spaceId}/types/_index`;
 }

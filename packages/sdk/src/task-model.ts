@@ -2,11 +2,13 @@
  * Pure projection of task {@link ObjectNode}s into the kanban view.
  *
  * A task is an ObjectNode with `type === 'task'` and `parentId === boardId`.
- * Its positional state lives in `props`: `columnId`, `order` (fractional number),
- * and the legacy `status` register (kept for boards without a Done column).
+ * Its positional state lives in `meta.props` (via `propsOf`): `columnId`,
+ * `order` (fractional number), and the legacy `status` register (kept for boards
+ * without a Done column).
  */
 import type { ObjectNode } from './domain/types';
 import type { Column } from './board-content';
+import { propsOf } from './starfish/objects-ext';
 
 export type TaskStatus = 'todo' | 'doing' | 'done';
 
@@ -39,7 +41,7 @@ export function tasksForBoard(
   const tasks: Task[] = [];
   for (const node of nodes) {
     if (node.archived || node.type !== 'task' || node.parentId !== boardId) continue;
-    const props = node.props ?? {};
+    const props = propsOf(node);
     let columnId = (props.columnId as string | undefined) ?? '';
     if (!colSet.has(columnId)) columnId = firstCol;
     const statusRaw = props.status as string | undefined;

@@ -6,8 +6,11 @@
  * on native); all SDK modules that need key-value persistence import the three
  * functions below instead of importing `./starfish/kv` directly.
  *
- * Mirror of OctoChat's `configureKv` / `kvGet` DI pattern.
+ * Also forwards to the shared octospaces-sdk KV seam so that re-exported
+ * octospaces modules (pull-cache, profile-cache, access-store, …) use the
+ * same platform adapter without requiring a separate `configureKv` call.
  */
+import { configureKv as octospacesConfigure } from '@drakkar.software/octospaces-sdk';
 
 interface KvAdapter {
   get: (key: string) => Promise<string | null>;
@@ -24,9 +27,13 @@ let _kv: KvAdapter = {
 /**
  * Configure the KV store. Call at app boot before any SDK function that reads
  * or writes persisted state (member caps, mutes, reads, AI settings, etc.).
+ *
+ * Also wires the shared octospaces-sdk so its pull-cache, profile-cache, and
+ * space-access-store all use the same platform adapter.
  */
 export function configureKv(adapter: KvAdapter): void {
   _kv = adapter;
+  octospacesConfigure({ get: adapter.get, set: adapter.set, remove: adapter.remove });
 }
 
 export async function kvGet(key: string): Promise<string | null> {

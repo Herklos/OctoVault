@@ -42,7 +42,7 @@ export interface SpaceInviteState {
 export function useSpaceInvite(spaceId: string): SpaceInviteState {
   const { session } = useSession();
   const { spaces } = useSpaces();
-  const isPublic = isPublicSpaceId(spaceId) || spaces.find((s) => s.id === spaceId)?.type === 'public';
+  const isPublic = isPublicSpaceId(spaceId); // always false — pubspace removed
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);

@@ -12,15 +12,15 @@ import {
   type LinkedIdentity,
   type Session,
 } from '@drakkar.software/octovault-sdk';
-import { clearMemberCaps, hydrateMemberCaps } from '@drakkar.software/octovault-sdk';
-import { recoverPubspaceAccess } from '@drakkar.software/octovault-sdk';
-import { clearPubspaceCaps, hydratePubspaceCaps } from '@drakkar.software/octovault-sdk';
+import { clearMemberCaps } from '@drakkar.software/octovault-sdk';
+import { recoverSpaceAccess } from '@drakkar.software/octovault-sdk';
+import { clearPubspaceCaps } from '@drakkar.software/octovault-sdk';
 import { readSpaces } from '@drakkar.software/octovault-sdk';
 import { hydrateMutes, resetMutes } from '@drakkar.software/octovault-sdk';
 import { hydrateQuickReactions, resetQuickReactions } from '@drakkar.software/octovault-sdk';
 import { flushReadsNow, hydrateReads, resetReads } from '@drakkar.software/octovault-sdk';
 import { activeAccountOf, sessionFromPersisted } from '@drakkar.software/octovault-sdk';
-import { clearSpaceEncryptors } from '@drakkar.software/octovault-sdk';
+import { clearNodeAccessCache } from '@drakkar.software/octovault-sdk';
 import {
   enrollPasskey,
   passkeyEnrollable,
@@ -130,7 +130,7 @@ function resetAccountScopedState(): void {
   clearPubspaceCaps();
   clearAttachmentCache();
   clearPseudoCache();
-  clearSpaceEncryptors();
+  clearNodeAccessCache();
   clearPrimedSpaces();
   clearLiveSyncBus();
   // Flush any pending read marks before dropping them so a just-read room on the
@@ -149,14 +149,9 @@ async function hydrateCapsFor(session: Session): Promise<void> {
   // the seed-authenticated accountClient (readSpaces degrades to empty on failure,
   // which leaves the local cap cache intact).
   const { spaces, caps, mutes, reads, pubAccess, quickReactions } = await readSpaces(session.accountClient, session.userId);
-  await hydrateMemberCaps(session.userId, caps);
-  await hydratePubspaceCaps(session.userId);
-  // Public-space credentials carry a bearer secret, so they ride the synced doc SEALED
-  // to the account key. Recover them into the local cache (gives a device that never
-  // opened the link access) and backfill any local-only ones up to the doc. Best-effort
-  // and after hydratePubspaceCaps so the local cache + active user are set. See
-  // `pubspace.ts` recoverPubspaceAccess.
-  await recoverPubspaceAccess(session, pubAccess);
+  // Recover space access (member caps + link credentials) from the synced `_spaces` doc.
+  // This replaces the old hydrateMemberCaps + hydratePubspaceCaps + recoverPubspaceAccess trio.
+  await recoverSpaceAccess(session, { caps, pubAccess });
   // Mute prefs share the same `_spaces` doc, so the single read above already carries
   // them — feed them to the mute cache (server-authoritative; an unreachable read
   // degrades to empty upstream, which a later successful sync re-heals). No second pull.

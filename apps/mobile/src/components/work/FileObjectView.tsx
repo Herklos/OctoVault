@@ -13,7 +13,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
 import type { ByteSealer } from '@drakkar.software/octovault-sdk';
-import { loadObjectBlob } from '@drakkar.software/octovault-sdk';
+import { loadObjectBlob, propsOf } from '@drakkar.software/octovault-sdk';
 import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { useSpaceObjects } from '@/lib/space-objects-context';
@@ -42,7 +42,7 @@ export function FileObjectView({ spaceId, objectId, onRenameTitle: _onRenameTitl
   const node = objects.get(objectId);
   const isImage = node?.type === 'image';
 
-  const props = node?.props ?? {};
+  const props = node ? propsOf(node) : {};
   const blobId = props['blobId'] as PropValue;
   const mime = (props['mime'] as string | undefined) ?? (isImage ? 'image/jpeg' : 'application/octet-stream');
   const name = (props['name'] as string | undefined) ?? (isImage ? 'image' : 'file');

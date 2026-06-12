@@ -5,8 +5,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { layout, spacing } from '@/theme';
 import { humanizeError } from '@drakkar.software/octovault-sdk';
 import { previewInvite, type InvitePreview } from '@drakkar.software/octovault-sdk';
-import { acceptSpaceInvite, makeJoinRequest } from '@drakkar.software/octovault-sdk';
-import { joinPublicSpace } from '@drakkar.software/octovault-sdk';
+import { acceptSpaceInvite, joinSpaceByLink, joinNodeByLink, makeJoinRequest } from '@drakkar.software/octovault-sdk';
 import { useInviteFragment } from '@/lib/use-invite-link';
 import { useSession } from '@/lib/session-context';
 import { useSpaces } from '@/lib/use-spaces';
@@ -102,13 +101,20 @@ export default function JoinScreen() {
     setBusy(true);
     setError(null);
     try {
-      const space =
-        preview.kind === 'public'
-          ? await joinPublicSpace(session, preview.token)
-          : await acceptSpaceInvite(session, preview.inviteJson);
-      enterSpace(space.id);
+      let spaceId: string;
+      if (preview.kind === 'space-link') {
+        const space = await joinSpaceByLink(session, preview.token);
+        spaceId = space.id;
+      } else if (preview.kind === 'node-link') {
+        await joinNodeByLink(session, preview.token);
+        spaceId = preview.token.spaceId;
+      } else {
+        const space = await acceptSpaceInvite(session, preview.inviteJson);
+        spaceId = space.id;
+      }
+      enterSpace(spaceId);
     } catch (e) {
-      setError(humanizeError(e, 'Couldn’t join the space. Try again.'));
+      setError(humanizeError(e, "Couldn't join the space. Try again."));
       setBusy(false);
     }
   };
@@ -125,19 +131,21 @@ export default function JoinScreen() {
       <StackScreen scroll contentStyle={styles.content} header={<AppBar title="Join a space" onBack={dismissPreview} />}>
         <Card style={styles.consent}>
           <Txt variant="micro" weight="semibold" mono uppercase tone="inkMuted" center>
-            You’re invited to
+            You're invited to
           </Txt>
           <Txt variant="display" center>
             {preview.spaceName}
           </Txt>
           <View style={styles.consentMeta}>
-            {preview.kind === 'private' ? (
+            {preview.kind === 'member-bundle' ? (
               <Pill tone="accent" label="PRIVATE · E2EE" mono />
+            ) : preview.kind === 'space-link' ? (
+              <Pill tone="note" label={preview.write ? 'SPACE LINK · READ & WRITE' : 'SPACE LINK · READ-ONLY'} mono />
             ) : (
-              <Pill tone="note" label={preview.write ? 'PUBLIC · READ & WRITE' : 'PUBLIC · READ-ONLY'} mono />
+              <Pill tone="note" label="NODE INVITE" mono />
             )}
           </View>
-          {preview.kind === 'private' ? (
+          {preview.kind === 'member-bundle' ? (
             <View style={styles.consentDetail}>
               <Txt variant="caption" mono tone="inkMuted" center>
                 space {preview.spaceId.slice(0, 6)}…{preview.spaceId.slice(-6)}
@@ -148,11 +156,7 @@ export default function JoinScreen() {
                 </Txt>
               ) : null}
             </View>
-          ) : (
-            <Callout tone="warning" iconName="unlock" title="Not end-to-end encrypted">
-              A public space is stored as plaintext the server can read. Don’t keep anything sensitive in it.
-            </Callout>
-          )}
+          ) : null}
           {error ? (
             <Callout tone="danger" iconName="alert">
               {error}
@@ -180,7 +184,7 @@ export default function JoinScreen() {
     <StackScreen scroll contentStyle={styles.content} header={<AppBar title="Join a space" onBack={goBack} />}>
       <Card title="HAVE AN INVITE?">
         <Txt variant="footnote" tone="inkSoft">
-          Paste a private invite, or a public space’s invitation link. You’ll see the space’s
+          Paste a private invite, or a public space's invitation link. You'll see the space's
           name before anything is joined.
         </Txt>
         <TextField
@@ -232,7 +236,7 @@ export default function JoinScreen() {
         <View style={styles.stepRow}>
           <StepBadge n={1} />
           <Txt variant="footnote" tone="inkSoft" style={styles.stepText}>
-            Send your join request to the space’s owner — it holds your public keys, nothing secret.
+            Send your join request to the space's owner — it holds your public keys, nothing secret.
           </Txt>
         </View>
         <CopyField value={myRequest} copyLabel="Copy join request" share shareTitle="My OctoVault join request" />

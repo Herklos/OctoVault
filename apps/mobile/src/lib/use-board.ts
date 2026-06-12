@@ -120,13 +120,13 @@ export function useBoard(spaceId: string, boardId: string, opts: { enabled?: boo
       if (!objects.ready) return undefined;
       const siblings = tasksByColumn[columnId] ?? [];
       const resolved = order ?? (siblings.at(-1)?.order ?? 0) + 1;
-      return objects.create({ type: 'task', title, parentId: boardId, props: { columnId, order: resolved, status: 'todo' } }) ?? undefined;
+      return objects.create({ type: 'task', title, parentId: boardId, meta: { props: { columnId, order: resolved, status: 'todo' } } }) ?? undefined;
     },
     duplicateTask: (source, order) => {
       if (!objects.ready) return undefined;
       return objects.create({
         type: 'task', title: source.title, parentId: boardId,
-        props: { columnId: source.columnId, order, status: source.status },
+        meta: { props: { columnId: source.columnId, order, status: source.status } },
       }) ?? undefined;
     },
     moveTask: (id, columnId, order) => objects.setProps(id, { columnId, order }),

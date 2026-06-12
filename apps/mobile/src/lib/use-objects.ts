@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 
-import { objIndexPull, objIndexPush, pubObjIndexPull, pubObjIndexPush } from '@drakkar.software/octovault-sdk';
+import { objIndexPull, objIndexPush } from '@drakkar.software/octovault-sdk';
 import {
   addObject,
   ancestors as ancestorsOf,
@@ -77,7 +77,6 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
     enabled,
     storeKey: `objindex:${spaceId}`,
     privatePaths: () => ({ pull: objIndexPull(spaceId), push: objIndexPush(spaceId) }),
-    publicPaths: (ownerId) => ({ pull: pubObjIndexPull(ownerId, spaceId), push: pubObjIndexPush(ownerId, spaceId) }),
   });
 
   // Refresh-on-focus parity with chat (see {@link useDoc} / {@link useRoom}): a screen

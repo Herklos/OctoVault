@@ -1,6 +1,9 @@
 // @drakkar.software/octovault-sdk
 // Pure, React-free logic for OctoVault: crypto/identity, Starfish sync, WAL/CRDT
 // document models, data registries, pure helpers.
+//
+// The shared octospaces-sdk surface is re-exported here; the vault adds only its
+// own WAL engine, content models, domain descriptors, and vault-specific helpers.
 
 // ── Config / DI seams ─────────────────────────────────────────────────────────
 export * from './config/config';
@@ -58,14 +61,28 @@ export * from './task-model';
 export * from './starfish/client';
 export * from './starfish/identity';
 export * from './starfish/pairing';
-export * from './starfish/space-encryptor';
-export * from './starfish/members';
-export * from './starfish/member-caps';
-export * from './starfish/object-index';
-export * from './starfish/registry';
 
-// Objects / object tree
+// Node-access resolver (replaces space-encryptor)
+export * from './starfish/space-encryptor';
+
+// Space membership + node membership
+export * from './starfish/members';
+
+// Member-cap shims + canonical store API
+export * from './starfish/member-caps';
+
+// Object index
+export * from './starfish/object-index';
+
+// Registry
+export * from './starfish/registry';
+export * from './starfish/registry-ext';
+
+// Objects / object tree (octospaces core)
 export * from './starfish/objects';
+
+// Vault-specific object extensions (props/automation in meta)
+export * from './starfish/objects-ext';
 
 // User-defined types store — re-export PropKind/EditorKind under aliases to avoid
 // shadowing the same names in domain/object-types (both unions are identical, but
@@ -91,7 +108,7 @@ export {
 // Blob uploads
 export * from './starfish/object-blobs';
 
-// Public spaces
+// Public spaces — deprecated stubs (pubspace subsystem removed; use per-node access:'public')
 export * from './starfish/pubspace';
 export * from './starfish/pubspace-caps';
 

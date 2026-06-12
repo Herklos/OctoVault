@@ -15,6 +15,22 @@ Expo Router maps file routes to URLs automatically, so `octovault://rooms`,
 `octovault://room/<id>`, `octovault://join`, `octovault://search` already resolve
 in any standalone/dev build — `scheme: "octovault"` is set in `app.json`.
 
+## Invite link types
+
+OctoVault issues two kinds of invite links, both encoded as a `#fragment` in the
+`/join` URL. `previewInvite()` (from `@drakkar.software/octospaces-sdk`) classifies
+the fragment into a discriminated union before the user confirms:
+
+| Kind | Created by | Fragment carries | Join call |
+|---|---|---|---|
+| `space-link` | `createSpaceInviteLink` | space cap + ephemeral key + `write` flag | `joinSpaceByLink(session, token)` |
+| `node-link` | `createNodeInviteLink` | per-node cap + ephemeral key | `joinNodeByLink(session, token)` |
+| `member-bundle` | `inviteToSpace` (direct invite) | serialised member cap JSON | `acceptSpaceInvite(session, inviteJson)` |
+
+The `/join` screen calls `previewInvite(fragment)`, shows a consent card with the
+space/node name and issuer fingerprint, then dispatches the appropriate join call on
+confirm. No join is initiated without user confirmation.
+
 ## Done in the repo
 
 - **`scheme: "octovault"`** in `app.json` → custom-scheme deep links route via
@@ -23,11 +39,11 @@ in any standalone/dev build — `scheme: "octovault"` is set in `app.json`.
   reads the credential `#fragment` from the launch URL on **web** (`location.hash`)
   and **native** (raw `Linking.getInitialURL()` + `url` event — the fragment is
   read from the raw URL, never through a parser, which would drop it).
-  `src/app/join.tsx` consumes it and auto-joins the public space once per
-  credential (cold start + warm resume).
+  `src/app/join.tsx` consumes it, calls `previewInvite` to classify it, and joins
+  the space or node once the user confirms.
 - **`WEB_BASE`** (`src/lib/starfish/config.ts`, from `EXPO_PUBLIC_WEB_URL`) — the
   public origin used to build shareable invite links on native (web uses the live
-  `window.location.origin`).
+  `window.location.origin`). Passed to `createSpaceInviteLink` / `createNodeInviteLink`.
 - **Native association config** in `app.json` — `ios.associatedDomains:
   ["applinks:oc.drakkar.software"]` and an Android `intentFilters` entry for
   `https://oc.drakkar.software/join*` with `autoVerify: true`.
@@ -38,13 +54,12 @@ So `octovault://join#<token>` auto-joins on native **today**. The `https://` for
 opening the app needs the two hosted files below — plus a rebuild (the `app.json`
 native keys only take effect in a fresh build).
 
-> Scope is deliberately **`/join` only** (the one link the app generates — see
-> `encodePublicInviteLink`). The Android `pathPrefix: "/join"` is essential:
-> without it `autoVerify` would claim the *entire* host and every
-> `https://oc.drakkar.software/…` link — the web app included — would open the
-> native app on Android. Only widen the AASA `paths` / Android `pathPrefix` when
-> you actually ship `/room|/space|/thread` link-sharing **and** make those screens
-> robust to missing params + membership.
+> Scope is deliberately **`/join` only** (the one link the app generates). The
+> Android `pathPrefix: "/join"` is essential: without it `autoVerify` would claim
+> the *entire* host and every `https://oc.drakkar.software/…` link — the web app
+> included — would open the native app on Android. Only widen the AASA `paths` /
+> Android `pathPrefix` when you actually ship `/space|/node` link-sharing **and**
+> make those screens robust to missing params + membership.
 
 ## Remaining: host two association files on `oc.drakkar.software`
 

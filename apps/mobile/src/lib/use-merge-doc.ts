@@ -28,8 +28,8 @@ export interface MergeDocOptions {
   storeKey: string;
   /** Build the private (E2EE) paths. */
   privatePaths: () => DocPaths;
-  /** Build the public (plaintext) paths from the resolved owner id. */
-  publicPaths: (ownerId: string) => DocPaths;
+  /** @deprecated pubspace removed — all spaces use privatePaths now. */
+  publicPaths?: (ownerId: string) => DocPaths;
 }
 
 export interface MergeDocResult {
@@ -84,7 +84,7 @@ export function useMergeDoc(opts: MergeDocOptions): MergeDocResult {
       cache: pullCache(),
       cacheMaxAgeMs: PULL_CACHE_MAX_AGE_MS,
     };
-    if (isPublic) {
+    if (isPublic && publicPaths) {
       const auth = publicSpaceAuth(session, spaceId);
       const paths = publicPaths(auth.ownerId);
       return {
