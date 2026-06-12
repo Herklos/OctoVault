@@ -1,69 +1,47 @@
 /**
- * Domain model for OctoVault. The SDK owns these types; the app's theme and
- * components import them back from here when they need the union members.
+ * Domain model for OctoVault.
+ *
+ * Re-exports the shared octospaces-sdk types (Space, ObjectNode, NodeAccess, …)
+ * and adds vault-specific types (User, Profile, AutomationMeta, PropValue, etc.).
+ *
+ * ObjectNode.access / ObjectNode.enc (from octospaces) replace the old Space.type
+ * ('private'|'public') model. Space is now a neutral container (no `type`, `ownerId`,
+ * or `write` field). The per-node access:'public' model replaces public spaces.
+ *
+ * ObjectNode.automation and ObjectNode.props moved into ObjectNode.meta:
+ *   node.meta?.automation  →  automationOf(node)  (from objects-ext.ts)
+ *   node.meta?.props       →  propsOf(node)       (from objects-ext.ts)
  */
 
-import type { SealedBlob } from '../starfish/account-seal';
+import type { PresenceStatus, VerificationLevel, SealedBlob } from '@drakkar.software/octospaces-sdk';
 
-// ── Presence & verification — owned here so the app theme can import them ────
+// ── Re-export shared octospaces domain types ───────────────────────────────
+export type {
+  ID,
+  NodeAccess,
+  ObjectNode,
+  ObjectType,
+  ObjectContentKind,
+  ObjectsIndex,
+  Space,
+  CapMap,
+  PubAccessMap,
+  DmMap,
+  MuteValue,
+  MutePrefs,
+  ReadValue,
+  ReadPrefs,
+  ArchivedDms,
+  PresenceStatus,
+  VerificationLevel,
+  SealedBlob,
+} from '@drakkar.software/octospaces-sdk';
 
-/** Presence status for a user's avatar / status indicator. */
-export type PresenceStatus = 'online' | 'away' | 'dnd' | 'offline';
+// ── Vault-specific types ────────────────────────────────────────────────────
 
-/** Security verification level for a device/identity. */
-export type VerificationLevel = 'verified' | 'pending' | 'unverified';
-
-// ── Core domain types ─────────────────────────────────────────────────────────
-
-export type ID = string;
-
-/** Maps a joined private space's id → its owner-issued member cap-cert (serialized
- *  JSON). Persisted both in device-local kv (`member-caps.ts`) and, for durability,
- *  in the user's own synced `_spaces` doc so a fresh device re-hydrates it. */
-export type CapMap = Record<string, string>;
-
-/** Maps a joined PUBLIC space's id → its invitation credential (the owner-signed cap
- *  plus the link's ephemeral private key) SEALED to the account's own key. Unlike a
- *  member cap (safe in the clear — see {@link CapMap}), a public-join credential
- *  embeds a bearer secret, so it is sealed before riding in the plaintext `_spaces`
- *  doc. Recovered on any device with the same seed. See `account-seal.ts` and
- *  `pubspace-caps.ts`. */
-export type PubAccessMap = Record<string, SealedBlob>;
-
-/** Maps a DM peer's userId → the private DM-space id shared with them. Lets the
- *  initiator dedup (one conversation per peer) and the non-initiator record the
- *  space their inbox reconciler accepted. Shares the `_spaces` doc like {@link CapMap}
- *  (the space's member cap rides `caps`; this is just the peer→space pointer). See
- *  `starfish/dm.ts`. */
-export type DmMap = Record<string, string>;
-
-/** A mute entry. `true` = muted indefinitely; a number = muted UNTIL that epoch-ms
- *  instant (the forward-compatible shape for a future "mute for 15 min" — read-
- *  supported now, but the current UI only ever writes `true` or deletes the key). */
-export type MuteValue = true | number;
-
-/** Per-user mute preferences: which rooms and which whole spaces are silenced.
- *  Synced across the user's devices (stored alongside `spaces`/`caps` in the
- *  `user/<userId>/_spaces` doc) and mirrored to device-local kv (`mutes.ts`). */
-export interface MutePrefs {
-  rooms: Record<string, MuteValue>;
-  spaces: Record<string, MuteValue>;
-}
-
-/** A per-room read mark: the epoch-ms instant the viewer last read that room.
- *  Monotonic (only ever advances) so a merge across devices takes the MAX. */
-export type ReadValue = number;
-
-/** Per-user read marks — the timestamp each room was last read. Synced across the
- *  user's devices (a `reads` key alongside `spaces`/`caps`/`mutes` in the
- *  `user/<userId>/_spaces` doc) and mirrored to device-local kv (`reads.ts`) so the
- *  unread badge / divider clears on every device, not just the one that read. */
-export interface ReadPrefs {
-  rooms: Record<string, ReadValue>;
-}
-
+/** A vault user display record (enriched from the public profile). */
 export interface User {
-  id: ID;
+  id: string;
   name: string;
   handle: string;
   initials: string;
@@ -72,147 +50,8 @@ export interface User {
   avatar?: string;
 }
 
-export interface Space {
-  id: ID;
-  name: string;
-  /** 2-letter monogram used in the space rail. */
-  short: string;
-  /** Uploaded space image as a data URI; absent → render the `short` monogram.
-   *  Owner-set + shared via the space's `_rooms` registry (plaintext, NOT E2EE). */
-  image?: string;
-  members: number;
-  unread?: number;
-  /** 'private' (E2EE keyring space, the default) or 'public' (plaintext, joined via
-   *  a space-wide invitation link). Absent ⇒ treat as 'private' (back-compat). */
-  type?: 'private' | 'public';
-  /** Public spaces only: the owner's userId (the cap issuer + storage path owner). */
-  ownerId?: string;
-  /** Public spaces only (joiner side): whether this identity's invite link grants
-   *  write. Owner always has write. */
-  write?: boolean;
-}
-
-
-/** Stored, synced configuration of an automation node (`type:'automation'`) — kept
- *  on the node's `automation` field so every device sees status / can take over the
- *  runner. Secret provider params (API keys etc.) live in device-local kv instead —
- *  see `src/lib/automations/secrets.ts`. */
-export interface AutomationMeta {
-  /** FK into the built-in provider catalog (e.g. 'rss' / 'http'). */
-  providerId: string;
-  /** Non-secret provider params (URLs, locations, etc.). */
-  params: Record<string, unknown>;
-  /** Scheduled-fetch cadence in minutes; `0` = commands-only (no scheduled run). */
-  intervalMin: number;
-  /** When set, the automation fires on every room open / background check,
-   *  bypassing the `intervalMin` time gate (still single-runner + enabled-gated).
-   *  Optional → absent on pre-existing rooms, read as `false`. */
-  onOpen?: boolean;
-  /** Off → ticker skips and `onCommand` ignores; the room itself still renders. */
-  enabled: boolean;
-  /** Bot write credential (`createStreamBotCredential`: token + endpoint + signPath),
-   *  SEALED to the minting account key (see `account-seal.ts` `sealToSelf`) before it
-   *  enters this synced PLAINTEXT registry doc. The token is a bearer audience cap;
-   *  sealing keeps a space reader from lifting it to forge bot posts. Opened by the
-   *  runner before posting + the settings sheet to display it. Like the `pubAccess` and
-   *  DM-keyring seals, it binds to the SEED-derived key, so it opens on the minting
-   *  device or a seed-restored device — NOT a QR-paired device (fresh keypair). Manage
-   *  automations from the primary device; `rotateAutomatedRoomCredential` re-seals to
-   *  whichever device rotates. A LEGACY pre-seal room stored this in the clear — see
-   *  `openStreamBotCredential` for the back-compat read. */
-  credential: SealedBlob;
-  /** The deterministic id of the device elected to run this automation. Other
-   *  devices see status but never fire — single-runner election avoids dup posts. */
-  runOnDeviceId: string | null;
-  /** Last successful tick (epoch ms) — synced for cross-device status display. */
-  lastRunAt: number | null;
-  /** Hash of the last text a scheduled fetch posted. The runner re-hashes each
-   *  fetch and skips the post when it matches, so an unchanged feed/endpoint isn't
-   *  reposted every interval. Optional → absent on pre-existing rooms (read null).
-   *  Only scheduled fetches write it; slash-command posts never touch it. */
-  lastFetchHash?: string | null;
-  /** Last error message — set on throw, cleared on success. */
-  lastError: string | null;
-}
-
-/** The builtin object types. Every artifact — folders, pages, boards, tasks,
- *  files, images, and automations — is an `Object` of one `ObjectType`.
- *  A custom (user-defined) type rides the same `string` field, so the union is
- *  open-ended; builtins are the ones the app ships renderers for. */
-export type BuiltinObjectType =
-  | 'folder'
-  | 'page'
-  | 'board'
-  | 'task'
-  | 'file'
-  | 'image'
-  | 'automation';
-export type ObjectType = BuiltinObjectType | (string & {});
-
-/** The builtin types, as a runtime set — so code can ask "is this one we ship a
- *  renderer for?" and fall back to the generic custom-type path otherwise. */
-export const BUILTIN_OBJECT_TYPES: readonly BuiltinObjectType[] = [
-  'folder', 'page', 'board', 'task', 'file', 'image', 'automation',
-];
-
-/** How an object's CONTENT syncs — the one axis a custom type must declare so the app
- *  can pick a hook without hardcoding its `type`:
- *   - `merge`  → a merge-doc (pull→union-merge→push), like a doc or a channel.
- *   - `append` → an append-only `by_timestamp` event log, like a page or a board.
- *   - `none`   → no content doc; the node is structure only, like a folder.
- *  Builtins infer this (see `object-types.ts`); a custom type sets it on the node. */
-export type ObjectContentKind = 'merge' | 'append' | 'none';
-
-/** Scalar value that can be stored in an ObjectNode's `props` map.
- *  Low-frequency structured metadata (status, order, blobId, mime…).
- *  Heavy freeform body stays in the per-object WAL/merge content doc. */
-export type PropValue = string | number | boolean | null;
-
-/** One entry in a space's object index (`spaces/{spaceId}/objects/_index`). This is
- *  IDENTITY + TREE POSITION + light metadata ONLY — the heavy content (doc blocks,
- *  project event log) lives in a per-object content doc keyed by {@link id}.
- *  The tree is LOGICAL via {@link parentId} (doc→sub-doc, etc.), never path nesting,
- *  so a move is an O(1) reparent. Sibling order is `(order, id)` for a deterministic
- *  render across devices. The index is union-merged on `id` keyed by {@link updatedAt},
- *  so concurrent member edits don't clobber. */
-export interface ObjectNode {
-  id: ID;
-  type: ObjectType;
-  /** Parent in the tree; `null` = root. doc→sub-doc, etc. */
-  parentId: ID | null;
-  /** Sibling sort key; ties broken by `id`. */
-  order: number;
-  title: string;
-  emoji?: string;
-  /** Epoch ms of the last edit to THIS node — the union-merge per-node winner. */
-  updatedAt: number;
-  /** Soft-delete; archiving a node cascade-archives its subtree. */
-  archived?: boolean;
-  /** Present when `type === 'automation'` — the bot/integration runner config. */
-  automation?: AutomationMeta;
-  /** Optional override of how this object's content syncs. Builtins leave it absent
-   *  (inferred from {@link type}); a CUSTOM type sets it so the generic hook layer can
-   *  open the right collection without knowing the type. */
-  contentKind?: ObjectContentKind;
-  /** Structured property values: status, order, blobId, mime, size, name, etc.
-   *  Written via the index's setProps reducer (node-level LWW — two devices
-   *  concurrently writing DIFFERENT keys on the SAME node lose one side; acceptable
-   *  for low-frequency metadata since freeform body stays in the content doc). */
-  props?: Record<string, PropValue>;
-  /** Optional emoji/glyph already covers the icon; a custom type may also carry an
-   *  arbitrary `meta` bag for type-specific fields the generic renderers ignore. */
-  meta?: Record<string, unknown>;
-}
-
-/** The object-index doc: the union-merged list of every object in a space. */
-export interface ObjectsIndex {
-  v: 1;
-  objects: ObjectNode[];
-  updatedAt: number;
-}
-
 export interface SecurityItem {
-  id: ID;
+  id: string;
   icon: 'shield' | 'devices' | 'key';
   title: string;
   detail: string;
@@ -228,3 +67,48 @@ export interface Profile {
   fingerprint: string;
   security: SecurityItem[];
 }
+
+/** Scalar value that can be stored in an ObjectNode's `meta.props` map. */
+export type PropValue = string | number | boolean | null;
+
+/** Stored, synced config of an automation node (`type:'automation'`), kept in
+ *  `node.meta.automation`. Use {@link automationOf} / `objects-ext.ts` to access. */
+export interface AutomationMeta {
+  /** FK into the built-in provider catalog (e.g. 'rss' / 'http'). */
+  providerId: string;
+  /** Non-secret provider params (URLs, locations, etc.). */
+  params: Record<string, unknown>;
+  /** Scheduled-fetch cadence in minutes; `0` = commands-only (no scheduled run). */
+  intervalMin: number;
+  /** When set, the automation fires on every room open / background check,
+   *  bypassing the `intervalMin` time gate. */
+  onOpen?: boolean;
+  /** Off → ticker skips and `onCommand` ignores; the room itself still renders. */
+  enabled: boolean;
+  /** Bot write credential SEALED to the minting account key. */
+  credential: SealedBlob;
+  /** The deterministic id of the device elected to run this automation. */
+  runOnDeviceId: string | null;
+  /** Last successful tick (epoch ms). */
+  lastRunAt: number | null;
+  /** Hash of the last text a scheduled fetch posted. */
+  lastFetchHash?: string | null;
+  /** Last error message — set on throw, cleared on success. */
+  lastError: string | null;
+}
+
+/** The builtin object types shipped with OctoVault renderers. A custom type is
+ *  any `string` beyond these (the ObjectType union is open-ended). */
+export type BuiltinObjectType =
+  | 'folder'
+  | 'page'
+  | 'board'
+  | 'task'
+  | 'file'
+  | 'image'
+  | 'automation';
+
+/** Runtime set of builtin type strings — use to branch "do we ship a renderer?". */
+export const BUILTIN_OBJECT_TYPES: readonly BuiltinObjectType[] = [
+  'folder', 'page', 'board', 'task', 'file', 'image', 'automation',
+];
