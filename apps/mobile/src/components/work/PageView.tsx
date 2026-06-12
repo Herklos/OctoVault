@@ -383,8 +383,8 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
 
   /* ───────────────────────── sub-pages ───────────────────────────────────── */
 
-  const openObject = (id: string, type?: string) =>
-    router.push({ pathname: type === 'board' ? '/work/board/[id]' : '/work/page/[id]', params: { id, spaceId } });
+  const openObject = (id: string) =>
+    router.push({ pathname: '/work/object/[id]', params: { id, spaceId } });
 
   /** "/Page": create a child Object in the index, turn this block into a link to
    *  it, and jump in with the title editor open — the Notion sub-page motion. */
@@ -395,7 +395,7 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
     page.setBlockText(blockId, '');
     page.setBlockRef(blockId, childId);
     setEditing(null);
-    router.push({ pathname: '/work/page/[id]', params: { id: childId, spaceId, focusTitle: '1' } });
+    router.push({ pathname: '/work/object/[id]', params: { id: childId, spaceId, focusTitle: '1' } });
   };
 
   /* ───────────────────────── key routing (slash nav + alt-moves) ─────────── */
@@ -577,7 +577,7 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
             onToggleChecked={() => page.setBlockChecked(b.id, !b.checked)}
             onToggleCollapsed={() => page.setBlockCollapsed(b.id, !b.collapsed)}
             onPressDivider={() => setSelectedDivider((cur) => (cur === b.id ? null : b.id))}
-            onOpenRef={() => (b.ref ? openObject(b.ref, objects.get(b.ref)?.type) : undefined)}
+            onOpenRef={() => (b.ref ? openObject(b.ref) : undefined)}
             onOpenHandle={(anchor) => setHandleMenu({ id: b.id, anchor })}
             onOpenInsert={(anchor) => setInsertMenu({ afterId: b.id, anchor })}
           />
@@ -603,7 +603,7 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
             Sub-pages
           </Txt>
           {unclaimedChildren.map((n) => (
-            <PageRefRow key={n.id} node={n} onPress={() => openObject(n.id, n.type)} />
+            <PageRefRow key={n.id} node={n} onPress={() => openObject(n.id)} />
           ))}
         </View>
       ) : null}

@@ -29,13 +29,13 @@ export function useQuickCreate(): {
   const newPage = useCallback(() => {
     if (!objects.ready || !spaceId) return;
     const id = objects.create({ type: 'page', title: '' });
-    if (id) router.push({ pathname: '/work/page/[id]', params: { id, spaceId, label: 'Untitled', focusTitle: '1' } });
+    if (id) router.push({ pathname: '/work/object/[id]', params: { id, spaceId, label: 'Untitled', focusTitle: '1' } });
   }, [objects, spaceId, router]);
 
   const newBoard = useCallback(() => {
     if (!objects.ready || !spaceId) return;
     const id = objects.create({ type: 'board', title: '' });
-    if (id) router.push({ pathname: '/work/board/[id]', params: { id, spaceId, label: 'Untitled', focusTitle: '1' } });
+    if (id) router.push({ pathname: '/work/object/[id]', params: { id, spaceId, label: 'Untitled', focusTitle: '1' } });
   }, [objects, spaceId, router]);
 
   return { newPage, newBoard, ready };

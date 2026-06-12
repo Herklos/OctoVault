@@ -65,13 +65,21 @@ export function subscribeNavPrefs(listener: () => void): () => void {
   };
 }
 
+/** Rewrite a legacy `/work/page/{id}` or `/work/board/{id}` href to the unified
+ *  `/work/object/{id}` path so stored nav-prefs from before the route migration
+ *  still land in the correct editor. Query params are preserved. */
+function upgradeLegacyRoute(href: string): string {
+  return href.replace(/^\/work\/(page|board)\//, '/work/object/');
+}
+
 /** Tolerant parse: a missing/garbage field falls back to its default so a pref
  *  blob from an older build can never wedge the launch redirect. */
 function coerce(raw: unknown): Omit<NavPrefs, 'hydrated'> {
   const o = (raw ?? {}) as Record<string, unknown>;
+  const rawRoute = typeof o.lastRoute === 'string' && o.lastRoute.startsWith('/') ? o.lastRoute : null;
   return {
     activeSpaceId: typeof o.activeSpaceId === 'string' && o.activeSpaceId ? o.activeSpaceId : null,
-    lastRoute: typeof o.lastRoute === 'string' && o.lastRoute.startsWith('/') ? o.lastRoute : null,
+    lastRoute: rawRoute ? upgradeLegacyRoute(rawRoute) : null,
     sidebarCollapsed: o.sidebarCollapsed === true,
   };
 }
@@ -160,7 +168,7 @@ export function useTrackLastRoute(): void {
     // Don't record (and especially don't CLEAR) until the stored prefs landed,
     // or a mount at the launch route would wipe the very value we restore from.
     if (!hydrated) return;
-    if (pathname.startsWith('/work/page/') || pathname.startsWith('/work/board/')) {
+    if (pathname.startsWith('/work/object/')) {
       recordLastRoute(spaceId ? `${pathname}?spaceId=${encodeURIComponent(spaceId)}` : pathname);
     } else if (pathname === '/work') {
       recordLastRoute(null);

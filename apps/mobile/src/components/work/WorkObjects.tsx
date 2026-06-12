@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 
 import { layout, opacity, radii, spacing } from '@/theme';
 import { copyText } from '@/lib/clipboard';
-import { objectDescriptor, objectLink, routeForNode } from '@/lib/object-types';
+import { iconForNode, objectDescriptor, objectLink, routeForNode } from '@/lib/object-types';
 import { relativeTime } from '@/lib/relative-time';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { buildTree, type ObjectTreeNode } from '@/lib/starfish/objects';
@@ -83,7 +83,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
     if (!id) return;
     if (parentId) expand([parentId]); // a child born under a collapsed parent must be visible
     router.push({
-      pathname: type === 'board' ? '/work/board/[id]' : '/work/page/[id]',
+      pathname: '/work/object/[id]',
       params: { id, spaceId: spaceId ?? '', label: 'Untitled', focusTitle: '1' },
     });
   };
@@ -293,7 +293,7 @@ function RecentRow({ node, ts, onPress }: { node: ObjectNode; ts: number; onPres
         </Txt>
       ) : (
         <View style={styles.recentIconWrap}>
-          <Icon name={node.type === 'board' ? 'work' : 'page'} size={14} color={colors.inkMuted} />
+          <Icon name={iconForNode(node)} size={14} color={colors.inkMuted} />
         </View>
       )}
       <Txt variant="subhead" tone={node.title ? undefined : 'inkMuted'} numberOfLines={1} style={styles.recentTitle}>

@@ -144,7 +144,7 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
       // A blank title hands focus to the hero title editor (the create-flow
       // convention); a query-seeded title lands ready to write.
       router.push({
-        pathname: type === 'board' ? '/work/board/[id]' : '/work/page/[id]',
+        pathname: '/work/object/[id]',
         params: { id, spaceId, label: title, ...(title ? {} : { focusTitle: '1' }) },
       });
     };
@@ -266,7 +266,7 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
       recordVisit(spaceId, item.node.id);
       onNavigateRef.current?.();
       router.push({
-        pathname: item.node.type === 'board' ? '/work/board/[id]' : '/work/page/[id]',
+        pathname: '/work/object/[id]',
         params: { id: item.node.id, spaceId, emoji: item.node.emoji ?? '', label: item.node.title },
       });
     }

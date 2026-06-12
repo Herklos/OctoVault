@@ -59,7 +59,7 @@ export function WorkHome({ spaceId }: { spaceId: string | null }) {
 
   const open = (node: ObjectNode) =>
     router.push({
-      pathname: node.type === 'board' ? '/work/board/[id]' : '/work/page/[id]',
+      pathname: '/work/object/[id]',
       params: { id: node.id, spaceId: spaceId ?? '', emoji: node.emoji ?? '', label: node.title },
     });
 
