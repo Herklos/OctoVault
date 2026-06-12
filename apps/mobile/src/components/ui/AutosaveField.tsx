@@ -209,7 +209,7 @@ export function AutosaveField({
   // off and treat it as a split instead of committing a stray newline.
   const onChangeText = (text: string) => {
     if (pendingSel) setPendingSel(null);
-    if (onEnter && multiline && Platform.OS !== 'web') {
+    if (onEnter && multiline && Platform.OS !== 'web' && !newlineOnEnter) {
       const nl = text.indexOf('\n');
       if (nl >= 0) {
         // The incoming buffer already CONTAINS the newline, so split on its own
