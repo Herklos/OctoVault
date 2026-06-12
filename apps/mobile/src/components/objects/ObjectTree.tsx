@@ -9,7 +9,7 @@ import { useHover, useRowHover } from '@/lib/use-hover';
 import { useInlineEdit, type InlineEdit } from '@/lib/use-inline-edit';
 import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
-import { creatableTypes, iconForNode, isContainerType } from '@/lib/object-types';
+import { useTypeRegistry } from '@/lib/type-registry-context';
 import type { ObjectTreeNode } from '@/lib/starfish/objects';
 import type { ID, ObjectType } from '@/lib/types';
 import { AutosaveField } from '@/components/ui/AutosaveField';
@@ -143,6 +143,7 @@ interface RowProps {
 
 function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
   const { colors } = useTheme();
+  const registry = useTypeRegistry();
   // Rows are plain Views (not Pressables, to keep text selection), so hover must use
   // onMouseEnter/onMouseLeave (useRowHover) — RN-web does NOT forward Pressable-style
   // onHoverIn on a View, which previously left rows un-hoverable and hid the add-child "+".
@@ -157,7 +158,7 @@ function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
 
   const hasChildren = node.children.length > 0;
   const isCollapsed = ctx.collapsed.has(node.id);
-  const isCategory = isContainerType(node.type) || (ctx.isContainer?.(node.type) ?? false);
+  const isCategory = registry.isContainerType(node.type) || (ctx.isContainer?.(node.type) ?? false);
   const container = isCategory;
   const selected = ctx.selectedId === node.id;
   const editing = ctx.edit.isEditing(node.id);
@@ -234,7 +235,7 @@ function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
               </Txt>
             ) : (
               <View style={styles.leafIcon}>
-                <Icon name={iconForNode(node)} size={13} color={selected ? colors.accent : colors.inkMuted} />
+                <Icon name={registry.iconForNode(node)} size={13} color={selected ? colors.accent : colors.inkMuted} />
               </View>
             )}
             <Txt
@@ -251,7 +252,7 @@ function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
         {controlsVisible ? (
           <View style={styles.controls}>
             {Platform.OS === 'web' ? (
-              <RowControl icon="plus" label={`Add a page inside ${node.title || 'Untitled'}`} tooltip="Add a page inside" onPress={() => actions!.addChild(node, creatableTypes().find((d) => d.workTree)?.type ?? 'page')} />
+              <RowControl icon="plus" label={`Add a page inside ${node.title || 'Untitled'}`} tooltip="Add a page inside" onPress={() => actions!.addChild(node, registry.creatableTypes().find((d) => d.workTree)?.type ?? 'page')} />
             ) : null}
             <RowControl
               icon="dots"
@@ -279,7 +280,7 @@ function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
           >
             <Menu>
               <MenuItem icon="edit" label="Rename" onPress={() => { setMenuOpen(false); ctx.edit.begin(node.id); }} />
-              {creatableTypes().filter((d) => d.workTree && d.editor !== 'file').map((d) => (
+              {registry.creatableTypes().filter((d) => d.workTree && d.editor !== 'file').map((d) => (
                 <MenuItem key={d.type} icon={d.icon} label={`Add sub-${d.label.toLowerCase()}`} onPress={() => { setMenuOpen(false); actions.addChild(node, d.type); }} />
               ))}
               <MenuSeparator />

@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/theme';
 import { plural } from '@/lib/format';
-import { iconForNode, objectDescriptor, showsInWorkTree } from '@/lib/object-types';
+import { useTypeRegistry } from '@/lib/type-registry-context';
 import { relativeTime } from '@/lib/relative-time';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { subtreeIds } from '@/lib/starfish/objects';
@@ -30,6 +30,7 @@ import { Txt } from '@/components/ui/Txt';
  * just be noise with confusing partial-restore semantics.
  */
 export function TrashList() {
+  const registry = useTypeRegistry();
   const { spaceId, objects } = useSpaceObjects();
   const { allNodes, restore, purge, loaded } = objects;
   const confirm = useConfirm();
@@ -41,11 +42,11 @@ export function TrashList() {
       .filter(
         (n) =>
           n.archived &&
-          showsInWorkTree(n) &&
+          registry.showsInWorkTree(n) &&
           (n.parentId == null || !byId.get(n.parentId)?.archived),
       )
       .sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [allNodes]);
+  }, [allNodes, registry]);
 
   // Children counts give weight to a row before committing to delete-forever.
   // Archived members only — that's exactly the set restore/purge act on.
@@ -82,7 +83,7 @@ export function TrashList() {
 
   const onRestore = (node: ObjectNode) => {
     restore(node.id);
-    toast.show({ message: `${objectDescriptor(node.type).label} restored` });
+    toast.show({ message: `${registry.descriptor(node.type).label} restored` });
   };
 
   const onPurge = async (node: ObjectNode) => {
@@ -123,6 +124,7 @@ interface TrashRowProps {
 
 function TrashRow({ node, inside, onRestore, onPurge }: TrashRowProps) {
   const { colors } = useTheme();
+  const registry = useTypeRegistry();
   const { hovered, hoverProps } = useRowHover();
   const caption = [`Archived ${relativeTime(node.updatedAt)}`, inside > 0 ? `${plural(inside, 'item')} inside` : null]
     .filter(Boolean)
@@ -136,7 +138,7 @@ function TrashRow({ node, inside, onRestore, onPurge }: TrashRowProps) {
         </Txt>
       ) : (
         <View style={styles.iconWrap}>
-          <Icon name={iconForNode(node)} size={16} color={colors.inkMuted} />
+          <Icon name={registry.iconForNode(node)} size={16} color={colors.inkMuted} />
         </View>
       )}
       <View style={styles.text}>

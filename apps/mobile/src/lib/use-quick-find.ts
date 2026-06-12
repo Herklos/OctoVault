@@ -23,7 +23,7 @@ import { router } from 'expo-router';
 
 import type { IconName } from '@/components/ui/Icon';
 
-import { creatableTypes, isFindableType } from './object-types';
+import { useTypeRegistry } from './type-registry-context';
 import { rankResults, type MatchRange } from './search-match';
 import { relativeTimeShort } from './relative-time';
 import { recordVisit, useRecents } from './use-recents';
@@ -112,9 +112,6 @@ export interface QuickFind {
   activate: (index?: number) => void;
 }
 
-/** Only content objects are findable — governed by the type registry. */
-const isFindable = (n: ObjectNode) => isFindableType(n.type);
-
 /** How many recents the empty-query view shows (the kv store keeps more). */
 const RECENTS_SHOWN = 8;
 
@@ -124,6 +121,7 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
   const onNavigateRef = useRef(opts.onNavigate);
   onNavigateRef.current = opts.onNavigate;
 
+  const registry = useTypeRegistry();
   const { spaceId, objects } = useSpaceObjects();
   const { spaces, activeId, switchSpace } = useSpaces();
   const { recents } = useRecents();
@@ -171,7 +169,7 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
       when: relativeTimeShort(ts ?? n.updatedAt),
     });
 
-    const searchable = objects.nodes.filter(isFindable);
+    const searchable = objects.nodes.filter((n) => registry.isFindableType(n.type));
     const out: QuickFindItem[] = [];
 
     if (!q) {
@@ -189,7 +187,7 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
       // No active space (zero-space identity) → no inert create rows; the
       // Vault's first-run CTA owns that moment.
       if (spaceId) {
-        const workTreeCreatable = creatableTypes().filter((d) => d.workTree && d.findable && d.editor !== 'file');
+        const workTreeCreatable = registry.creatableTypes().filter((d) => d.workTree && d.findable && d.editor !== 'file');
         workTreeCreatable.forEach((d, i) => {
           out.push({
             kind: 'action',
@@ -233,7 +231,7 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
       });
     }
     return out;
-  }, [q, spaceId, objects, recents, spaces, activeId, switchSpace, limit]);
+  }, [q, spaceId, objects, recents, spaces, activeId, switchSpace, limit, registry]);
 
   const noMatches = !!q && !items.some((i) => i.kind === 'node');
 

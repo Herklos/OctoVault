@@ -2,7 +2,8 @@ import type { RefObject } from 'react';
 import type { View as ViewType } from 'react-native';
 
 import { layout } from '@/theme';
-import { creatableTypes, type CreatableTypeEntry } from '@/lib/object-types';
+import type { CreatableTypeEntry } from '@/lib/object-types';
+import { useTypeRegistry } from '@/lib/type-registry-context';
 import { useResponsive } from '@/lib/use-responsive';
 import type { ObjectType } from '@/lib/types';
 import { Menu, MenuItem } from '@/components/ui/Menu';
@@ -37,7 +38,8 @@ export function CreateTypeMenu({
   title = 'Create',
 }: CreateTypeMenuProps) {
   const { isWide } = useResponsive();
-  const items = types ?? creatableTypes().filter((d) => d.workTree && d.editor !== 'file');
+  const registry = useTypeRegistry();
+  const items = types ?? registry.creatableTypes().filter((d) => d.workTree && d.editor !== 'file');
 
   const body = (
     <Menu>

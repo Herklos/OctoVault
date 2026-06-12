@@ -6,7 +6,8 @@ import { useRouter } from 'expo-router';
 
 import { layout, opacity, radii, spacing } from '@/theme';
 import { copyText } from '@/lib/clipboard';
-import { creatableTypes, iconForNode, objectDescriptor, objectLink, routeForNode, showsInWorkTree } from '@/lib/object-types';
+import { objectLink, routeForNode } from '@/lib/object-types';
+import { useTypeRegistry } from '@/lib/type-registry-context';
 import type { ObjectType } from '@/lib/types';
 import { relativeTime } from '@/lib/relative-time';
 import { useSpaceObjects } from '@/lib/space-objects-context';
@@ -48,6 +49,7 @@ interface WorkObjectsProps {
 export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   const router = useRouter();
   const toast = useToast();
+  const registry = useTypeRegistry();
   const { objects } = useSpaceObjects();
   const { nodes, allNodes, create, reorder, move, rename, archive, restore, ready, loaded } = objects;
 
@@ -55,16 +57,16 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   // style), not folders — any legacy folder node is filtered out and buildTree
   // reparents its children to the forest root.
   const tree = useMemo(
-    () => buildTree(nodes.filter(showsInWorkTree)),
-    [nodes],
+    () => buildTree(nodes.filter((n) => registry.showsInWorkTree(n))),
+    [nodes, registry],
   );
   const { collapsed, toggle, expand } = useTreeCollapse(spaceId, tree);
 
   // The "Archived" entry only earns its row once something is actually archived —
   // a permanent empty Trash link is chrome without a job.
   const archivedCount = useMemo(
-    () => allNodes.filter((n) => n.archived && showsInWorkTree(n)).length,
-    [allNodes],
+    () => allNodes.filter((n) => n.archived && registry.showsInWorkTree(n)).length,
+    [allNodes, registry],
   );
 
   const openNode = (node: Pick<ObjectNode, 'id' | 'type' | 'emoji' | 'title'>) =>
@@ -146,7 +148,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
     archive: (node) => {
       archive(node.id);
       toast.show({
-        message: `${objectDescriptor(node.type).label} archived`,
+        message: `${registry.descriptor(node.type).label} archived`,
         action: { label: 'Undo', onPress: () => restore(node.id) },
       });
     },
@@ -242,6 +244,7 @@ interface RecentSectionProps {
 /** "Recent" rows on the phone home — the device MRU (see `lib/use-recents`)
  *  resolved against the live index so renames/archives never show stale entries. */
 function RecentSection({ spaceId, onOpen }: RecentSectionProps) {
+  const registry = useTypeRegistry();
   const { objects } = useSpaceObjects();
   const { recents } = useRecents();
 
@@ -253,12 +256,12 @@ function RecentSection({ spaceId, onOpen }: RecentSectionProps) {
       // Ids only in the MRU — resolve against the live index so renames show
       // fresh and archived/foreign entries simply don't render.
       const node = objects.get(r.objectId);
-      if (!node || node.archived || !showsInWorkTree(node)) continue;
+      if (!node || node.archived || !registry.showsInWorkTree(node)) continue;
       out.push({ node, ts: r.ts });
       if (out.length >= 5) break;
     }
     return out;
-  }, [recents, spaceId, objects]);
+  }, [recents, spaceId, objects, registry]);
 
   if (items.length === 0) return null;
   return (
@@ -273,6 +276,7 @@ function RecentSection({ spaceId, onOpen }: RecentSectionProps) {
 
 function RecentRow({ node, ts, onPress }: { node: ObjectNode; ts: number; onPress: () => void }) {
   const { colors } = useTheme();
+  const registry = useTypeRegistry();
   const { hovered, hoverProps } = useHover();
   return (
     <Pressable
@@ -291,7 +295,7 @@ function RecentRow({ node, ts, onPress }: { node: ObjectNode; ts: number; onPres
         </Txt>
       ) : (
         <View style={styles.recentIconWrap}>
-          <Icon name={iconForNode(node)} size={14} color={colors.inkMuted} />
+          <Icon name={registry.iconForNode(node)} size={14} color={colors.inkMuted} />
         </View>
       )}
       <Txt variant="subhead" tone={node.title ? undefined : 'inkMuted'} numberOfLines={1} style={styles.recentTitle}>
@@ -313,10 +317,11 @@ interface FootMenuProps {
  *  driven by the registry so any future creatable type drops in automatically. */
 function FootMenu({ onCreateType, disabled }: FootMenuProps) {
   const { colors } = useTheme();
+  const registry = useTypeRegistry();
   const [open, setOpen] = useState(false);
   const ref = useRef<ViewType>(null);
   // Secondary types = creatable workTree types that aren't the primary (page).
-  const secondaryTypes = creatableTypes().filter((d) => d.workTree && d.editor !== 'file' && d.type !== 'page');
+  const secondaryTypes = registry.creatableTypes().filter((d) => d.workTree && d.editor !== 'file' && d.type !== 'page');
 
   return (
     <>

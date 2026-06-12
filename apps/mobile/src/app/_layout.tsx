@@ -8,7 +8,9 @@ import { ProfileProvider } from '@/lib/profile-context';
 import { RoomsRegistryProvider } from '@/lib/rooms-registry-context';
 import { SessionProvider } from '@/lib/session-context';
 import { SpaceObjectsProvider } from '@/lib/space-objects-context';
+import { SpaceTypesProvider } from '@/lib/space-types-context';
 import { SpacesProvider } from '@/lib/spaces-context';
+import { TypeRegistryProvider } from '@/lib/type-registry-context';
 
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
@@ -59,6 +61,8 @@ export default function RootLayout() {
                   <RoomsRegistryProvider>
                     <ProfileProvider>
                       <SpaceObjectsProvider>
+                        <SpaceTypesProvider>
+                        <TypeRegistryProvider>
                         <AppFrame>
                           <Stack
                             screenOptions={{
@@ -67,6 +71,8 @@ export default function RootLayout() {
                             }}
                           />
                         </AppFrame>
+                        </TypeRegistryProvider>
+                        </SpaceTypesProvider>
                       </SpaceObjectsProvider>
                     </ProfileProvider>
                   </RoomsRegistryProvider>

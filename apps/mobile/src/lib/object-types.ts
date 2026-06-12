@@ -11,6 +11,7 @@
  */
 import type { IconName } from '@/components/ui/Icon';
 import type { ObjectContentKind, ObjectNode, ObjectType, PropValue, RoomSubtype } from './types';
+import type { TypeDef } from './starfish/object-types-store';
 
 /** The fixed renderer a type reuses — a closed set of editors the app ships.
  *  Data can declare new types but cannot ship new renderers without a code change. */
@@ -162,6 +163,94 @@ export function creatableTypes(): CreatableTypeEntry[] {
 export function defaultProps(_type: ObjectType): Record<string, PropValue> {
   return {};
 }
+
+// ── TypeRegistry — merges built-ins with user-defined custom types ────────────
+
+export interface TypeRegistry {
+  descriptor: (type: string) => TypeDescriptor;
+  creatableTypes: () => CreatableTypeEntry[];
+  showsInWorkTree: (node: Pick<ObjectNode, 'type'>) => boolean;
+  iconForNode: (node: Pick<ObjectNode, 'type' | 'subtype'>) => IconName;
+  isFindableType: (type: string) => boolean;
+  isContainerType: (type: string) => boolean;
+  isOpenableType: (type: string) => boolean;
+  /** All types — built-in + custom (non-archived). */
+  allTypes: () => Array<CreatableTypeEntry & { isCustom: boolean }>;
+}
+
+/** Map a user {@link TypeDef} to the built-in {@link TypeDescriptor} shape. */
+function typeDefToDescriptor(def: TypeDef): TypeDescriptor {
+  return {
+    contentKind: def.contentKind as ObjectContentKind,
+    icon: (def.icon as IconName) || 'layers',
+    label: def.label,
+    editor: def.editorKind,
+    props: def.fields.map((f) => ({
+      key: f.key,
+      label: f.label,
+      kind: f.kind,
+      options: f.options,
+      required: f.required,
+    })),
+    creatable: def.creatable,
+    workTree: true,
+    findable: true,
+    color: def.color,
+  };
+}
+
+/** Build a merged TypeRegistry from built-ins + custom TypeDefs.
+ *  Custom types with the same id as a built-in are IGNORED (built-ins win). */
+export function makeRegistry(customTypes: TypeDef[]): TypeRegistry {
+  const customMap = new Map<string, TypeDescriptor>();
+  for (const def of customTypes) {
+    if (!BUILTIN_DESCRIPTORS[def.id]) {
+      customMap.set(def.id, typeDefToDescriptor(def));
+    }
+  }
+
+  const descriptor = (type: string): TypeDescriptor =>
+    BUILTIN_DESCRIPTORS[type] ?? customMap.get(type) ?? GENERIC;
+
+  const creatableTypes = (): CreatableTypeEntry[] => {
+    const builtins = (Object.entries(BUILTIN_DESCRIPTORS) as [ObjectType, TypeDescriptor][])
+      .filter(([, d]) => d.creatable)
+      .map(([type, d]) => ({ type, ...d }));
+    const customs: CreatableTypeEntry[] = [];
+    for (const [type, d] of customMap) {
+      if (d.creatable) customs.push({ type: type as ObjectType, ...d });
+    }
+    return [...builtins, ...customs];
+  };
+
+  return {
+    descriptor,
+    creatableTypes,
+    showsInWorkTree: (node) => descriptor(node.type).workTree,
+    iconForNode: (node) => {
+      if (node.type === 'room') return roomSubtypeIcon((node as ObjectNode).subtype);
+      return descriptor(node.type).icon;
+    },
+    isFindableType: (type) => descriptor(type).findable,
+    isContainerType: (type) => descriptor(type).editor === 'none',
+    isOpenableType: (type) => descriptor(type).editor !== 'none',
+    allTypes: () => {
+      const builtins = (Object.entries(BUILTIN_DESCRIPTORS) as [ObjectType, TypeDescriptor][]).map(
+        ([type, d]) => ({ type, ...d, isCustom: false }),
+      );
+      const customs = Array.from(customMap.entries()).map(([type, d]) => ({
+        type: type as ObjectType,
+        ...d,
+        isCustom: true,
+      }));
+      return [...builtins, ...customs];
+    },
+  };
+}
+
+/** A static registry containing only built-in types (no React context needed).
+ *  Use this at non-React call sites; React components should use `useTypeRegistry()`. */
+export const BUILTIN_REGISTRY: TypeRegistry = makeRegistry([]);
 
 /** The detail route an object opens into — collapses to a single generic route now that
  *  every object type (page, board, task, file, image, custom) is handled by one screen. */
