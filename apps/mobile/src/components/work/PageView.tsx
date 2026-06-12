@@ -18,7 +18,7 @@ import {
   type BlockTypeDef,
   type MdShortcutMatch,
 } from '@/lib/blocks';
-import { visibleBlocks } from '@/lib/page-model';
+import { visibleBlocks } from '@/lib/page-content';
 import { usePage, type Block, type BlockType } from '@/lib/use-page';
 import { isPublicSpaceId } from '@/lib/starfish/pubspace';
 import { useSpaceObjects } from '@/lib/space-objects-context';

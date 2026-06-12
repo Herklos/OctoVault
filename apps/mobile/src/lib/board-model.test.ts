@@ -16,7 +16,7 @@ import {
   type WalTransport,
 } from '@drakkar.software/starfish-wal';
 
-import * as board from './board-model';
+import * as board from './board-content';
 
 // Node's vitest has no btoa/atob — wire base64 so the protocol's author signer works.
 beforeAll(() => {

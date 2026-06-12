@@ -1,16 +1,11 @@
 import { useCallback, useMemo } from 'react';
 
-import { isPublicSpaceId } from './starfish/pubspace';
-import { boardLogName } from './starfish/paths';
-import { useSession } from './session-context';
-import { useRoomOpen } from './use-room-open-flow';
-import { useRoomLiveSync } from './use-room-live-sync';
-import { useWalDoc } from './use-wal-doc';
-import * as board from './board-model';
-import type { Board, Task, TaskStatus } from './board-model';
+import { useObjectContent } from './use-object-content';
+import * as board from './board-content';
+import type { Board, Task, TaskStatus } from './board-content';
 
-export type { Board, Column, Task, TaskStatus } from './board-model';
-export { orderBetween } from './board-model';
+export type { Board, Column, Task, TaskStatus } from './board-content';
+export { orderBetween } from './board-content';
 
 const EMPTY_BOARD: Board = { columns: [], tasksByColumn: {}, done: 0, total: 0 };
 
@@ -46,33 +41,16 @@ export interface BoardHook {
 }
 
 /**
- * One `board` Object's kanban content, backed by a {@link WalDocument} (CRDT
- * op-log). Columns + per-task fields are CRDT registers/lists, so concurrent
- * task moves/edits from two devices converge after a pull — no append-fold replay.
- * v1 is private (E2EE) spaces only.
+ * One `board` Object's kanban content, backed by a {@link WalDocument} (CRDT op-log).
+ * Thin wrapper over {@link useObjectContent} + {@link board-content} ops.
  */
 export function useBoard(spaceId: string, boardId: string, opts: { enabled?: boolean } = {}): BoardHook {
-  const { session } = useSession();
-  const enabled = (opts.enabled ?? true) && !!spaceId && !!boardId && !isPublicSpaceId(spaceId);
-
-  const { encryptor, client, opening, openError, offline, reload: reopenSpace } = useRoomOpen({
-    roomId: boardId,
+  const { walDoc: doc, ready, version, touch, opening, openError, offline, reload } = useObjectContent(
     spaceId,
-    isPublic: false,
-    enabled,
-    initializeRoom: false,
-  });
-
-  const { doc, ready, version, touch, pull, reload: reloadDoc } = useWalDoc({
-    client,
-    encryptor,
-    documentKey: boardLogName(spaceId, boardId),
-    edPubHex: session?.keys.edPub,
-    edPrivHex: session?.keys.edPriv,
-    enabled: enabled && !!client && !!encryptor,
-  });
-
-  useRoomLiveSync({ roomId: boardId, ready, pull, skipFirstFocus: true, firstFocusKey: boardId });
+    boardId,
+    'append',
+    opts,
+  );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const folded = useMemo<Board>(() => (doc ? board.readBoard(doc) : EMPTY_BOARD), [doc, version]);
@@ -90,13 +68,10 @@ export function useBoard(spaceId: string, boardId: string, opts: { enabled?: boo
   return {
     board: folded,
     ready,
-    opening: enabled ? opening : false,
+    opening,
     openError,
     offline,
-    reload: () => {
-      reopenSpace();
-      reloadDoc();
-    },
+    reload,
     addColumn: (title) => mut((d) => board.addColumn(d, title)),
     renameColumn: (id, title) => mut((d) => board.renameColumn(d, id, title)),
     moveColumn: (id, toIndex) => mut((d) => board.moveColumn(d, id, toIndex)),

@@ -1,15 +1,10 @@
 import { useCallback, useMemo } from 'react';
 
-import { isPublicSpaceId } from './starfish/pubspace';
-import { pageLogName } from './starfish/paths';
-import { useSession } from './session-context';
-import { useRoomOpen } from './use-room-open-flow';
-import { useRoomLiveSync } from './use-room-live-sync';
-import { useWalDoc } from './use-wal-doc';
-import * as page from './page-model';
-import type { Block, BlockType, NewBlock } from './page-model';
+import { useObjectContent } from './use-object-content';
+import * as page from './page-content';
+import type { Block, BlockType, NewBlock } from './page-content';
 
-export type { Block, BlockType, NewBlock } from './page-model';
+export type { Block, BlockType, NewBlock } from './page-content';
 
 export interface PageHook {
   blocks: Block[];
@@ -44,33 +39,16 @@ export interface PageHook {
 
 /**
  * One `page` Object's block content, backed by a {@link WalDocument} (CRDT op-log).
- * The page title/emoji live on the index NODE ({@link useObjects}); this hook owns
- * the blocks. Concurrent edits converge (per-block char-RGA text). v1 is private
- * (E2EE) spaces only — public/plaintext pages are a deferred follow-up.
+ * Thin wrapper over {@link useObjectContent} + {@link page-content} ops.
+ * Concurrent edits converge (per-block char-RGA text).
  */
 export function usePage(spaceId: string, pageId: string, opts: { enabled?: boolean } = {}): PageHook {
-  const { session } = useSession();
-  const enabled = (opts.enabled ?? true) && !!spaceId && !!pageId && !isPublicSpaceId(spaceId);
-
-  const { encryptor, client, opening, openError, offline, reload: reopenSpace } = useRoomOpen({
-    roomId: pageId,
+  const { walDoc: doc, ready, version, touch, opening, openError, offline, reload } = useObjectContent(
     spaceId,
-    isPublic: false,
-    enabled,
-    initializeRoom: false,
-  });
-
-  const { doc, ready, version, touch, pull, reload: reloadDoc } = useWalDoc({
-    client,
-    encryptor,
-    documentKey: pageLogName(spaceId, pageId),
-    edPubHex: session?.keys.edPub,
-    edPrivHex: session?.keys.edPriv,
-    enabled: enabled && !!client && !!encryptor,
-  });
-
-  // Live cross-device updates: focus-pull (+ poll while SSE is down) folds new ops.
-  useRoomLiveSync({ roomId: pageId, ready, pull, skipFirstFocus: true, firstFocusKey: pageId });
+    pageId,
+    'append',
+    opts,
+  );
 
   // `version` is the recompute trigger — the WalDocument is mutated in place.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,13 +67,10 @@ export function usePage(spaceId: string, pageId: string, opts: { enabled?: boole
   return {
     blocks,
     ready,
-    opening: enabled ? opening : false,
+    opening,
     openError,
     offline,
-    reload: () => {
-      reopenSpace();
-      reloadDoc();
-    },
+    reload,
     appendBlock: (init) => mut((d) => page.appendBlock(d, init)),
     insertBlock: (index, init) => mut((d) => page.insertBlock(d, index, init)),
     setBlockText: (id, text) => mut((d) => page.setBlockText(d, id, text)),

@@ -149,24 +149,39 @@ export interface Room {
   automation?: AutomationMeta;
 }
 
-/** The builtin object types. A space's contents — channels, DMs, stream/automation
- *  rooms, categories, docs, projects (and a project's tasks) — are all `Object`s of
- *  one `ObjectType`. A custom (user-defined) type rides the same `string` field, so
- *  the union stays open-ended; builtins are the ones the app ships renderers for. */
-export type BuiltinObjectType = 'room' | 'category' | 'automation' | 'doc' | 'project' | 'task';
+/** The builtin object types. Every artifact — folders, pages, boards, tasks,
+ *  files, images, plus legacy chat types — is an `Object` of one `ObjectType`.
+ *  A custom (user-defined) type rides the same `string` field, so the union is
+ *  open-ended; builtins are the ones the app ships renderers for. */
+export type BuiltinObjectType =
+  | 'folder'
+  | 'page'
+  | 'board'
+  | 'task'
+  | 'file'
+  | 'image'
+  | 'room'
+  | 'category';
 export type ObjectType = BuiltinObjectType | (string & {});
 
 /** The builtin types, as a runtime set — so code can ask "is this one we ship a
  *  renderer for?" and fall back to the generic custom-type path otherwise. */
-export const BUILTIN_OBJECT_TYPES: readonly BuiltinObjectType[] = ['room', 'category', 'automation', 'doc', 'project', 'task'];
+export const BUILTIN_OBJECT_TYPES: readonly BuiltinObjectType[] = [
+  'folder', 'page', 'board', 'task', 'file', 'image', 'room', 'category',
+];
 
 /** How an object's CONTENT syncs — the one axis a custom type must declare so the app
  *  can pick a hook without hardcoding its `type`:
  *   - `merge`  → a merge-doc (pull→union-merge→push), like a doc or a channel.
- *   - `append` → an append-only `by_timestamp` event log, like a project or a stream.
- *   - `none`   → no content doc; the node is structure only, like a category.
+ *   - `append` → an append-only `by_timestamp` event log, like a page or a board.
+ *   - `none`   → no content doc; the node is structure only, like a folder.
  *  Builtins infer this (see `object-types.ts`); a custom type sets it on the node. */
 export type ObjectContentKind = 'merge' | 'append' | 'none';
+
+/** Scalar value that can be stored in an ObjectNode's `props` map.
+ *  Low-frequency structured metadata (status, order, blobId, mime…).
+ *  Heavy freeform body stays in the per-object WAL/merge content doc. */
+export type PropValue = string | number | boolean | null;
 
 /** When `type === 'room'`, which flavour. Maps the legacy {@link RoomKind}:
  *  `channel`/`private`→`channel`, `dm`→`dm`, `stream`→`stream`, `automated`→`automation`. */
@@ -200,6 +215,11 @@ export interface ObjectNode {
    *  (inferred from {@link type}); a CUSTOM type sets it so the generic hook layer can
    *  open the right collection without knowing the type. */
   contentKind?: ObjectContentKind;
+  /** Structured property values: status, order, blobId, mime, size, name, etc.
+   *  Written via the index's setProps reducer (node-level LWW — two devices
+   *  concurrently writing DIFFERENT keys on the SAME node lose one side; acceptable
+   *  for low-frequency metadata since freeform body stays in the content doc). */
+  props?: Record<string, PropValue>;
   /** Optional emoji/glyph already covers the icon; a custom type may also carry an
    *  arbitrary `meta` bag for type-specific fields the generic renderers ignore. */
   meta?: Record<string, unknown>;

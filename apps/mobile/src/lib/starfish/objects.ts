@@ -14,7 +14,7 @@
  * cycle (A→under B while B→under A) or an orphan (parent archived). The builder below
  * is the single place those are repaired so every consumer renders a well-formed tree.
  */
-import type { AutomationMeta, ID, ObjectNode, ObjectType, Room, RoomSubtype } from '@/lib/types';
+import type { AutomationMeta, ID, ObjectNode, ObjectType, PropValue, Room, RoomSubtype } from '@/lib/types';
 import { randomId, roomSlug } from '../ids';
 
 /** The bucket new/unfiled rooms land in, and the fallback a deleted category's
@@ -180,6 +180,8 @@ export interface NewObjectInput {
   title: string;
   emoji?: string;
   automation?: AutomationMeta;
+  /** Structured property values applied at creation time (e.g. blobId, status). */
+  props?: Record<string, PropValue>;
   /** Provide to reuse an id (e.g. a room id derived elsewhere); else minted. */
   id?: ID;
 }
@@ -198,8 +200,26 @@ export function addObject(nodes: ObjectNode[], input: NewObjectInput, now: numbe
     ...(input.emoji ? { emoji: input.emoji } : {}),
     updatedAt: now,
     ...(input.automation ? { automation: input.automation } : {}),
+    ...(input.props ? { props: input.props } : {}),
   };
   return { nodes: [...nodes, node], node };
+}
+
+/** Merge a props patch into a node's `props` map (node-level LWW write; bumps `updatedAt`).
+ *  Concurrent writes of DIFFERENT keys on the SAME node lose one side — acceptable for
+ *  low-frequency metadata; the freeform body stays in the per-object content doc. */
+export function setProps(nodes: ObjectNode[], id: ID, patch: Record<string, PropValue>, now: number): ObjectNode[] {
+  return nodes.map((n) => (n.id === id ? { ...n, props: { ...n.props, ...patch }, updatedAt: now } : n));
+}
+
+/** Remove a single key from a node's `props` map (LWW write; bumps `updatedAt`). */
+export function clearProp(nodes: ObjectNode[], id: ID, key: string, now: number): ObjectNode[] {
+  return nodes.map((n) => {
+    if (n.id !== id) return n;
+    const next = { ...n.props };
+    delete next[key];
+    return { ...n, props: next, updatedAt: now };
+  });
 }
 
 /** Patch a node's mutable metadata (title/emoji/automation), bumping `updatedAt`. */

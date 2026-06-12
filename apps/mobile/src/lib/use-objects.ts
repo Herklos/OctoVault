@@ -7,14 +7,16 @@ import {
   archiveObject as archiveObjectNodes,
   breadcrumbs as breadcrumbsOf,
   buildTree,
+  clearProp,
   patchObject,
   reorderObjects,
   reparentObject,
+  setProps as setPropsReducer,
   subtreeIds,
   type NewObjectInput,
   type ObjectTreeNode,
 } from './starfish/objects';
-import type { ID, ObjectNode } from './types';
+import type { ID, ObjectNode, PropValue } from './types';
 import { useMergeDoc } from './use-merge-doc';
 import { useRoomLiveSync } from './use-room-live-sync';
 
@@ -57,6 +59,10 @@ export interface ObjectsHook {
    *  but they come back `archived: true` (the flag rides each node), so the
    *  failure mode is "reappears in Trash", never "reappears in the workspace". */
   purge: (id: ID) => void;
+  /** Merge a props patch into a node's index entry (node-level LWW). */
+  setProps: (id: ID, patch: Record<string, PropValue>) => void;
+  /** Remove a single key from a node's props map (node-level LWW). */
+  clearProp: (id: ID, key: string) => void;
   /** Apply an arbitrary stamped reducer to the node list (for composite ops like the
    *  room/category helpers in {@link useRooms}). Returns false when not writable yet. */
   mutate: (reducer: (nodes: ObjectNode[], now: number) => ObjectNode[]) => boolean;
@@ -153,6 +159,16 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
     });
   }, [applyNodes]);
 
+  const setProps = useCallback((id: ID, patch: Record<string, PropValue>) => {
+    const now = stamp();
+    applyNodes((cur) => setPropsReducer(cur, id, patch, now));
+  }, [stamp, applyNodes]);
+
+  const clearPropFn = useCallback((id: ID, key: string) => {
+    const now = stamp();
+    applyNodes((cur) => clearProp(cur, id, key, now));
+  }, [stamp, applyNodes]);
+
   const mutate = useCallback((reducer: (nodes: ObjectNode[], now: number) => ObjectNode[]) => {
     const now = stamp();
     return applyNodes((cur) => reducer(cur, now));
@@ -164,5 +180,5 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   const ancestors = useCallback((id: ID) => ancestorsOf(objects, id), [objects]);
   const get = useCallback((id: ID) => objects.find((n) => n.id === id), [objects]);
 
-  return { tree, nodes, allNodes: objects, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, pull, create, rename, move, reorder, archive, restore, purge, mutate };
+  return { tree, nodes, allNodes: objects, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, pull, create, rename, move, reorder, archive, restore, purge, setProps, clearProp: clearPropFn, mutate };
 }

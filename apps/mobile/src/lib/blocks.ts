@@ -13,7 +13,7 @@
 import type { IconName } from '@/components/ui/Icon';
 import type { type as typeScale } from '@/theme';
 
-import type { Block, BlockType } from './page-model';
+import type { Block, BlockType } from './page-content';
 
 /** Slash/insert menu grouping (Notion-style sections, micro mono headers). */
 export type BlockSection = 'basic' | 'list' | 'other';
