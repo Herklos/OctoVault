@@ -1,5 +1,82 @@
 # Changelog
 
+## 0.3.0 — "Everything is an ObjectType"
+
+A complete unification of the content layer: pages, boards, tasks, files, images
+and custom types all become first-class **Objects** backed by one generic engine.
+
+### Architecture — generic object storage
+
+- **Unified storage paths**: replaced type-specific `objects/pages/{id}` /
+  `objects/boards/{id}` collections with a single family — `objects/logs/{id}`
+  (append/WAL) + `objects/logs/{id}__snapshot`, `objects/docs/{id}` (merge),
+  `objects/blobs/{id}` (raw bytes), `types/_index` (custom type registry). Updated
+  the local Starfish server (`apps/server/src/config.ts`) and the Infra
+  `drakkar_sync` Python mirror in lockstep.
+- **Single object route**: collapsed `/work/page/[id]` and `/work/board/[id]` into
+  one `/work/object/[id]`. The editor (`page`, `board`, `file`, `record`, `none`)
+  is resolved at runtime from the `TypeRegistry` descriptor — no more route
+  ternaries.
+- **Generic content engine** (`object-content-model.ts`, `use-object-content.ts`):
+  schema-driven ops over a `WalDocument`; `use-page`/`use-board` are now thin
+  wrappers composing it with `page-content.ts`/`board-content.ts`.
+
+### Features — Anytype-style object model
+
+- **Files & images as first-class objects**: sealed-blob upload pipeline
+  (`objects/blobs/{id}`), `FileObjectView` (download/share or inline image),
+  `image`/`file` in-page ref-blocks insertable via `/` commands and `BlockTypeMenu`.
+- **Board as a view over task-objects**: board content doc holds only column
+  definitions; tasks are promoted to first-class objects (`parentId === boardId`,
+  `type === 'task'`) projected by `task-model.ts`. Opening a task navigates to its
+  object route as a mini-page + `TaskPropsStrip`.
+- **User-defined types** (Phase G): a per-space `types/_index` union-merged doc
+  stores `TypeDef`s (icon, label, color, field schema, editor kind). `makeRegistry`
+  overlays custom types on built-ins. UI: `space/[id]/types/*` routes with
+  `TypeList`, `TypeEditor`, `FieldEditor`, `IconPicker`, `ColorPicker`,
+  `PropertyField`, and `PropertyPanel`. Custom-type objects degrade to the GENERIC
+  editor rather than crashing.
+- **Registry-driven create menus**: `creatableTypes()` from the live registry feeds
+  a `CreateTypeMenu` at every "+" surface; hardcoded page/board markup removed.
+- **De-typed UI**: `showsInWorkTree`, `isOpenableObjectType`, `isFindableType`
+  predicates replace every `type==='page'||'board'` filter across the tree, Trash,
+  quick-find and command palette.
+
+### SDK extraction — `@drakkar.software/octovault-sdk`
+
+All pure lib logic (crypto/identity, Starfish sync, WAL/CRDT models, domain types,
+paths, object-types) lifted into `packages/sdk/src` as a headless, React-free
+package (`@drakkar.software/octovault-sdk`). Metro resolves it from raw TypeScript
+source via a custom alias in `metro.config.js`; the app imports all SDK symbols from
+the single barrel.
+
+### Bug fix — WAL open errors now surfaced
+
+Pages (including brand-new ones) were silently un-editable: `transport.pull` threw
+on the initial pull of a never-written log (404), `useWalDoc` swallowed the
+rejection with no signal, and `useObjectContent` only plumbed `openError` from the
+space open — leaving the editor disabled with no feedback.
+
+- `transport.ts`: tolerate `404` on `cursor.pull()` (empty starting state for a new
+  object); rethrow `403` and all other errors.
+- `useWalDoc`: added `opening: boolean` + `openError: string | null` to
+  `WalDocHandle`; the `.catch` now captures `String(e)` instead of discarding it.
+- `useObjectContent`: merges WAL `opening`/`openError` with room-open state so the
+  existing `PageView`/`BoardView` Callout and "Opening…" indicator react to WAL
+  failures.
+
+### Other
+
+- **EAS Update wiring**: `expo-updates` wired to EAS Update with `appVersion`
+  runtime policy; `eas.json` profiles for development/preview/production channels.
+  Added AI and notification settings screens.
+- Deep-link host updated to `vault.drakkar.software`; duplicate `app.json` entries
+  fixed.
+- Agents tab added to sidebar; DM spaces filtered from the workspace tree; profile
+  button restricted to Vault and Agents tabs on mobile.
+- Logo mark switched from inline SVG to `apps/mobile/assets/images/logo-512.png`.
+- `@drakkar.software/starfish-*` bumped to `3.0.0-alpha.27` across all workspaces.
+
 ## 0.2.0 — "Ink & Pearl" design overhaul
 
 A ground-up visual identity for OctoVault plus six workspace improvements.
