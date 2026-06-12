@@ -9,6 +9,10 @@ export interface WalDocHandle {
   doc: WalDocument | null;
   /** True once the document is open and safe to mutate. */
   ready: boolean;
+  /** True while `open()` is in flight. */
+  opening: boolean;
+  /** Non-null if `open()` rejected. Includes the HTTP status for 404/403 discrimination. */
+  openError: string | null;
   /** Re-render token: bumped on every local mutation, pull, and commit. Read it in
    *  a `useMemo` dep so a projection (blocks / board) recomputes when state changes. */
   version: number;
@@ -45,14 +49,18 @@ export interface UseWalDocOptions {
 export function useWalDoc(opts: UseWalDocOptions): WalDocHandle {
   const { client, encryptor, documentKey, edPubHex, edPrivHex, enabled, commitDelayMs = 400 } = opts;
   const [doc, setDoc] = useState<WalDocument | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
   const [version, bump] = useReducer((x: number) => x + 1, 0);
   const [reloadKey, reload] = useReducer((x: number) => x + 1, 0);
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setDoc(null);
+    setOpenError(null);
     if (!enabled || !client || !edPubHex || !edPrivHex) return;
     let cancelled = false;
+    setOpening(true);
     const d = createWalDocument({
       client,
       documentKey,
@@ -64,11 +72,15 @@ export function useWalDoc(opts: UseWalDocOptions): WalDocHandle {
       .then(() => {
         if (!cancelled) {
           setDoc(d);
+          setOpening(false);
           bump();
         }
       })
-      .catch(() => {
-        /* open failure (offline / not a recipient) — stays null; caller shows state */
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setOpening(false);
+          setOpenError(String(e));
+        }
       });
     return () => {
       cancelled = true;
@@ -98,5 +110,5 @@ export function useWalDoc(opts: UseWalDocOptions): WalDocHandle {
       .catch(() => {});
   }, [doc]);
 
-  return { doc, ready: !!doc, version, touch, pull, reload };
+  return { doc, ready: !!doc, opening, openError, version, touch, pull, reload };
 }

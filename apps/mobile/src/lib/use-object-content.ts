@@ -51,7 +51,7 @@ export function useObjectContent(
   const base = (opts.enabled ?? true) && !!spaceId && !!objectId && !isPublicSpaceId(spaceId);
   const walEnabled = base && contentKind === 'append';
 
-  const { encryptor, client, opening, openError, offline, reload: reopenSpace } = useRoomOpen({
+  const { encryptor, client, opening: roomOpening, openError: roomOpenError, offline, reload: reopenSpace } = useRoomOpen({
     roomId: objectId,
     spaceId,
     isPublic: false,
@@ -60,7 +60,7 @@ export function useObjectContent(
   });
 
   // Always call useWalDoc (even when walEnabled=false) for stable hook order.
-  const { doc: walDoc, ready, version, touch, pull, reload: reloadDoc } = useWalDoc({
+  const { doc: walDoc, ready, version, touch, pull, reload: reloadDoc, opening: walOpening, openError: walOpenError } = useWalDoc({
     client,
     encryptor,
     documentKey: objLogName(spaceId, objectId),
@@ -84,8 +84,8 @@ export function useObjectContent(
     version,
     touch,
     pull,
-    opening: base ? opening : false,
-    openError,
+    opening: base ? (roomOpening || walOpening) : false,
+    openError: roomOpenError ?? walOpenError,
     offline,
     reload,
   };

@@ -19,7 +19,7 @@
  * the client's `namespace` (empty in local dev) is prepended internally, so the
  * key the client author-signs over matches the `documentKey` WAL verifies over.
  */
-import { AppendLogCursor } from '@drakkar.software/starfish-client';
+import { AppendLogCursor, StarfishHttpError } from '@drakkar.software/starfish-client';
 import type { StarfishClient } from '@drakkar.software/starfish-client';
 import type { WalAppendElement, WalTransport } from '@drakkar.software/starfish-wal';
 
@@ -37,7 +37,13 @@ export function createWalTransport(client: StarfishClient): WalTransport {
         pullPath: `/pull/${documentKey}`,
         since: checkpoint,
       });
-      const els = await cursor.pull();
+      // A never-written object has no log doc yet — 404 is not an error, just an
+      // empty starting state. Rethrow everything else (403, decrypt errors, etc.)
+      // so the caller can surface them via openError.
+      const els = await cursor.pull().catch((e: unknown) => {
+        if (e instanceof StarfishHttpError && e.status === 404) return [];
+        throw e;
+      });
       return els.map<WalAppendElement>((e) => ({
         ts: e.ts,
         data: e.data,
