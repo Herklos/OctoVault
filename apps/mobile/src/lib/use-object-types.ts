@@ -35,7 +35,7 @@ export function useObjectTypes(spaceId: string, opts: { enabled?: boolean } = {}
   });
 
   const d = (doc as TypesDoc | null) ?? store.EMPTY_TYPES_DOC;
-  const types = d.types.filter((t) => !t.archived);
+  const types = (d.types ?? []).filter((t) => !t.archived);
 
   const mut = useCallback(
     (fn: (cur: TypesDoc) => TypesDoc) => {
