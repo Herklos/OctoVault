@@ -9,7 +9,7 @@ import { useRecordVisit } from '@/lib/use-recents';
 import { useSpaces } from '@/lib/use-spaces';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { useTheme } from '@/lib/use-theme';
-import { objectDescriptor } from '@/lib/object-types';
+import { useTypeRegistry } from '@/lib/type-registry-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { Stage } from '@/components/ui/Stage';
 import { StackScreen } from '@/components/ui/StackScreen';
@@ -19,6 +19,7 @@ import { ObjectActions } from '@/components/objects/ObjectActions';
 import { PageView } from '@/components/work/PageView';
 import { BoardView } from '@/components/work/BoardView';
 import { FileObjectView } from '@/components/work/FileObjectView';
+import { RecordView } from '@/components/work/RecordView';
 import { TaskPropsStrip } from '@/components/work/TaskPropsStrip';
 
 /** Generic object viewer — resolves the editor from the object's type descriptor.
@@ -42,12 +43,13 @@ export default function WorkObjectScreen() {
   }, [spaceId, activeId, setActiveId]);
   useRecordVisit(spaceId, id);
 
+  const registry = useTypeRegistry();
   const { objects } = useSpaceObjects();
   const { ancestors, get, rename, archive } = objects;
   const trail = ancestors(id);
   const node = get(id);
   const parent = trail.at(-1);
-  const editor = node ? objectDescriptor(node.type).editor : 'page';
+  const editor = node ? registry.descriptor(node.type).editor : 'page';
   const [toolbar, setToolbar] = useState<ReactNode>(null);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/work'));
@@ -59,7 +61,13 @@ export default function WorkObjectScreen() {
   );
 
   const content =
-    editor === 'file' ? (
+    editor === 'record' ? (
+      <Stage maxWidth={layout.editorMaxWidth} style={styles.stage}>
+        <ErrorBoundary label="Record">
+          <RecordView spaceId={spaceId} objectId={id} />
+        </ErrorBoundary>
+      </Stage>
+    ) : editor === 'file' ? (
       <Stage maxWidth={layout.editorMaxWidth} style={styles.stage}>
         <ErrorBoundary label="File">
           <FileObjectView

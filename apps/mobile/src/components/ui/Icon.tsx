@@ -122,6 +122,7 @@ const ICONS = {
 } satisfies Record<string, IconDef>;
 
 export type IconName = keyof typeof ICONS;
+export const ICON_NAMES: IconName[] = Object.keys(ICONS) as IconName[];
 
 interface IconProps {
   name: IconName;
