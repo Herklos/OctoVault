@@ -23,6 +23,7 @@ import { router } from 'expo-router';
 
 import type { IconName } from '@/components/ui/Icon';
 
+import { isFindableType } from './object-types';
 import { rankResults, type MatchRange } from './search-match';
 import { relativeTimeShort } from './relative-time';
 import { recordVisit, useRecents } from './use-recents';
@@ -111,8 +112,8 @@ export interface QuickFind {
   activate: (index?: number) => void;
 }
 
-/** Only content objects are findable — the chat-era node types stay invisible. */
-const isFindable = (n: ObjectNode) => n.type === 'page' || n.type === 'board';
+/** Only content objects are findable — governed by the type registry. */
+const isFindable = (n: ObjectNode) => isFindableType(n.type);
 
 /** How many recents the empty-query view shows (the kv store keeps more). */
 const RECENTS_SHOWN = 8;

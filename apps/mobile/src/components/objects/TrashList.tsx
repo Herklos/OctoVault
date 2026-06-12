@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/theme';
 import { plural } from '@/lib/format';
-import { iconForNode, objectDescriptor } from '@/lib/object-types';
+import { iconForNode, objectDescriptor, showsInWorkTree } from '@/lib/object-types';
 import { relativeTime } from '@/lib/relative-time';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { subtreeIds } from '@/lib/starfish/objects';
@@ -41,7 +41,7 @@ export function TrashList() {
       .filter(
         (n) =>
           n.archived &&
-          (n.type === 'page' || n.type === 'board') &&
+          showsInWorkTree(n) &&
           (n.parentId == null || !byId.get(n.parentId)?.archived),
       )
       .sort((a, b) => b.updatedAt - a.updatedAt);

@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 
 import { layout, opacity, radii, spacing } from '@/theme';
 import { copyText } from '@/lib/clipboard';
-import { iconForNode, objectDescriptor, objectLink, routeForNode } from '@/lib/object-types';
+import { iconForNode, objectDescriptor, objectLink, routeForNode, showsInWorkTree } from '@/lib/object-types';
 import { relativeTime } from '@/lib/relative-time';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { buildTree, type ObjectTreeNode } from '@/lib/starfish/objects';
@@ -57,7 +57,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   // style), not folders — any legacy folder node is filtered out and buildTree
   // reparents its children to the forest root.
   const tree = useMemo(
-    () => buildTree(nodes.filter((n) => n.type === 'page' || n.type === 'board')),
+    () => buildTree(nodes.filter(showsInWorkTree)),
     [nodes],
   );
   const { collapsed, toggle, expand } = useTreeCollapse(spaceId, tree);
@@ -65,7 +65,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   // The "Archived" entry only earns its row once something is actually archived —
   // a permanent empty Trash link is chrome without a job.
   const archivedCount = useMemo(
-    () => allNodes.filter((n) => n.archived && (n.type === 'page' || n.type === 'board')).length,
+    () => allNodes.filter((n) => n.archived && showsInWorkTree(n)).length,
     [allNodes],
   );
 
@@ -255,7 +255,7 @@ function RecentSection({ spaceId, onOpen }: RecentSectionProps) {
       // Ids only in the MRU — resolve against the live index so renames show
       // fresh and archived/foreign entries simply don't render.
       const node = objects.get(r.objectId);
-      if (!node || node.archived || (node.type !== 'page' && node.type !== 'board')) continue;
+      if (!node || node.archived || !showsInWorkTree(node)) continue;
       out.push({ node, ts: r.ts });
       if (out.length >= 5) break;
     }

@@ -9,7 +9,7 @@ import { useHover, useRowHover } from '@/lib/use-hover';
 import { useInlineEdit, type InlineEdit } from '@/lib/use-inline-edit';
 import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
-import { iconForNode } from '@/lib/object-types';
+import { iconForNode, isContainerType } from '@/lib/object-types';
 import type { ObjectTreeNode } from '@/lib/starfish/objects';
 import type { ID } from '@/lib/types';
 import { AutosaveField } from '@/components/ui/AutosaveField';
@@ -157,8 +157,8 @@ function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
 
   const hasChildren = node.children.length > 0;
   const isCollapsed = ctx.collapsed.has(node.id);
-  const isCategory = node.type === 'category';
-  const container = isCategory || (ctx.isContainer?.(node.type) ?? false);
+  const isCategory = isContainerType(node.type) || (ctx.isContainer?.(node.type) ?? false);
+  const container = isCategory;
   const selected = ctx.selectedId === node.id;
   const editing = ctx.edit.isEditing(node.id);
   const { actions } = ctx;

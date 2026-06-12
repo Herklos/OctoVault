@@ -43,6 +43,10 @@ export interface TypeDescriptor {
   props: PropField[];
   /** Whether this type appears in the "create new" menus. */
   creatable: boolean;
+  /** Whether this type appears in the workspace sidebar tree. Unknown types default to true. */
+  workTree: boolean;
+  /** Whether this type is searchable in quick-find / command palette. Unknown types default to true. */
+  findable: boolean;
   /** Placeholder title for a newly created object. */
   defaultTitle?: string;
   /** Theme color swatch for the type pill (undefined = default accent). */
@@ -75,21 +79,21 @@ const BLOB_PROPS: PropField[] = [
 
 const BUILTIN_DESCRIPTORS: Record<string, TypeDescriptor> = {
   // OctoVault primary types
-  folder: { contentKind: 'none', icon: 'folder', label: 'Folder', editor: 'none', props: [], creatable: true },
-  page: { contentKind: 'append', icon: 'file', label: 'Page', editor: 'page', props: [], creatable: true, defaultTitle: 'Untitled' },
-  board: { contentKind: 'append', icon: 'work', label: 'Board', editor: 'board', props: [], creatable: true, defaultTitle: 'Untitled Board' },
-  task: { contentKind: 'append', icon: 'check', label: 'Task', editor: 'page', props: TASK_PROPS, creatable: false },
-  file: { contentKind: 'none', icon: 'file', label: 'File', editor: 'file', props: BLOB_PROPS, creatable: true, defaultTitle: 'Untitled File' },
-  image: { contentKind: 'none', icon: 'image', label: 'Image', editor: 'file', props: BLOB_PROPS, creatable: true, defaultTitle: 'Untitled Image' },
+  folder:   { contentKind: 'none',   icon: 'folder', label: 'Folder',   editor: 'none',   props: [],         creatable: true,  workTree: false, findable: false },
+  page:     { contentKind: 'append', icon: 'file',   label: 'Page',     editor: 'page',   props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled' },
+  board:    { contentKind: 'append', icon: 'work',   label: 'Board',    editor: 'board',  props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled Board' },
+  task:     { contentKind: 'append', icon: 'check',  label: 'Task',     editor: 'page',   props: TASK_PROPS, creatable: false, workTree: false, findable: false },
+  file:     { contentKind: 'none',   icon: 'file',   label: 'File',     editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled File' },
+  image:    { contentKind: 'none',   icon: 'image',  label: 'Image',    editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled Image' },
   // Legacy/compat — chat-era types; non-creatable from the knowledge surface.
-  room: { contentKind: 'merge', icon: 'hash', label: 'Channel', editor: 'none', props: [], creatable: false },
-  category: { contentKind: 'none', icon: 'folder', label: 'Category', editor: 'none', props: [], creatable: false },
+  room:     { contentKind: 'merge',  icon: 'hash',   label: 'Channel',  editor: 'none',   props: [],         creatable: false, workTree: false, findable: false },
+  category: { contentKind: 'none',   icon: 'folder', label: 'Category', editor: 'none',   props: [],         creatable: false, workTree: false, findable: false },
 };
 
 /** The fallback for an unknown (custom) type: a structureless-until-declared object
  *  that renders generically. Its content model comes from the NODE's `contentKind`
  *  (see {@link contentKindOf}); the descriptor's is only the last-resort default. */
-const GENERIC: TypeDescriptor = { contentKind: 'merge', icon: 'layers', label: 'Object', editor: 'record', props: [], creatable: false };
+const GENERIC: TypeDescriptor = { contentKind: 'merge', icon: 'layers', label: 'Object', editor: 'record', props: [], creatable: false, workTree: true, findable: true };
 
 /** Resolve a type's descriptor — a builtin, or the generic fallback for a custom type. */
 export function objectDescriptor(type: ObjectType): TypeDescriptor {
@@ -118,7 +122,22 @@ function roomSubtypeIcon(subtype: RoomSubtype | undefined): IconName {
 /** A container type holds children but has no content of its own (folder/category) —
  *  in the tree it toggles open/closed instead of opening a content route. */
 export function isContainerType(type: ObjectType): boolean {
-  return objectDescriptor(type).contentKind === 'none';
+  return objectDescriptor(type).editor === 'none';
+}
+
+/** Whether a node appears in the workspace sidebar tree. Unknown custom types default to shown. */
+export function showsInWorkTree(node: Pick<ObjectNode, 'type'>): boolean {
+  return objectDescriptor(node.type).workTree;
+}
+
+/** Whether a type can be opened in an editor (clicking navigates rather than toggling). */
+export function isOpenableObjectType(type: ObjectType): boolean {
+  return objectDescriptor(type).editor !== 'none';
+}
+
+/** Whether a type is surfaced in quick-find and search. Unknown custom types default to findable. */
+export function isFindableType(type: ObjectType): boolean {
+  return objectDescriptor(type).findable;
 }
 
 /** The effective content sync model for a node: its explicit `contentKind` wins (a

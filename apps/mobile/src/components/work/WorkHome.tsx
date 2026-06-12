@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
 import { focusRingStyle, useFocusRing } from '@/lib/focus';
-import { iconForNode } from '@/lib/object-types';
+import { iconForNode, showsInWorkTree } from '@/lib/object-types';
 import { useHover } from '@/lib/use-hover';
 import { useQuickCreate } from '@/lib/use-quick-create';
 import { useRecents } from '@/lib/use-recents';
@@ -53,7 +53,7 @@ export function WorkHome({ spaceId }: { spaceId: string | null }) {
   }, [recents, spaceId, objects]);
 
   const hasContent = useMemo(
-    () => objects.nodes.some((n) => n.type === 'page' || n.type === 'board'),
+    () => objects.nodes.some(showsInWorkTree),
     [objects.nodes],
   );
 
