@@ -2,16 +2,25 @@ import type { SyncConfig } from "@drakkar.software/starfish-server";
 
 /**
  * Starfish collection layout for OctoVault — a Notion/Anytype-style knowledge app
- * (NOT a chat app). Content lives in WAL/CRDT op-log collections
- * (`pagelog`/`boardlog`, each with a sibling `*snap` LWW snapshot), folded
- * client-side by `@drakkar.software/starfish-wal`; the object TREE is a
- * union-merged index (`objindex`). Encryption is "delegated" (opaque ciphertext,
- * multi-recipient keyring) for content; the keyring, the space access record,
- * profiles and the per-identity registries are plaintext ("none") metadata, gated
- * by caps + the space-role enricher.
+ * (NOT a chat app). ALL content lives in a GENERIC per-object family:
  *
- *   {identity}  - resolver enforces it equals the cap-bound user id
- *   {objectId} / {spaceId} / {rendezvousId} - free path params
+ *   objlog / objsnap  — WAL/CRDT append-only op-log (append) + sibling LWW snapshot
+ *                        for every Object with contentKind "append" (pages, boards,
+ *                        tasks, …). Folded client-side by @drakkar.software/starfish-wal.
+ *   objdoc            — LWW merge-doc for Objects with contentKind "merge" (record-form
+ *                        custom types, file captions, …).
+ *   objblob           — raw sealed binary blobs for file/image Objects.
+ *   objindex          — union-merged tree index (all Objects in a space).
+ *   typeindex         — union-merged per-space custom-type registry.
+ *
+ * Encryption is "delegated" (multi-recipient keyring) for content; the keyring,
+ * access record, profiles and per-identity registries are plaintext ("none").
+ *
+ *   {identity}   - resolver enforces it equals the cap-bound user id
+ *   {objectId} / {blobId} / {spaceId} / {rendezvousId} - free path params
+ *
+ * Keep in sync with apps/mobile/src/lib/starfish/paths.ts (spaceMemberScope.collections)
+ * AND Infra/sync/server/drakkar_sync/apps/octovault/collections.py — they are mirrors.
  */
 const JSON_ONLY = ["application/json"];
 
@@ -58,15 +67,16 @@ export const config: SyncConfig = {
       maxBodyBytes: 262_144,
       allowedMimeTypes: JSON_ONLY,
     },
-    // PAGE op-log (private/E2EE): WAL/CRDT — one append-only `by_timestamp` op-log per
-    // `page` Object; each appended element is a sealed CRDT op-batch folded client-side.
-    // `requireAuthorSignature` so every op is Ed25519 author-verified before fold. NO
-    // `ttlMs` (a TTL would expire a quiet page's whole log on read). Distinct
-    // `objects/pages/` subtree (sibling of the `_index` leaf) keeps the file-vs-directory
-    // rule. Keep in sync with pageLogName in apps/mobile + Infra collections.py.
+    // GENERIC WAL op-log (private/E2EE): one append-only `by_timestamp` log per Object
+    // with contentKind "append" (pages, tasks, boards-view, …). Each element is a sealed
+    // CRDT op-batch folded client-side by starfish-wal. `requireAuthorSignature` so every
+    // op is Ed25519 author-verified before fold. NO `ttlMs` (a TTL would expire a quiet
+    // object's whole log). `objects/logs/` subtree (sibling of `_index` leaf + `docs/` +
+    // `blobs/`) keeps the file-vs-directory rule. Keep in sync with objLogName in
+    // apps/mobile/src/lib/starfish/paths.ts AND Infra collections.py.
     {
-      name: "pagelog",
-      storagePath: "spaces/{spaceId}/objects/pages/{objectId}",
+      name: "objlog",
+      storagePath: "spaces/{spaceId}/objects/logs/{objectId}",
       readRoles: ["space:member"],
       writeRoles: ["space:member"],
       encryption: "delegated",
@@ -74,37 +84,57 @@ export const config: SyncConfig = {
       maxBodyBytes: 262_144,
       allowedMimeTypes: JSON_ONLY,
     },
-    // PAGE snapshot (private/E2EE): sibling LWW doc `<pagelog>__snapshot` a trusted-role
-    // client writes for fast cold-start + log compaction. The sensitive materialized
+    // GENERIC WAL snapshot (private/E2EE): sibling LWW `<objlog>__snapshot`. Materialized
     // `state` is sealed by the WAL encryptor INSIDE the doc, so the collection itself is
-    // `none` (the doc also carries plaintext uptoTs/writerSeq/producedBy + a signature).
+    // `none` (plaintext uptoTs/writerSeq/producedBy + a signature). NOT queued — readers
+    // resume from the log.
     {
-      name: "pagesnap",
-      storagePath: "spaces/{spaceId}/objects/pages/{objectId}__snapshot",
+      name: "objsnap",
+      storagePath: "spaces/{spaceId}/objects/logs/{objectId}__snapshot",
       readRoles: ["space:member"],
       writeRoles: ["space:member"],
       encryption: "none",
       maxBodyBytes: 1_048_576,
       allowedMimeTypes: JSON_ONLY,
     },
-    // BOARD op-log + snapshot (private/E2EE): WAL/CRDT kanban — same model as `pagelog`.
+    // GENERIC merge-doc (private/E2EE): LWW last-writer-wins doc per Object with
+    // contentKind "merge" (record-form custom-type objects, file/image caption metadata,
+    // …). No appendOnly — the whole doc is replaced on each write and merged by the
+    // union-merge engine client-side.
     {
-      name: "boardlog",
-      storagePath: "spaces/{spaceId}/objects/boards/{objectId}",
+      name: "objdoc",
+      storagePath: "spaces/{spaceId}/objects/docs/{objectId}",
       readRoles: ["space:member"],
       writeRoles: ["space:member"],
       encryption: "delegated",
-      appendOnly: { type: "by_timestamp", requireAuthorSignature: true },
       maxBodyBytes: 262_144,
       allowedMimeTypes: JSON_ONLY,
     },
+    // GENERIC raw blob (sealed client-side): binary file/image bytes sealed with the space
+    // keyring CEK before upload; the server stores opaque ciphertext. `none` encryption at
+    // the collection level because the blob is already client-sealed (AAD = objectBlobName
+    // path). Large maxBodyBytes to match the roleResolver ceiling in index.ts.
     {
-      name: "boardsnap",
-      storagePath: "spaces/{spaceId}/objects/boards/{objectId}__snapshot",
+      name: "objblob",
+      storagePath: "spaces/{spaceId}/objects/blobs/{blobId}",
       readRoles: ["space:member"],
       writeRoles: ["space:member"],
       encryption: "none",
-      maxBodyBytes: 1_048_576,
+      maxBodyBytes: 11_534_336,
+      allowedMimeTypes: ["application/octet-stream"],
+    },
+    // PER-SPACE CUSTOM TYPE REGISTRY (private/E2EE): union-merged list of user-defined
+    // TypeDefs — icon, label, fields, editorKind. Merged with built-in type descriptors
+    // client-side. Same access model as objindex. `types/` subtree (sibling of `objects/`)
+    // keeps the file-vs-directory rule. Keep in sync with typesIndexName in paths.ts AND
+    // Infra collections.py.
+    {
+      name: "typeindex",
+      storagePath: "spaces/{spaceId}/types/_index",
+      readRoles: ["space:member"],
+      writeRoles: ["space:member"],
+      encryption: "delegated",
+      maxBodyBytes: 262_144,
       allowedMimeTypes: JSON_ONLY,
     },
     // Public-readable profile; only the self-signed root device may write.

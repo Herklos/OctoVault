@@ -70,16 +70,17 @@ const roleResolver = createCapCertRoleResolver({
 // Publish a change-event to NATS after each successful push/append to the workspace
 // collections (params {spaceId,objectId} only — content stays E2E-encrypted), which
 // Whistlers can re-serve as SSE. Metadata only, opt-in per collection. The object
-// TREE index + the WAL page/board op-logs publish on `octovault.object.changed` so a
-// write can wake other devices to pull the new ops; snapshot (`*snap`) writes are not
-// queued — readers resume from the log.
+// TREE index + the generic WAL op-log + the merge-doc collection publish on
+// `octovault.object.changed` so a write wakes other devices to pull new ops;
+// snapshot (`objsnap`) writes are NOT queued — readers resume from the log.
 const { queue, nc } = await createNatsQueue();
 const queuing = createQueuingServerPlugin({
   queue,
   collections: {
     objindex: { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
-    pagelog: { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
-    boardlog: { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
+    objlog:   { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
+    objdoc:   { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
+    typeindex: { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
   },
 });
 

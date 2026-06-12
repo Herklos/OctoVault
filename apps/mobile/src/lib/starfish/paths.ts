@@ -70,30 +70,43 @@ export const roomsRegistryPull = (spaceId: string) => pull(`spaces/${spaceId}/_r
 export const roomsRegistryPush = (spaceId: string) => push(`spaces/${spaceId}/_rooms`);
 
 // ── Unified Object index + content (private/E2EE) ─────────────────────────────
-// `_index` (the union-merged ObjectNode list) is a leaf under `objects/`; doc
-// content lives in the `objects/docs/` subtree and project logs in `objects/logs/`
-// — distinct dir prefixes so a content id is a leaf without colliding with the
-// `_index` leaf or each other (the file-vs-directory rule, see `attachmentName`).
-// Room CONTENT stays in `chat`/`streams`; only docs/projects add content here.
-// Keep in sync with the objindex/objdoc/objlog collections in apps/server.
+// ALL Object content lives in one generic path family — no type-specific prefixes:
+//
+//   objects/_index          — union-merged ObjectNode tree (every Object in the space)
+//   objects/logs/{id}       — WAL/CRDT append-only op-log (contentKind "append")
+//   objects/logs/{id}__snapshot — sibling LWW snapshot for fast cold-start
+//   objects/docs/{id}       — LWW merge-doc (contentKind "merge": records, captions)
+//   objects/blobs/{id}      — sealed raw binary blob (file/image objects)
+//
+// Every subtree is a distinct directory prefix so a content id is a leaf without
+// colliding with `_index` or another subtree (the file-vs-directory rule, see
+// `attachmentName`). Keep in sync with the objindex/objlog/objsnap/objdoc/objblob
+// collections in apps/server/src/config.ts AND Infra collections.py.
 export const objIndexName = (spaceId: string) => `spaces/${spaceId}/objects/_index`;
 export const objIndexPull = (spaceId: string) => pull(objIndexName(spaceId));
 export const objIndexPush = (spaceId: string) => push(objIndexName(spaceId));
-export const objDocName = (spaceId: string, objectId: string) => `spaces/${spaceId}/objects/docs/${objectId}`;
-export const objDocPull = (spaceId: string, objectId: string) => pull(objDocName(spaceId, objectId));
-export const objDocPush = (spaceId: string, objectId: string) => push(objDocName(spaceId, objectId));
+
 export const objLogName = (spaceId: string, objectId: string) => `spaces/${spaceId}/objects/logs/${objectId}`;
 export const objLogPull = (spaceId: string, objectId: string) => pull(objLogName(spaceId, objectId));
 export const objLogPush = (spaceId: string, objectId: string) => push(objLogName(spaceId, objectId));
 
-// ── WAL/CRDT document logs (private/E2EE) — page blocks + board kanban ─────────
-// Each is an append-only `by_timestamp` op-log addressed by its BARE storage key:
-// the WAL document layer (src/lib/starfish/wal) appends to `/push/<key>`, pulls
-// `/pull/<key>` via AppendLogCursor, and keeps a sibling LWW snapshot at
-// `<key>__snapshot`. Keep in sync with the pagelog/pagesnap/boardlog/boardsnap
-// collections in apps/server (+ Infra collections.py).
-export const pageLogName = (spaceId: string, objectId: string) => `spaces/${spaceId}/objects/pages/${objectId}`;
-export const boardLogName = (spaceId: string, objectId: string) => `spaces/${spaceId}/objects/boards/${objectId}`;
+export const objDocName = (spaceId: string, objectId: string) => `spaces/${spaceId}/objects/docs/${objectId}`;
+export const objDocPull = (spaceId: string, objectId: string) => pull(objDocName(spaceId, objectId));
+export const objDocPush = (spaceId: string, objectId: string) => push(objDocName(spaceId, objectId));
+
+/** Storage path of one sealed object blob — also the AAD bound into its seal. */
+export const objectBlobName = (spaceId: string, blobId: string) => `spaces/${spaceId}/objects/blobs/${blobId}`;
+export const objectBlobPull = (spaceId: string, blobId: string) => pull(objectBlobName(spaceId, blobId));
+export const objectBlobPush = (spaceId: string, blobId: string) => push(objectBlobName(spaceId, blobId));
+
+// ── Per-space custom type registry (private/E2EE) ────────────────────────────
+// `types/_index` is the union-merged `{ types: TypeDef[] }` doc for user-defined type
+// descriptors. Merged with built-in type descriptors client-side. A leaf under `types/`
+// (sibling of `objects/`) keeps the file-vs-directory rule. Keep in sync with the
+// `typeindex` collection in apps/server/src/config.ts AND Infra collections.py.
+export const typesIndexName = (spaceId: string) => `spaces/${spaceId}/types/_index`;
+export const typesIndexPull = (spaceId: string) => pull(typesIndexName(spaceId));
+export const typesIndexPush = (spaceId: string) => push(typesIndexName(spaceId));
 
 // ── Unified Object index + content (public/plaintext) ─────────────────────────
 export const pubObjIndexName = (ownerId: string, spaceId: string) => `${pubspaceBase(ownerId, spaceId)}/objects/_index`;
@@ -169,9 +182,9 @@ export function spaceMemberScope(spaceId: string, canWrite: boolean): ScopePrese
   return {
     ops,
     // The grant is path-based (`spaces/{spaceId}/**` covers every space document);
-    // these are the workspace collections a member reads/writes (keyring + the object
-    // tree + the WAL page/board logs & snapshots).
-    collections: ['keyring', 'objindex', 'pagelog', 'pagesnap', 'boardlog', 'boardsnap'],
+    // these are the workspace collections a member reads/writes. Keep in sync with
+    // apps/server/src/config.ts AND Infra collections.py.
+    collections: ['keyring', 'objindex', 'objlog', 'objsnap', 'objdoc', 'objblob', 'typeindex'],
     paths: [`spaces/${spaceId}/**`],
   };
 }
