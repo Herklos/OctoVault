@@ -43,7 +43,7 @@ export * from './ai-settings';
 // ── Starfish in-memory state ──────────────────────────────────────────────────
 export * from './spaces-prime';
 export * from './invite-preview';
-export * from './room-events-bus';
+export * from './live-sync-bus';
 
 // ── Blocks (editor vocabulary) ────────────────────────────────────────────────
 export * from './blocks';

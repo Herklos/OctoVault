@@ -6,7 +6,7 @@ import { registerServiceWorker } from '@/lib/pwa';
 import { AiSettingsProvider } from '@/lib/ai-settings-context';
 import { NotificationSettingsProvider } from '@/lib/notification-settings-context';
 import { ProfileProvider } from '@/lib/profile-context';
-import { RoomsRegistryProvider } from '@/lib/rooms-registry-context';
+import { SpaceRegistryProvider } from '@/lib/space-registry-context';
 import { SessionProvider } from '@/lib/session-context';
 import { SpaceObjectsProvider } from '@/lib/space-objects-context';
 import { SpaceTypesProvider } from '@/lib/space-types-context';
@@ -59,7 +59,7 @@ export default function RootLayout() {
             <NotificationSettingsProvider>
               <AiSettingsProvider>
                 <SpacesProvider>
-                  <RoomsRegistryProvider>
+                  <SpaceRegistryProvider>
                     <ProfileProvider>
                       <SpaceObjectsProvider>
                         <SpaceTypesProvider>
@@ -76,7 +76,7 @@ export default function RootLayout() {
                         </SpaceTypesProvider>
                       </SpaceObjectsProvider>
                     </ProfileProvider>
-                  </RoomsRegistryProvider>
+                  </SpaceRegistryProvider>
                 </SpacesProvider>
               </AiSettingsProvider>
             </NotificationSettingsProvider>

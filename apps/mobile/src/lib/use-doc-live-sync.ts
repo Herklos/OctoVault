@@ -1,11 +1,10 @@
 /**
- * Live-update choreography for a room screen, shared by {@link ./use-room} and
- * {@link ./use-stream-room} so the two never drift (that drift is what stale-badged
- * thread replies). It does three things, all gated on `ready` (the store — and for
- * streams, the client — having resolved):
- *  - pull once on focus, and register a pull on the global SSE bus so new messages
- *    arrive live WHILE the room is open. Registering ONLY while focused is load-bearing
- *    for the unread badge: a room left mounted under a pushed screen must release its
+ * Live-update choreography for a doc screen, shared by merge-doc and append-only
+ * content hooks so the two never drift. It does three things, all gated on `ready`
+ * (the store — and for streams, the client — having resolved):
+ *  - pull once on focus, and register a pull on the global SSE bus so changes
+ *    arrive live WHILE the doc is open. Registering ONLY while focused is load-bearing
+ *    for the unread badge: a doc left mounted under a pushed screen must release its
  *    registration, or UnreadProvider keeps treating it as active and silently pulls its
  *    change-events instead of bumping unread. On blur the cleanup unregisters.
  *  - poll every 4 s as a fallback, but ONLY while the SSE stream is down.
@@ -13,7 +12,7 @@
  *
  * `pull`/`onIdle` are read through refs, so a call site can pass an inline lambda (e.g. a
  * void-wrapped async pull) without re-registering the SSE pull on every render. The focus
- * effect re-runs only on `ready`/`roomId`/`firstFocusKey` change — matching the per-store
+ * effect re-runs only on `ready`/`docId`/`firstFocusKey` change — matching the per-store
  * behavior of the hand-rolled versions this replaced.
  *
  * MUST be called from a router screen — `useFocusEffect` needs a navigator context.
@@ -23,23 +22,23 @@ import { useFocusEffect } from 'expo-router';
 
 import { registerPull, onSseStatus } from '@drakkar.software/octovault-sdk';
 
-export function useRoomLiveSync(opts: {
-  roomId: string;
+export function useDocLiveSync(opts: {
+  docId: string;
   /** Everything resolved (store present; streams also require the client). */
   ready: boolean;
   /** The already-wrapped, void-returning pull. */
   pull: () => void;
   /** Skip the pull on the FIRST focus after a NEW store — a merge-doc SDK store
    *  self-pulls on creation, so pulling again on first focus is redundant. Keyed on
-   *  `firstFocusKey` (pass the store OBJECT) so a same-room reopen — same id, new store
-   *  — also skips its own init-pull's first focus. Stream rooms pass `false` (their
+   *  `firstFocusKey` (pass the store OBJECT) so a same-doc reopen — same id, new store
+   *  — also skips its own init-pull's first focus. Stream docs pass `false` (their
    *  synthetic store has no self-pull, so they need the first-focus pull). */
   skipFirstFocus?: boolean;
   firstFocusKey?: unknown;
   /** Runs when not `ready` (e.g. clear the sync-error banner before a store exists). */
   onIdle?: () => void;
 }): void {
-  const { roomId, ready, pull, skipFirstFocus = false, firstFocusKey, onIdle } = opts;
+  const { docId, ready, pull, skipFirstFocus = false, firstFocusKey, onIdle } = opts;
 
   // Track the global SSE stream's health for the fallback poll. Always on (even while
   // backgrounded) so the poll's gate stays accurate.
@@ -68,8 +67,8 @@ export function useRoomLiveSync(opts: {
       } else {
         pullRef.current();
       }
-      return registerPull(roomId, () => pullRef.current());
-    }, [ready, roomId, skipFirstFocus, firstFocusKey]),
+      return registerPull(docId, () => pullRef.current());
+    }, [ready, docId, skipFirstFocus, firstFocusKey]),
   );
 
   useEffect(() => {
@@ -78,3 +77,7 @@ export function useRoomLiveSync(opts: {
     return () => clearInterval(id);
   }, [ready, sseUp]);
 }
+
+/** @deprecated Use {@link useDocLiveSync} */
+export const useRoomLiveSync = (opts: Parameters<typeof useDocLiveSync>[0] & { roomId?: string }) =>
+  useDocLiveSync({ ...opts, docId: opts.roomId ?? opts.docId });

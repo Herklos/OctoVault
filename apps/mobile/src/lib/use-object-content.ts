@@ -16,8 +16,8 @@ import type { WalDocument } from '@drakkar.software/starfish-wal';
 import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import { objLogName } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
-import { useRoomOpen } from './use-room-open-flow';
-import { useRoomLiveSync } from './use-room-live-sync';
+import { useSpaceOpen } from './use-room-open-flow';
+import { useDocLiveSync } from './use-doc-live-sync';
 import { useWalDoc } from './use-wal-doc';
 import type { ObjectContentKind } from '@drakkar.software/octovault-sdk';
 
@@ -51,12 +51,11 @@ export function useObjectContent(
   const base = (opts.enabled ?? true) && !!spaceId && !!objectId && !isPublicSpaceId(spaceId);
   const walEnabled = base && contentKind === 'append';
 
-  const { encryptor, client, opening: roomOpening, openError: roomOpenError, offline, reload: reopenSpace } = useRoomOpen({
-    roomId: objectId,
+  const { encryptor, client, opening: roomOpening, openError: roomOpenError, offline, reload: reopenSpace } = useSpaceOpen({
+    docId: objectId,
     spaceId,
     isPublic: false,
     enabled: base,
-    initializeRoom: false,
   });
 
   // Always call useWalDoc (even when walEnabled=false) for stable hook order.
@@ -70,7 +69,7 @@ export function useObjectContent(
   });
 
   // Live cross-device sync (focus-pull + SSE poll).
-  useRoomLiveSync({ roomId: objectId, ready, pull, skipFirstFocus: true, firstFocusKey: objectId });
+  useDocLiveSync({ docId: objectId, ready, pull, skipFirstFocus: true, firstFocusKey: objectId });
 
   const reload = useCallback(() => {
     reopenSpace();

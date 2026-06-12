@@ -9,7 +9,7 @@ import { getMemberCap } from '@drakkar.software/octovault-sdk';
 import { pullCache, PULL_CACHE_MAX_AGE_MS } from '@drakkar.software/octovault-sdk';
 import { isPublicSpaceId, publicSpaceAuth } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
-import { useRoomOpen } from './use-room-open-flow';
+import { useSpaceOpen } from './use-room-open-flow';
 
 /** A pull/push path pair for a Starfish merge-doc. */
 export interface DocPaths {
@@ -20,7 +20,7 @@ export interface DocPaths {
 export interface MergeDocOptions {
   /** The space the doc lives in (drives the private/public branch + encryptor). */
   spaceId: string;
-  /** The id passed to {@link useRoomOpen} (the space id for a space-wide doc like the
+  /** The id passed to {@link useSpaceOpen} (the space id for a space-wide doc like the
    *  object index, or the object id for a per-object doc). Only keys the open/effect. */
   openId: string;
   enabled: boolean;
@@ -66,12 +66,11 @@ export function useMergeDoc(opts: MergeDocOptions): MergeDocResult {
   const { session } = useSession();
   const isPublic = isPublicSpaceId(spaceId);
 
-  const { encryptor, client, opening, openError, offline, reload } = useRoomOpen({
-    roomId: openId,
+  const { encryptor, client, opening, openError, offline, reload } = useSpaceOpen({
+    docId: openId,
     spaceId,
     isPublic,
     enabled,
-    initializeRoom: false,
   });
 
   const config = useMemo(() => {

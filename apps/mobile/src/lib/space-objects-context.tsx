@@ -14,7 +14,7 @@ import { useSpaces } from './use-spaces';
  * that is the fix for "refresh names when updating them".
  *
  * Mounted once in `app/_layout.tsx` (inside the spaces/session providers, around
- * `AppFrame`). It cannot use {@link useRoomLiveSync} for convergence because that
+ * `AppFrame`). It cannot use {@link useDocLiveSync} for convergence because that
  * relies on `useFocusEffect`, which needs a router SCREEN — the provider sits above
  * the navigator. Instead it registers an SSE pull + a 4 s poll-while-SSE-down here
  * directly (the object index has no per-room unread concern, so an always-on pull

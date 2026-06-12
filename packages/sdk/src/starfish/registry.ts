@@ -9,7 +9,7 @@
 import { ConflictError, StarfishHttpError } from '@drakkar.software/starfish-client';
 import type { StarfishClient } from '@drakkar.software/starfish-client';
 
-import type { CapMap, DmMap, MutePrefs, PubAccessMap, ReadPrefs, Room, Space } from '../domain/types';
+import type { CapMap, DmMap, MutePrefs, PubAccessMap, ReadPrefs, Space } from '../domain/types';
 
 import type { SealedBlob } from './account-seal';
 
@@ -17,11 +17,10 @@ import { randomId } from '../domain/ids';
 
 import type { Session } from './identity';
 import { removeMemberCap } from './member-caps';
-import { DEFAULT_CATEGORY } from './objects';
 import { seedSpaceObjectIndex } from './object-index';
 import {
-  roomsRegistryPull,
-  roomsRegistryPush,
+  spaceAccessPull,
+  spaceAccessPush,
   spacesPull,
   spacesPush,
 } from './paths';
@@ -393,28 +392,11 @@ function newSpaceId(): string {
   return `sp-${randomId()}`;
 }
 
-/** The ordered category list for a space. The stored `categories` array (when
- *  present) is authoritative; absent it, derive it from the distinct `room.category`
- *  values in document order so a pre-feature registry reads back identically. Any
- *  room category missing from a stored list is appended (defensive — never orphans a
- *  room into an unrendered bucket). */
-export function normalizeCategories(rooms: Room[], stored: unknown): string[] {
-  const distinct: string[] = [];
-  for (const r of rooms) if (r.category && !distinct.includes(r.category)) distinct.push(r.category);
-  const list = Array.isArray(stored) ? stored.filter((c): c is string => typeof c === 'string') : [];
-  if (!list.length) return distinct;
-  const result = [...list];
-  for (const c of distinct) if (!result.includes(c)) result.push(c);
-  return result;
-}
-
 /**
  * Read a space's `_rooms` ACCESS RECORD: owner, member roster, and the shared
- * name/image. The room/category LIST is no longer here (it lives in the encrypted
- * object index — see {@link readIndexRooms}); this returns only what gates access +
- * the plaintext shared identity.
+ * name/image. Returns only what gates access + the plaintext shared identity.
  */
-export async function readRooms(
+export async function readSpaceAccess(
   client: StarfishClient,
   spaceId: string,
 ): Promise<{
@@ -425,10 +407,10 @@ export async function readRooms(
   hash: string | null;
 }> {
   // 404 (no registry yet) → an empty doc a first write can create; any OTHER error
-  // (offline / unreachable) PROPAGATES so a caller — the rooms provider, or a write
+  // (offline / unreachable) PROPAGATES so a caller — the space provider, or a write
   // RMW — can tell "empty space" from "couldn't reach the server" instead of silently
   // collapsing to no-access. Mirrors pullSpacesDoc.
-  const res = await client.pull(roomsRegistryPull(spaceId)).catch((err: unknown) => {
+  const res = await client.pull(spaceAccessPull(spaceId)).catch((err: unknown) => {
     if (err instanceof StarfishHttpError && err.status === 404) return null;
     throw err;
   });
@@ -446,7 +428,7 @@ export async function readRooms(
   };
 }
 
-export async function writeRooms(
+export async function writeSpaceAccess(
   client: StarfishClient,
   spaceId: string,
   owner: string,
@@ -454,17 +436,16 @@ export async function writeRooms(
   hash: string | null,
   meta?: SpaceMeta,
 ): Promise<void> {
-  // The `_rooms` doc is now just the ACCESS RECORD `{ v, owner, members, name, image }`
-  // (the room/category list moved to the encrypted object index). `owner` + `members`
-  // are the authoritative access record the server's space:owner/space:member enricher
-  // reads to gate this registry and the space keyring — stamp both on every write so
-  // neither is ever dropped. `name`/`image` are the shared space identity; callers thread
-  // the values they read back through so a write never drops them. A falsy value is
-  // omitted — that's how the owner clears the image.
+  // The `_rooms` doc is the ACCESS RECORD `{ v, owner, members, name, image }`.
+  // `owner` + `members` are the authoritative access record the server's
+  // space:owner/space:member enricher reads to gate this registry and the space keyring —
+  // stamp both on every write so neither is ever dropped. `name`/`image` are the shared
+  // space identity; callers thread the values they read back through so a write never
+  // drops them. A falsy value is omitted — that's how the owner clears the image.
   const name = meta?.name?.trim() || undefined;
   const image = meta?.image || undefined;
   await client.push(
-    roomsRegistryPush(spaceId),
+    spaceAccessPush(spaceId),
     {
       v: 1,
       owner,
@@ -484,11 +465,11 @@ export async function addSpaceMember(
   ownerUserId: string,
   memberUserId: string,
 ): Promise<void> {
-  const { owner, members, name, image, hash } = await readRooms(client, spaceId);
+  const { owner, members, name, image, hash } = await readSpaceAccess(client, spaceId);
   if (memberUserId === (owner ?? ownerUserId) || members.includes(memberUserId)) return;
   // Push replaces the whole access-record doc; thread name/image through so adding a
   // member never drops the shared space identity (see writeRooms).
-  await writeRooms(client, spaceId, owner ?? ownerUserId, [...members, memberUserId], hash, { name, image });
+  await writeSpaceAccess(client, spaceId, owner ?? ownerUserId, [...members, memberUserId], hash, { name, image });
 }
 
 /**
@@ -505,9 +486,9 @@ export async function removeSpaceMember(
   spaceId: string,
   memberUserId: string,
 ): Promise<void> {
-  const { owner, members, name, image, hash } = await readRooms(client, spaceId);
+  const { owner, members, name, image, hash } = await readSpaceAccess(client, spaceId);
   if (!members.includes(memberUserId) || memberUserId === owner) return;
-  await writeRooms(client, spaceId, owner ?? memberUserId, members.filter((m) => m !== memberUserId), hash, {
+  await writeSpaceAccess(client, spaceId, owner ?? memberUserId, members.filter((m) => m !== memberUserId), hash, {
     name,
     image,
   });
@@ -591,9 +572,8 @@ export async function addJoinedPublicSpaceWithAccess(
  * Create a new space (+ a seeded "general" channel) owned by the identity. Takes the
  * full {@link Session} because seeding the channel now means writing the ENCRYPTED object
  * index (the `_rooms` doc holds only the access record): claim ownership in `_rooms`
- * first (so `space:owner` is satisfied), then mint the space keyring + push the encrypted
- * seed node for `general`. With the on-device `_rooms`→index migration removed, this is
- * the only thing that seeds a freshly-created space's room list.
+ * first (so `space:owner` is satisfied), then mint the space keyring + push an empty
+ * encrypted index. New spaces start with the "Write your first page" empty state.
  */
 export async function createSpace(session: Session, name: string): Promise<Space> {
   const { accountClient, userId } = session;
@@ -603,13 +583,12 @@ export async function createSpace(session: Session, name: string): Promise<Space
   const space: Space = { id, name: trimmed, short: trimmed.slice(0, 2).toUpperCase(), members: 1 };
   // Order matters for crash-safety. Stamp ownership first (TOFU: this first write claims
   // the space + the shared name) so the keyring write below passes `space:owner`, then
-  // seed the encrypted object index with one `general` channel (mints the keyring). Only
-  // once the space is fully formed do we add it to the user's `_spaces` list — so a failed
-  // seed leaves an unreferenced (harmless, unguessable-id) `_rooms`/keyring orphan rather
-  // than a space that shows up EMPTY in the rail (with the migration gone, nothing would
-  // ever re-seed it).
-  await writeRooms(accountClient, id, userId, [], null, { name: trimmed });
-  await seedSpaceObjectIndex(session, id, [{ id: `${id}-general`, name: 'general', kind: 'channel', category: DEFAULT_CATEGORY }]);
+  // mint the space keyring + push an empty encrypted index. Only once the space is fully
+  // formed do we add it to the user's `_spaces` list — so a failed seed leaves an
+  // unreferenced (harmless, unguessable-id) `_rooms`/keyring orphan rather than a space
+  // that shows up EMPTY in the rail.
+  await writeSpaceAccess(accountClient, id, userId, [], null, { name: trimmed });
+  await seedSpaceObjectIndex(session, id);
   await writeSpaces(accountClient, userId, [...spaces, space], hash);
   return space;
 }

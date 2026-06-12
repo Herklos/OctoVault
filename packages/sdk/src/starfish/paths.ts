@@ -25,21 +25,6 @@ const push = (rest: string) => `/push/${rest}`;
 /** A room id is `sp-<rand>-<name>`; the space is its first two `-` segments. */
 export const spaceIdFromRoomId = (roomId: string) => roomId.split('-').slice(0, 2).join('-');
 
-// ── Channel messages (nested under their space) ───────────────────────────────
-export const roomPull = (roomId: string) => pull(`spaces/${spaceIdFromRoomId(roomId)}/chat/rooms/${roomId}`);
-export const roomPush = (roomId: string) => push(`spaces/${spaceIdFromRoomId(roomId)}/chat/rooms/${roomId}`);
-
-// ── Stream rooms (private/E2EE): append-only log, one doc per stream room ─────
-// Distinct `streams/` subtree (not under chat/rooms) so a stream-room id can be a
-// leaf document without colliding with the chat/rooms or attachments subtrees.
-// Covered by the same `spaces/{spaceId}/**` member cap as the chat collection;
-// gated `space:member` server-side. Writers APPEND (no pull/merge). Keep the path
-// in sync with the `streamchat` collection in apps/server (+ Infra collections.py).
-export const streamRoomName = (roomId: string) =>
-  `spaces/${spaceIdFromRoomId(roomId)}/streams/${roomId}`;
-export const streamRoomPull = (roomId: string) => pull(streamRoomName(roomId));
-export const streamRoomPush = (roomId: string) => push(streamRoomName(roomId));
-
 // ── Space-wide keyring (one per space, shared by all its channels) ────────────
 export const keyringName = (spaceId: string) => `spaces/${spaceId}`;
 export const keyringPull = (spaceId: string) => pull(`${keyringName(spaceId)}/_keyring`);
@@ -66,8 +51,8 @@ export const profilePush = (userId: string) => push(`user/${userId}/profile`);
 export const spacesPull = (userId: string) => pull(`user/${userId}/_spaces`);
 export const spacesPush = (userId: string) => push(`user/${userId}/_spaces`);
 
-export const roomsRegistryPull = (spaceId: string) => pull(`spaces/${spaceId}/_rooms`);
-export const roomsRegistryPush = (spaceId: string) => push(`spaces/${spaceId}/_rooms`);
+export const spaceAccessPull = (spaceId: string) => pull(`spaces/${spaceId}/_rooms`);
+export const spaceAccessPush = (spaceId: string) => push(`spaces/${spaceId}/_rooms`);
 
 // ── Unified Object index + content (private/E2EE) ─────────────────────────────
 // `_index` (the union-merged ObjectNode list) is a leaf under `objects/`; doc
@@ -123,9 +108,9 @@ export const pubObjLogPush = (ownerId: string, spaceId: string, objectId: string
 // with a read/write link, writes room docs) via a member cap the owner minted
 // (gated `pubspace:reader`/`pubspace:writer`). See apps/server/src/pubspace-role.ts.
 const pubspaceBase = (ownerId: string, spaceId: string) => `pubspaces/${ownerId}/${spaceId}`;
-export const pubspaceRoomsName = (ownerId: string, spaceId: string) => `${pubspaceBase(ownerId, spaceId)}/_rooms`;
-export const pubspaceRoomsPull = (ownerId: string, spaceId: string) => pull(pubspaceRoomsName(ownerId, spaceId));
-export const pubspaceRoomsPush = (ownerId: string, spaceId: string) => push(pubspaceRoomsName(ownerId, spaceId));
+export const pubspaceAccessName = (ownerId: string, spaceId: string) => `${pubspaceBase(ownerId, spaceId)}/_rooms`;
+export const pubspaceAccessPull = (ownerId: string, spaceId: string) => pull(pubspaceAccessName(ownerId, spaceId));
+export const pubspaceAccessPush = (ownerId: string, spaceId: string) => push(pubspaceAccessName(ownerId, spaceId));
 export const pubspaceRoomName = (ownerId: string, spaceId: string, roomId: string) =>
   `${pubspaceBase(ownerId, spaceId)}/${roomId}`;
 export const pubspaceRoomPull = (ownerId: string, spaceId: string, roomId: string) =>

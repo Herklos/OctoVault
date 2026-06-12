@@ -11,7 +11,7 @@
  * commit must never interleave with the blur flush that follows it.
  *
  * Two persistence branches (the data layer is split private vs public):
- *  - PRIVATE → the space's `_rooms` access-record doc via {@link writeRooms} (owner-
+ *  - PRIVATE → the space's `_rooms` access-record doc via {@link writeSpaceAccess} (owner-
  *    gated server-side; threads owner+members through so a meta edit never drops them).
  *  - PUBLIC  → the plaintext `pubspaces/.../_rooms` doc via {@link updatePublicSpaceMeta}.
  * Both are OWNER-ONLY writes (the server gates them). Ownership of a private space
@@ -31,7 +31,7 @@ import { pickAndProcessAvatar } from './avatar-image';
 import { useSession } from './session-context';
 import { useSpaces } from './use-spaces';
 import { isPublicSpaceId, updatePublicSpaceMeta } from '@drakkar.software/octovault-sdk';
-import { broadcastSpaceMeta, readRooms, writeRooms } from '@drakkar.software/octovault-sdk';
+import { broadcastSpaceMeta, readSpaceAccess, writeSpaceAccess } from '@drakkar.software/octovault-sdk';
 
 /** Hard cap on a space name (the old field's maxLength, now enforced in the lib —
  *  the rail tile, switcher and breadcrumbs all assume a short label). */
@@ -108,7 +108,7 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
           if (ownerIdHint) setOwner(ownerIdHint);
           if (spaceLoaded && !cancelled) setLoading(false);
         } else {
-          const { owner: ownr, name: sharedName, image: sharedImage } = await readRooms(
+          const { owner: ownr, name: sharedName, image: sharedImage } = await readSpaceAccess(
             session.accountClient,
             spaceId,
           );
@@ -165,14 +165,14 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
             // Re-read the access record for the freshest owner/members/hash, then rewrite it
             // with the new shared name/image (owner-gated). Threads owner+members through so
             // the meta edit never drops the roster.
-            const { owner: ownr, members, hash } = await readRooms(session.accountClient, spaceId);
-            await writeRooms(session.accountClient, spaceId, ownr ?? session.userId, members, hash, {
+            const { owner: ownr, members, hash } = await readSpaceAccess(session.accountClient, spaceId);
+            await writeSpaceAccess(session.accountClient, spaceId, ownr ?? session.userId, members, hash, {
               name: nextName,
               image: nextImage,
             });
           }
           // Fan the new identity out so the live rail/header adopt it WITHOUT re-reading the
-          // user's `_spaces` doc — neither writeRooms nor updatePublicSpaceMeta touches that
+          // user's `_spaces` doc — neither writeSpaceAccess nor updatePublicSpaceMeta touches that
           // doc, so a refresh here would re-read the stale name/image and revert the save.
           // The private member path self-heals via reconcileSpaceMeta on the next space open.
           broadcastSpaceMeta(spaceId, {

@@ -14,54 +14,13 @@
  * cycle (A→under B while B→under A) or an orphan (parent archived). The builder below
  * is the single place those are repaired so every consumer renders a well-formed tree.
  */
-import type { AutomationMeta, ID, ObjectNode, ObjectType, PropValue, Room, RoomSubtype } from '../domain/types';
-import { randomId, roomSlug } from '../domain/ids';
-
-/** The bucket new/unfiled rooms land in, and the fallback a deleted category's
- *  rooms are reassigned to. The seed category in `createSpace`/`createDmSpace`. Lives
- *  here (the cycle-free pure module) so both `registry` and the headless
- *  `object-index` seed/read helpers can share it without importing each other;
- *  `registry` re-exports it for its existing consumers. */
-export const DEFAULT_CATEGORY = 'CHANNELS';
-
-/** Deterministic category-node id from its name, so two devices that concurrently
- *  create (or auto-migrate) the SAME category mint the SAME id → the union-merge
- *  dedupes them instead of leaving duplicate category headers in the tree. (Random
- *  ids would not collide and both would survive the merge.) */
-export const categoryId = (name: string): ID => `cat-${roomSlug(name) || randomId()}`;
+import type { AutomationMeta, ID, ObjectNode, ObjectType, PropValue } from '../domain/types';
+import { randomId } from '../domain/ids';
 
 /** A node plus its resolved children — the shape the sidebar/Work tree renders. */
 export interface ObjectTreeNode extends ObjectNode {
   depth: number;
   children: ObjectTreeNode[];
-}
-
-/** Map a legacy {@link Room} `kind` to the unified room {@link RoomSubtype}. */
-export function roomKindToSubtype(kind: Room['kind']): RoomSubtype {
-  switch (kind) {
-    case 'dm':
-      return 'dm';
-    case 'stream':
-      return 'stream';
-    case 'automated':
-      return 'automation';
-    default:
-      return 'channel'; // 'channel' | 'private'
-  }
-}
-
-/** Inverse of {@link roomKindToSubtype} — used while consumers still speak `RoomKind`. */
-export function subtypeToRoomKind(subtype: RoomSubtype | undefined): Room['kind'] {
-  switch (subtype) {
-    case 'dm':
-      return 'dm';
-    case 'stream':
-      return 'stream';
-    case 'automation':
-      return 'automated';
-    default:
-      return 'channel';
-  }
 }
 
 /** Deterministic sibling comparison: by `order`, ties broken by `id`, so every device
@@ -175,7 +134,6 @@ export function subtreeIds(nodes: ObjectNode[], rootId: ID): Set<ID> {
 
 export interface NewObjectInput {
   type: ObjectType;
-  subtype?: RoomSubtype;
   parentId?: ID | null;
   title: string;
   emoji?: string;
@@ -193,7 +151,6 @@ export function addObject(nodes: ObjectNode[], input: NewObjectInput, now: numbe
   const node: ObjectNode = {
     id: input.id ?? `obj-${randomId()}`,
     type: input.type,
-    ...(input.subtype ? { subtype: input.subtype } : {}),
     parentId,
     order: nextOrder(siblings),
     title: input.title,
@@ -247,85 +204,3 @@ export function archiveObject(nodes: ObjectNode[], id: ID, now: number): ObjectN
   return nodes.map((n) => (ids.has(n.id) ? { ...n, archived: true, updatedAt: now } : n));
 }
 
-// ── Adapter: unified index ↔ legacy room-list shape ───────────────────────────
-
-/** The category→rooms grouping the chat UI consumes (mirrors `useRooms`'s output).
- *  Kept here so the projection FROM the unified index stays pure + testable. */
-export interface AdaptedCategory {
-  name: string;
-  rooms: Room[];
-}
-
-/** Project the room/category nodes of an index into the legacy `{ name, rooms }[]`
- *  the existing chat UI (`RoomCategoryList`, `AgentsPanel`, room screen) consumes —
- *  so those components need NO change while rooms live in the unified index. Category
- *  nodes become buckets (ordered by their node order); room nodes become {@link Room}s
- *  grouped under their parent category (or `fallbackCategory` at root). Returns null
- *  when the index holds no room/category nodes yet, so a caller can fall back to the
- *  legacy `_rooms` list during migration. */
-export function objectsToRoomCategories(nodes: ObjectNode[], spaceId: string, fallbackCategory: string): AdaptedCategory[] | null {
-  const live = nodes.filter((n) => !n.archived);
-  const cats = live.filter((n) => n.type === 'category').slice().sort(compareSiblings);
-  const rooms = live.filter((n) => n.type === 'room');
-  if (cats.length === 0 && rooms.length === 0) return null; // nothing migrated yet
-
-  const titleById = new Map<ID, string>(cats.map((c) => [c.id, c.title]));
-  const buckets = new Map<string, Room[]>();
-  for (const c of cats) buckets.set(c.title, []);
-
-  const toRoom = (n: ObjectNode, category: string): Room => ({
-    id: n.id,
-    spaceId,
-    category,
-    name: n.title,
-    kind: subtypeToRoomKind(n.subtype),
-    ...(n.automation ? { automation: n.automation } : {}),
-  });
-
-  // Stable room order within a bucket: by node order, then id.
-  for (const n of rooms.slice().sort(compareSiblings)) {
-    const category = (n.parentId != null && titleById.get(n.parentId)) || fallbackCategory;
-    if (!buckets.has(category)) buckets.set(category, []);
-    buckets.get(category)!.push(toRoom(n, category));
-  }
-  return [...buckets.entries()].map(([name, rs]) => ({ name, rooms: rs }));
-}
-
-// ── Seed: build the initial index nodes for a freshly-created space ────────────
-
-/** A minimal room descriptor the {@link seedIndexNodes} builder turns into nodes —
- *  the create-time seed (a space's `general` channel, a DM's single room). */
-export interface SeedRoom {
-  id: ID;
-  name: string;
-  kind: Room['kind'];
-  category: string;
-}
-
-/**
- * Build the initial `ObjectNode[]` for a brand-new space's index: a `category` node
- * per distinct category and a `room` node per seed room parented under it. Pure +
- * deterministic (category ids via {@link categoryId}); the headless seed in
- * `object-index.ts` encrypts + pushes the result. Replaces the old `roomsToObjects`
- * migration builder now that every existing space has migrated and only NEW spaces
- * need seeding.
- */
-export function seedIndexNodes(rooms: SeedRoom[], now: number): ObjectNode[] {
-  const out: ObjectNode[] = [];
-  const catId = new Map<string, ID>();
-  let catOrder = 0;
-  for (const r of rooms) {
-    if (catId.has(r.category)) continue;
-    const id = categoryId(r.category);
-    catId.set(r.category, id);
-    out.push({ id, type: 'category', parentId: null, order: catOrder++, title: r.category, updatedAt: now });
-  }
-  const orderInCat = new Map<ID, number>();
-  for (const r of rooms) {
-    const parentId = catId.get(r.category)!;
-    const order = (orderInCat.get(parentId) ?? 0) + 1;
-    orderInCat.set(parentId, order);
-    out.push({ id: r.id, type: 'room', subtype: roomKindToSubtype(r.kind), parentId, order, title: r.name, updatedAt: now });
-  }
-  return out;
-}

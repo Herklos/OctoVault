@@ -10,7 +10,7 @@
  * picking a glyph — reads the same descriptors.
  */
 import type { IconName } from './icon-name';
-import type { ObjectContentKind, ObjectNode, ObjectType, PropValue, RoomSubtype } from './types';
+import type { ObjectContentKind, ObjectNode, ObjectType, PropValue } from './types';
 import type { TypeDef } from '../starfish/object-types-store';
 
 /** The fixed renderer a type reuses — a closed set of editors the app ships.
@@ -87,9 +87,12 @@ const BUILTIN_DESCRIPTORS: Record<string, TypeDescriptor> = {
   task:     { contentKind: 'append', icon: 'check',  label: 'Task',     editor: 'page',   props: TASK_PROPS, creatable: false, workTree: false, findable: false },
   file:     { contentKind: 'none',   icon: 'file',   label: 'File',     editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled File' },
   image:    { contentKind: 'none',   icon: 'image',  label: 'Image',    editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled Image' },
-  // Legacy/compat — chat-era types; non-creatable from the knowledge surface.
-  room:     { contentKind: 'merge',  icon: 'hash',   label: 'Channel',  editor: 'none',   props: [],         creatable: false, workTree: false, findable: false },
-  category: { contentKind: 'none',   icon: 'folder', label: 'Category', editor: 'none',   props: [],         creatable: false, workTree: false, findable: false },
+  // Automation: stream-bot integration node; not yet creatable from the UI.
+  automation: { contentKind: 'none', icon: 'stream', label: 'Automation', editor: 'none', props: [], creatable: false, workTree: false, findable: false },
+  // Removed types — tombstones so legacy nodes in existing spaces stay hidden (workTree: false)
+  // rather than falling through to the generic descriptor (workTree: true). Not creatable.
+  room:     { contentKind: 'none', icon: 'layers', label: 'Channel',  editor: 'none', props: [], creatable: false, workTree: false, findable: false },
+  category: { contentKind: 'none', icon: 'folder', label: 'Category', editor: 'none', props: [], creatable: false, workTree: false, findable: false },
 };
 
 /** The fallback for an unknown (custom) type: a structureless-until-declared object
@@ -102,23 +105,9 @@ export function objectDescriptor(type: ObjectType): TypeDescriptor {
   return BUILTIN_DESCRIPTORS[type] ?? GENERIC;
 }
 
-/** Room subtypes refine the room glyph; everything else uses its type descriptor. */
-export function iconForNode(node: Pick<ObjectNode, 'type' | 'subtype'>): IconName {
-  if (node.type === 'room') return roomSubtypeIcon(node.subtype);
+/** Resolve the display icon for a node from its type descriptor. */
+export function iconForNode(node: Pick<ObjectNode, 'type'>): IconName {
   return objectDescriptor(node.type).icon;
-}
-
-function roomSubtypeIcon(subtype: RoomSubtype | undefined): IconName {
-  switch (subtype) {
-    case 'dm':
-      return 'dm';
-    case 'stream':
-      return 'stream';
-    case 'automation':
-      return 'stream';
-    default:
-      return 'hash';
-  }
 }
 
 /** A container type holds children but has no content of its own (folder/category) —
@@ -170,7 +159,7 @@ export interface TypeRegistry {
   descriptor: (type: string) => TypeDescriptor;
   creatableTypes: () => CreatableTypeEntry[];
   showsInWorkTree: (node: Pick<ObjectNode, 'type'>) => boolean;
-  iconForNode: (node: Pick<ObjectNode, 'type' | 'subtype'>) => IconName;
+  iconForNode: (node: Pick<ObjectNode, 'type'>) => IconName;
   isFindableType: (type: string) => boolean;
   isContainerType: (type: string) => boolean;
   isOpenableType: (type: string) => boolean;
@@ -227,10 +216,7 @@ export function makeRegistry(customTypes: TypeDef[]): TypeRegistry {
     descriptor,
     creatableTypes,
     showsInWorkTree: (node) => descriptor(node.type).workTree,
-    iconForNode: (node) => {
-      if (node.type === 'room') return roomSubtypeIcon((node as ObjectNode).subtype);
-      return descriptor(node.type).icon;
-    },
+    iconForNode: (node) => descriptor(node.type).icon,
     isFindableType: (type) => descriptor(type).findable,
     isContainerType: (type) => descriptor(type).editor === 'none',
     isOpenableType: (type) => descriptor(type).editor !== 'none',

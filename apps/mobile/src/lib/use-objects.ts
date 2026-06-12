@@ -18,7 +18,7 @@ import {
 } from '@drakkar.software/octovault-sdk';
 import type { ID, ObjectNode, PropValue } from '@drakkar.software/octovault-sdk';
 import { useMergeDoc } from './use-merge-doc';
-import { useRoomLiveSync } from './use-room-live-sync';
+import { useDocLiveSync } from './use-doc-live-sync';
 
 /** The unified object-index hook for one space — a union-merged merge-doc (see
  *  {@link useMergeDoc}) exposing the repaired render tree plus the create/rename/move/
@@ -83,7 +83,7 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   // Refresh-on-focus parity with chat (see {@link useDoc} / {@link useRoom}): a screen
   // that edits a doc/project pushes to the server through its OWN index store, so a
   // separately-mounted Work surface only sees the change on its next pull. Reuse the
-  // shared {@link useRoomLiveSync} to focus-pull (+ poll while SSE is down) the index.
+  // shared {@link useDocLiveSync} to focus-pull (+ poll while SSE is down) the index.
   // Note: index change events carry only `spaceId` and are dropped by parseRoomChange,
   // so the SSE registerPull never fires for the index — focus-pull is what refreshes it.
   // OPT-IN (`liveSync`): this calls useFocusEffect, which needs a router screen. The
@@ -91,7 +91,7 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   // NOT call the hook there — gated by a flag that is static per mount, keeping hook
   // order stable.
   // eslint-disable-next-line react-hooks/rules-of-hooks -- `liveSync` is fixed per call site (never toggles for a mounted instance), so the hook order is stable
-  if (opts.liveSync) useRoomLiveSync({ roomId: spaceId, ready, pull, skipFirstFocus: true, firstFocusKey: spaceId });
+  if (opts.liveSync) useDocLiveSync({ docId: spaceId, ready, pull, skipFirstFocus: true, firstFocusKey: spaceId });
 
   const objects = useMemo<ObjectNode[]>(() => (Array.isArray(doc?.objects) ? (doc!.objects as ObjectNode[]) : []), [doc]);
 

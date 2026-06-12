@@ -1,26 +1,25 @@
 /**
- * Shared room-open state machine for {@link ./use-room} (merge-doc) and
- * {@link ./use-stream-room} (append-only). Both open a room the same way — resolve the
- * crypto context over the network, which can fail — so they share ONE policy here for:
+ * Shared space-open state machine for merge-doc and append-only content hooks.
+ * Both open a space's crypto context the same way — resolve it over the network,
+ * which can fail — so they share ONE policy here for:
  *  - `opening` / `openError` / `offline` flags,
  *  - classifying a failed open: a genuine {@link SpaceAccessError} is a hard
  *    `openError` the user must see; anything else is a connectivity failure that
- *    degrades to an `offline` shell (banner + pending bubbles still render),
+ *    degrades to an `offline` shell (banner + pending states still render),
  *  - correcting the global online signal from the REAL open outcome
  *    ({@link reportReachability}) so the offline banner shows even when the native
  *    SSE-proxy flag is stuck optimistic-true,
- *  - re-opening automatically when connectivity returns (so a message the outbox
- *    flusher sent while we were offline gets pulled into the live store).
+ *  - re-opening automatically when connectivity returns.
  *
  * The hook owns no crypto/network — the caller runs its own open effect and reports
- * the result via {@link RoomOpenState.beginOpen}/`openReached`/`finishOpening`/`failOpen`.
+ * the result via {@link SpaceOpenState.beginOpen}/`openReached`/`finishOpening`/`failOpen`.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { reportReachability, subscribeOnline } from './connectivity';
 import { SpaceAccessError } from '@drakkar.software/octovault-sdk';
 
-export interface RoomOpenState {
+export interface SpaceOpenState {
   opening: boolean;
   /** A hard, user-facing error (genuine access denial) — not connectivity. */
   openError: string | null;
@@ -40,7 +39,7 @@ export interface RoomOpenState {
   failOpen: (e: unknown) => void;
 }
 
-export function useRoomOpenState(): RoomOpenState {
+export function useSpaceOpenState(): SpaceOpenState {
   const [opening, setOpening] = useState(true);
   const [openError, setOpenError] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
@@ -50,7 +49,7 @@ export function useRoomOpenState(): RoomOpenState {
   const reload = useCallback(() => setReloadNonce((n) => n + 1), []);
 
   // Re-open automatically when connectivity returns, but only if we degraded offline
-  // (so a normal online edge doesn't churn a healthy room). A ref keeps the subscriber
+  // (so a normal online edge doesn't churn a healthy open). A ref keeps the subscriber
   // stable while reading the latest `offline`.
   const offlineRef = useRef(false);
   offlineRef.current = offline;

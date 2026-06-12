@@ -13,18 +13,18 @@
  */
 import { generateDeviceKeys } from '@drakkar.software/starfish-identities';
 import { mintMemberCap } from '@drakkar.software/starfish-sharing';
-import { ConflictError, StarfishHttpError } from '@drakkar.software/starfish-client';
+import { StarfishHttpError } from '@drakkar.software/starfish-client';
 import type { StarfishClient } from '@drakkar.software/starfish-client';
 
-import type { PubAccessMap, Room, RoomKind, Space } from '../domain/types';
+import type { PubAccessMap, Space } from '../domain/types';
 
-import { randomId, roomSlug } from '../domain/ids';
+import { randomId } from '../domain/ids';
 
 import { sealToSelf, unsealFromSelf } from './account-seal';
 import type { SealedBlob } from './account-seal';
 import { makeClient } from './client';
 import type { Session } from './identity';
-import { bytesToHex, pubspaceRoomPush, pubspaceRoomsPull, pubspaceRoomsPush, pubspaceScope } from './paths';
+import { bytesToHex, pubspaceAccessPull, pubspaceAccessPush, pubspaceScope } from './paths';
 import {
   getPubspaceAccess,
   localPubspaceEntries,
@@ -32,11 +32,9 @@ import {
   savePubspaceAccess,
 } from './pubspace-caps';
 import type { AccessMap, PubspaceAccess } from './pubspace-caps';
-import { DEFAULT_CATEGORY } from './objects';
 import {
   addJoinedPublicSpaceWithAccess,
   addJoinedSpace,
-  normalizeCategories,
   updateSpacesDoc,
 } from './registry';
 
@@ -115,17 +113,15 @@ async function ephemeralUserId(edPubHex: string): Promise<string> {
   return bytesToHex(new Uint8Array(digest)).slice(0, 32);
 }
 
-interface PublicRoomsDoc {
+/** The plaintext access record for a public space, stored at `_rooms`.
+ *  Owner-set name/image are the shared space identity; joiners read but
+ *  cannot write (pubspace:writer is withheld on `_rooms`). */
+interface PublicSpaceDoc {
   v: 1;
-  rooms: Room[];
-  /** Owner-set shared space identity (plaintext, like the rest of a public space).
-   *  Joiners read it; `pubspace:writer` is withheld on `_rooms`, so only the owner
-   *  writes it. `image` is a data URI (see avatar-image). */
+  /** Owner-set shared space name. */
   name?: string;
+  /** Owner-set space image (data URI). */
   image?: string;
-  /** Ordered category list — mirrors the private registry (see normalizeCategories).
-   *  Omitted when empty so a pre-feature public space stays byte-identical. */
-  categories?: string[];
 }
 
 /** Public-space ids are prefixed so the data layer can branch synchronously without
@@ -145,55 +141,40 @@ export function publicSpaceAuth(
   return { cap: session.accountCap, signingKey: session.keys.edPriv, ownerId: session.userId, write: true };
 }
 
-/** An empty plaintext room doc — same shape `useSyncInit` builds, minus encryption. */
-const emptyRoomDoc = (): Record<string, unknown> => ({ messages: [], reactions: [] });
-
-/** Read a public space's room registry doc — rooms, shared name/image, + its hash
- *  (for an append write). */
-export async function readPublicRoomsDoc(
+/** Read a public space's access doc — shared name/image + its hash (for a CAS write). */
+export async function readPublicSpaceDoc(
   client: StarfishClient,
   ownerId: string,
   spaceId: string,
-): Promise<{ rooms: Room[]; name: string | null; image: string | null; categories: string[]; hash: string | null }> {
-  // 404 → empty doc; any other error (offline) propagates so the rooms provider can
-  // fall back to the cached registry instead of wiping the list. Twin of readRooms.
-  const res = await client.pull(pubspaceRoomsPull(ownerId, spaceId)).catch((err: unknown) => {
+): Promise<{ name: string | null; image: string | null; hash: string | null }> {
+  // 404 → empty doc; any other error (offline) propagates so callers can distinguish.
+  const res = await client.pull(pubspaceAccessPull(ownerId, spaceId)).catch((err: unknown) => {
     if (err instanceof StarfishHttpError && err.status === 404) return null;
     throw err;
   });
-  const data = res?.data as Partial<PublicRoomsDoc> | undefined;
-  const rooms = Array.isArray(data?.rooms) ? data.rooms : [];
+  const data = res?.data as Partial<PublicSpaceDoc> | undefined;
   return {
-    rooms,
     name: typeof data?.name === 'string' ? data.name : null,
     image: typeof data?.image === 'string' ? data.image : null,
-    categories: normalizeCategories(rooms, data?.categories),
     hash: res?.hash ?? null,
   };
 }
 
-/** Read a public space's room list (gated by the caller's cap). */
-export async function readPublicRooms(client: StarfishClient, ownerId: string, spaceId: string): Promise<Room[]> {
-  return (await readPublicRoomsDoc(client, ownerId, spaceId)).rooms;
-}
-
 /**
- * Owner: create a new PUBLIC space. Seeds a `general` room into the plaintext
- * `_rooms` registry (written with the account cap → `pubspace:owner`) and registers
- * the space in the owner's own `_spaces` list as `type:'public'`.
+ * Owner: create a new PUBLIC space. Registers the shared name in the plaintext `_rooms`
+ * access doc (written with the account cap → `pubspace:owner`) and registers the space
+ * in the owner's own `_spaces` list as `type:'public'`. The object index starts empty —
+ * the "Write your first page" state.
  */
 export async function createPublicSpace(session: Session, name: string): Promise<Space> {
   const trimmed = name.trim() || 'Public space';
   const spaceId = newPublicSpaceId();
-  const general: Room = { id: `${spaceId}-general`, spaceId, category: 'CHANNELS', name: 'general', kind: 'channel' };
-  const doc: PublicRoomsDoc = { v: 1, rooms: [general], name: trimmed };
+  const doc: PublicSpaceDoc = { v: 1, name: trimmed };
   await session.accountClient.push(
-    pubspaceRoomsPush(session.userId, spaceId),
+    pubspaceAccessPush(session.userId, spaceId),
     doc as unknown as Record<string, unknown>,
     null,
   );
-  // Seed the room's empty message doc so a reader's first pull finds it (no 404).
-  await session.accountClient.push(pubspaceRoomPush(session.userId, spaceId, general.id), emptyRoomDoc(), null);
   const space: Space = {
     id: spaceId,
     name: trimmed,
@@ -312,51 +293,9 @@ export function publicSpaceClient(session: Session, spaceId: string): StarfishCl
 }
 
 /**
- * Owner: add a channel to a public space — append it to the plaintext `_rooms`
- * registry and seed its empty message doc. Only the owner's account cap can write
- * (`pubspace:owner`); a joiner's `pubspace:writer` is withheld on `_rooms`.
- */
-export async function createPublicRoom(
-  session: Session,
-  spaceId: string,
-  name: string,
-  category = DEFAULT_CATEGORY,
-  kind: RoomKind = 'channel',
-): Promise<Room> {
-  const client = session.accountClient;
-  const { rooms, name: spaceName, image, categories, hash } = await readPublicRoomsDoc(client, session.userId, spaceId);
-  const room: Room = {
-    id: `${spaceId}-${roomSlug(name)}-${Date.now().toString(36)}`,
-    spaceId,
-    category,
-    name,
-    kind,
-  };
-  // Preserve the shared name/image + category list so adding a channel never drops
-  // the space identity or the ordered categories.
-  const nextCategories = categories.includes(category) ? categories : [...categories, category];
-  const doc: PublicRoomsDoc = {
-    v: 1,
-    rooms: [...rooms, room],
-    ...(spaceName ? { name: spaceName } : {}),
-    ...(image ? { image } : {}),
-    ...(nextCategories.length ? { categories: nextCategories } : {}),
-  };
-  await client.push(pubspaceRoomsPush(session.userId, spaceId), doc as unknown as Record<string, unknown>, hash);
-  // A 'channel' is a merge-doc room → seed its empty doc so a reader's first pull
-  // finds it. A 'stream' is an append-only log (the `pubstream` collection) → no
-  // seeding: an empty log simply pulls as []. (Its first element is the first append.)
-  if (kind !== 'stream') {
-    await client.push(pubspaceRoomPush(session.userId, spaceId, room.id), emptyRoomDoc(), null);
-  }
-  return room;
-}
-
-/**
- * Owner: update a public space's SHARED identity (name / image) in its plaintext
- * `_rooms` registry, written with the account cap (`pubspace:owner`). Joiners read
- * but can't write `_rooms`, so this is owner-only. Preserves the rooms list; an
- * `undefined` field is left unchanged and a `null`/empty image clears it.
+ * Owner: update a public space's SHARED identity (name / image) in its plaintext `_rooms`
+ * access doc, written with the account cap (`pubspace:owner`). Joiners read but cannot
+ * write `_rooms`. An `undefined` field is left unchanged; `null`/empty image clears it.
  */
 export async function updatePublicSpaceMeta(
   session: Session,
@@ -364,55 +303,14 @@ export async function updatePublicSpaceMeta(
   meta: { name?: string | null; image?: string | null },
 ): Promise<void> {
   const client = session.accountClient;
-  const { rooms, name: curName, image: curImage, categories, hash } = await readPublicRoomsDoc(client, session.userId, spaceId);
+  const { name: curName, image: curImage, hash } = await readPublicSpaceDoc(client, session.userId, spaceId);
   const name = (meta.name === undefined ? curName : meta.name)?.trim() || undefined;
   const image = (meta.image === undefined ? curImage : meta.image) || undefined;
-  const doc: PublicRoomsDoc = {
+  const doc: PublicSpaceDoc = {
     v: 1,
-    rooms,
     ...(name ? { name } : {}),
     ...(image ? { image } : {}),
-    ...(categories.length ? { categories } : {}),
   };
-  await client.push(pubspaceRoomsPush(session.userId, spaceId), doc as unknown as Record<string, unknown>, hash);
+  await client.push(pubspaceAccessPush(session.userId, spaceId), doc as unknown as Record<string, unknown>, hash);
 }
 
-/**
- * Owner: read-modify-write a public space's `_rooms` registry through one funnel —
- * the public twin of {@link updateRoomsRegistry}. Preserves the shared name/image,
- * runs the mutator over `{ rooms, categories }` (or `null` for a no-op). Public docs
- * are last-writer-wins (only the owner's own devices race), so no ConflictError loop.
- */
-export async function updatePublicRoomsRegistry(
-  session: Session,
-  spaceId: string,
-  mutator: (cur: { rooms: Room[]; categories: string[] }) => { rooms: Room[]; categories: string[] } | null,
-): Promise<void> {
-  const client = session.accountClient;
-  // Read-modify-write through a bounded conflict-retry loop — the public-registry
-  // twin of `updateRoomsRegistry`. Every automation tick rewrites this whole doc to
-  // bump `lastRunAt`/`lastFetchHash`, so ticks contend with each other and with user
-  // edits; without re-reading on a 409 a concurrent write throws and the dedup cursor
-  // never persists (→ a duplicate repost on the next device). The mutator runs on
-  // FRESH state each attempt so it can't clobber a sibling's write.
-  const MAX_ATTEMPTS = 3;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const { rooms, name, image, categories, hash } = await readPublicRoomsDoc(client, session.userId, spaceId);
-    const next = mutator({ rooms, categories });
-    if (!next) return;
-    const doc: PublicRoomsDoc = {
-      v: 1,
-      rooms: next.rooms,
-      ...(name ? { name } : {}),
-      ...(image ? { image } : {}),
-      ...(next.categories.length ? { categories: next.categories } : {}),
-    };
-    try {
-      await client.push(pubspaceRoomsPush(session.userId, spaceId), doc as unknown as Record<string, unknown>, hash);
-      return;
-    } catch (err) {
-      if (err instanceof ConflictError && attempt < MAX_ATTEMPTS - 1) continue;
-      throw err;
-    }
-  }
-}

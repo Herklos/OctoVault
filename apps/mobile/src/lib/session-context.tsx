@@ -34,7 +34,7 @@ import {
 } from '@drakkar.software/octovault-sdk/platform';
 import { disableBiometricLock } from './app-lock';
 import type { PersistedSession, SeedLock, UnlockMethod, Vault } from '@drakkar.software/octovault-sdk';
-import { clearRoomEventsBus } from '@drakkar.software/octovault-sdk';
+import { clearLiveSyncBus } from '@drakkar.software/octovault-sdk';
 import { clearPrimedSpaces, primeSpaces } from '@drakkar.software/octovault-sdk';
 import { clearPseudoCache, primeProfile } from './use-pseudos';
 
@@ -132,7 +132,7 @@ function resetAccountScopedState(): void {
   clearPseudoCache();
   clearSpaceEncryptors();
   clearPrimedSpaces();
-  clearRoomEventsBus();
+  clearLiveSyncBus();
   // Flush any pending read marks before dropping them so a just-read room on the
   // outgoing account isn't lost; then clear the in-memory snapshot.
   void flushReadsNow();

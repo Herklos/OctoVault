@@ -4,7 +4,6 @@
  */
 
 import type { SealedBlob } from '../starfish/account-seal';
-import type { AttachmentRef } from '../starfish/attachments';
 
 // ── Presence & verification — owned here so the app theme can import them ────
 
@@ -93,18 +92,11 @@ export interface Space {
   write?: boolean;
 }
 
-/** `stream` is an append-only room (a "Stream room"): writers append to a log —
- *  no pull/merge/hash — so bots/integrations can post without the sync protocol.
- *  Its encryption follows the space (E2EE private / plaintext public).
- *  `automated` is a stream room with a built-in integration attached: a bot posts
- *  scheduled fetches into it, and the user drives the bot with `/<command>` msgs.
- *  Storage-wise it's identical to a public `stream` (pubstream collection). */
-export type RoomKind = 'channel' | 'private' | 'dm' | 'stream' | 'automated';
 
-/** Stored, synced configuration of an `automated` room — kept on the per-Room
- *  registry entry so every device sees status / can take over the runner.
- *  Secret provider params (API keys etc.) live in device-local kv instead — see
- *  `src/lib/automations/secrets.ts`. */
+/** Stored, synced configuration of an automation node (`type:'automation'`) — kept
+ *  on the node's `automation` field so every device sees status / can take over the
+ *  runner. Secret provider params (API keys etc.) live in device-local kv instead —
+ *  see `src/lib/automations/secrets.ts`. */
 export interface AutomationMeta {
   /** FK into the built-in provider catalog (e.g. 'rss' / 'http'). */
   providerId: string;
@@ -143,26 +135,8 @@ export interface AutomationMeta {
   lastError: string | null;
 }
 
-export interface Room {
-  id: ID;
-  spaceId: ID;
-  /** Category bucket this room renders under (e.g. "DESIGN"). */
-  category: string;
-  name: string;
-  kind: RoomKind;
-  topic?: string;
-  unread?: number;
-  mention?: boolean;
-  /** DM avatar monogram. */
-  avatar?: string;
-  /** Present only for `kind === 'automated'` — the runner config (synced via the
-   *  `_rooms` registry doc; threaded through every writer for free since writers
-   *  rewrite the whole `rooms[]`). */
-  automation?: AutomationMeta;
-}
-
 /** The builtin object types. Every artifact — folders, pages, boards, tasks,
- *  files, images, plus legacy chat types — is an `Object` of one `ObjectType`.
+ *  files, images, and automations — is an `Object` of one `ObjectType`.
  *  A custom (user-defined) type rides the same `string` field, so the union is
  *  open-ended; builtins are the ones the app ships renderers for. */
 export type BuiltinObjectType =
@@ -172,14 +146,13 @@ export type BuiltinObjectType =
   | 'task'
   | 'file'
   | 'image'
-  | 'room'
-  | 'category';
+  | 'automation';
 export type ObjectType = BuiltinObjectType | (string & {});
 
 /** The builtin types, as a runtime set — so code can ask "is this one we ship a
  *  renderer for?" and fall back to the generic custom-type path otherwise. */
 export const BUILTIN_OBJECT_TYPES: readonly BuiltinObjectType[] = [
-  'folder', 'page', 'board', 'task', 'file', 'image', 'room', 'category',
+  'folder', 'page', 'board', 'task', 'file', 'image', 'automation',
 ];
 
 /** How an object's CONTENT syncs — the one axis a custom type must declare so the app
@@ -195,23 +168,17 @@ export type ObjectContentKind = 'merge' | 'append' | 'none';
  *  Heavy freeform body stays in the per-object WAL/merge content doc. */
 export type PropValue = string | number | boolean | null;
 
-/** When `type === 'room'`, which flavour. Maps the legacy {@link RoomKind}:
- *  `channel`/`private`→`channel`, `dm`→`dm`, `stream`→`stream`, `automated`→`automation`. */
-export type RoomSubtype = 'channel' | 'dm' | 'stream' | 'automation';
-
 /** One entry in a space's object index (`spaces/{spaceId}/objects/_index`). This is
- *  IDENTITY + TREE POSITION + light metadata ONLY — the heavy content (messages, doc
- *  blocks, project event log) lives in a per-object content doc keyed by {@link id}.
- *  The tree is LOGICAL via {@link parentId} (category→room, doc→sub-doc), never path
- *  nesting, so a move is an O(1) reparent. Sibling order is `(order, id)` for a
- *  deterministic render across devices. The index is union-merged on `id` keyed by
- *  {@link updatedAt}, so concurrent member edits don't clobber. */
+ *  IDENTITY + TREE POSITION + light metadata ONLY — the heavy content (doc blocks,
+ *  project event log) lives in a per-object content doc keyed by {@link id}.
+ *  The tree is LOGICAL via {@link parentId} (doc→sub-doc, etc.), never path nesting,
+ *  so a move is an O(1) reparent. Sibling order is `(order, id)` for a deterministic
+ *  render across devices. The index is union-merged on `id` keyed by {@link updatedAt},
+ *  so concurrent member edits don't clobber. */
 export interface ObjectNode {
   id: ID;
   type: ObjectType;
-  /** Present when `type === 'room'`. */
-  subtype?: RoomSubtype;
-  /** Parent in the tree; `null` = root. category→room, doc→sub-doc, etc. */
+  /** Parent in the tree; `null` = root. doc→sub-doc, etc. */
   parentId: ID | null;
   /** Sibling sort key; ties broken by `id`. */
   order: number;
@@ -221,7 +188,7 @@ export interface ObjectNode {
   updatedAt: number;
   /** Soft-delete; archiving a node cascade-archives its subtree. */
   archived?: boolean;
-  /** Present when `subtype === 'automation'` — same config as legacy automated rooms. */
+  /** Present when `type === 'automation'` — the bot/integration runner config. */
   automation?: AutomationMeta;
   /** Optional override of how this object's content syncs. Builtins leave it absent
    *  (inferred from {@link type}); a CUSTOM type sets it so the generic hook layer can
@@ -242,86 +209,6 @@ export interface ObjectsIndex {
   v: 1;
   objects: ObjectNode[];
   updatedAt: number;
-}
-
-export interface Reaction {
-  emoji: string;
-  count: number;
-  mine?: boolean;
-  /** Ids of the users currently reacting with this emoji (for the "who reacted"
-   *  tooltip). Raw ids — names are resolved at render so they stay viewer-aware. */
-  userIds: string[];
-}
-
-/** Append-only reaction event stored in the room doc; aggregated for display. */
-export interface ReactionEvent {
-  id: string;
-  msgId: string;
-  emoji: string;
-  userId: string;
-  kind: 'add' | 'remove';
-  ts: number;
-}
-
-/** Append-only message-edit event stored in the room doc; the latest one (by `ts`)
- *  authored by the message's author wins at render — see `resolveEdit`. A `delete`
- *  tombstones the message; an `edit` carries the replacement `text`. */
-export interface MessageEditEvent {
-  id: string;
-  msgId: string;
-  userId: string;
-  kind: 'edit' | 'delete';
-  /** Replacement body for an `edit`; absent for a `delete`. */
-  text?: string;
-  ts: number;
-}
-
-/** Append-only pin event stored in the room doc; the latest one (by `ts`) authored
- *  by the SPACE OWNER wins at render — see `resolvePinned`. Only the owner may pin
- *  or unpin, so unlike edits/reactions the guard filters by the owner, not the
- *  message's author. A `pin` marks the message; an `unpin` clears it. */
-export interface PinEvent {
-  id: string;
-  msgId: string;
-  /** Who emitted it — only events where this equals the space owner count. */
-  userId: string;
-  kind: 'pin' | 'unpin';
-  ts: number;
-}
-
-export interface Message {
-  id: ID;
-  roomId: ID;
-  authorId: ID;
-  time: string;
-  text?: string;
-  /** Real (encrypted) attachment reference rendered via AttachmentView. */
-  attachmentRef?: AttachmentRef;
-  reactions?: Reaction[];
-  /** Number of replies if this message anchors a thread. */
-  threadCount?: number;
-  /** Whether this message @-mentions the current user. */
-  mention?: boolean;
-  /** Whether this message arrived since the viewer last read the room. Combined
-   *  with {@link mention} it escalates the highlight (a wider, stronger bar). */
-  unread?: boolean;
-  /** Whether the author has edited this message's text (renders an "(edited)" mark). */
-  edited?: boolean;
-  /** Whether the author has deleted this message (renders a "deleted" tombstone). */
-  deleted?: boolean;
-  /** Whether the space owner has pinned this message (renders a "Pinned" mark). */
-  pinned?: boolean;
-  /** Unsent state for a message still in the offline outbox: `queued`/`sending`
-   *  render as a muted "will send when online" bubble, `failed` offers a retry.
-   *  Absent for a normal, server-confirmed message. See `src/lib/outbox.ts`. */
-  pending?: 'queued' | 'sending' | 'failed';
-}
-
-export interface Thread {
-  id: ID;
-  roomId: ID;
-  parentId: ID;
-  replies: Message[];
 }
 
 export interface SecurityItem {

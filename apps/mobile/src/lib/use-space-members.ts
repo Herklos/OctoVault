@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
-import { readRooms, removeSpaceMember as removeSpaceMemberDoc } from '@drakkar.software/octovault-sdk';
+import { readSpaceAccess, removeSpaceMember as removeSpaceMemberDoc } from '@drakkar.software/octovault-sdk';
 import { fingerprintFromUserId } from '@drakkar.software/octovault-sdk';
 import { useAvatars, usePseudos } from './use-pseudos';
 import { useSession } from './session-context';
@@ -72,7 +72,7 @@ export function useSpaceMembers(spaceId: string): SpaceMembers {
       return;
     }
     try {
-      const { owner: ownr, members } = await readRooms(session.accountClient, spaceId);
+      const { owner: ownr, members } = await readSpaceAccess(session.accountClient, spaceId);
       setOwner(ownr);
       // Owner first, then members — deduped (the roster never includes the owner, but
       // be defensive against a legacy doc that did).
