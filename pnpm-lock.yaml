@@ -50,6 +50,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@drakkar.software/octovault-sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@drakkar.software/starfish-client':
         specifier: 3.0.0-alpha.26
         version: 3.0.0-alpha.26(immer@10.2.0)(react@19.2.3)(zustand@5.0.14(@types/react@19.2.17)(immer@10.2.0)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
@@ -313,6 +316,64 @@ importers:
       typescript:
         specifier: ~5.9.2
         version: 5.9.3
+
+  packages/sdk:
+    dependencies:
+      '@drakkar.software/starfish-client':
+        specifier: 3.0.0-alpha.26
+        version: 3.0.0-alpha.26(immer@10.2.0)(react@19.2.3)(zustand@5.0.14(@types/react@19.2.17)(immer@10.2.0)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
+      '@drakkar.software/starfish-identities':
+        specifier: 3.0.0-alpha.26
+        version: 3.0.0-alpha.26(immer@10.2.0)(react@19.2.3)(zustand@5.0.14(@types/react@19.2.17)(immer@10.2.0)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
+      '@drakkar.software/starfish-keyring':
+        specifier: 3.0.0-alpha.26
+        version: 3.0.0-alpha.26(immer@10.2.0)(react@19.2.3)(zustand@5.0.14(@types/react@19.2.17)(immer@10.2.0)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
+      '@drakkar.software/starfish-protocol':
+        specifier: 3.0.0-alpha.26
+        version: 3.0.0-alpha.26
+      '@drakkar.software/starfish-sharing':
+        specifier: 3.0.0-alpha.26
+        version: 3.0.0-alpha.26(immer@10.2.0)(react@19.2.3)(zustand@5.0.14(@types/react@19.2.17)(immer@10.2.0)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
+      '@drakkar.software/starfish-wal':
+        specifier: 3.0.0-alpha.26
+        version: 3.0.0-alpha.26
+      '@noble/curves':
+        specifier: ^2.2.0
+        version: 2.2.0
+      '@noble/hashes':
+        specifier: ^2.2.0
+        version: 2.2.0
+      '@scure/bip39':
+        specifier: ^2.0.0
+        version: 2.2.0
+      hash-wasm:
+        specifier: ^4.12.0
+        version: 4.12.0
+    devDependencies:
+      '@octovault/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@react-native-async-storage/async-storage':
+        specifier: 2.2.0
+        version: 2.2.0(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))
+      '@types/node':
+        specifier: ^22.19.19
+        version: 22.19.20
+      expo-secure-store:
+        specifier: '*'
+        version: 56.0.4(expo@56.0.11)
+      react-native-quick-crypto:
+        specifier: ^1.1.4
+        version: 1.1.5(expo-build-properties@56.0.18(expo@56.0.11))(expo@56.0.11)(react-native-nitro-modules@0.35.9(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3))(react-native-quick-base64@3.0.0(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@6.0.3)(yaml@2.9.0)
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.7
+        version: 4.1.8(@types/node@22.19.20)(vite@8.0.16(@types/node@22.19.20)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/tsconfig: {}
 
