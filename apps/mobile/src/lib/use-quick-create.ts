@@ -14,11 +14,13 @@
 import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
 
+import type { ObjectType } from './types';
 import { useSpaceObjects } from './space-objects-context';
 
 export function useQuickCreate(): {
   newPage: () => void;
   newBoard: () => void;
+  createObject: (type: ObjectType) => void;
   /** False until the active space's index store is writable (gates the controls). */
   ready: boolean;
 } {
@@ -26,17 +28,14 @@ export function useQuickCreate(): {
   const { spaceId, objects } = useSpaceObjects();
   const ready = objects.ready && !!spaceId;
 
-  const newPage = useCallback(() => {
+  const createObject = useCallback((type: ObjectType) => {
     if (!objects.ready || !spaceId) return;
-    const id = objects.create({ type: 'page', title: '' });
+    const id = objects.create({ type, title: '' });
     if (id) router.push({ pathname: '/work/object/[id]', params: { id, spaceId, label: 'Untitled', focusTitle: '1' } });
   }, [objects, spaceId, router]);
 
-  const newBoard = useCallback(() => {
-    if (!objects.ready || !spaceId) return;
-    const id = objects.create({ type: 'board', title: '' });
-    if (id) router.push({ pathname: '/work/object/[id]', params: { id, spaceId, label: 'Untitled', focusTitle: '1' } });
-  }, [objects, spaceId, router]);
+  const newPage = useCallback(() => createObject('page'), [createObject]);
+  const newBoard = useCallback(() => createObject('board'), [createObject]);
 
-  return { newPage, newBoard, ready };
+  return { newPage, newBoard, createObject, ready };
 }

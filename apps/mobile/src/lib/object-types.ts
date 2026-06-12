@@ -146,9 +146,15 @@ export function contentKindOf(node: Pick<ObjectNode, 'type' | 'contentKind'>): O
   return node.contentKind ?? objectDescriptor(node.type).contentKind;
 }
 
+export interface CreatableTypeEntry extends TypeDescriptor {
+  type: ObjectType;
+}
+
 /** Types the user can explicitly create from the "new object" menus. */
-export function creatableTypes(): TypeDescriptor[] {
-  return Object.values(BUILTIN_DESCRIPTORS).filter((d) => d.creatable);
+export function creatableTypes(): CreatableTypeEntry[] {
+  return (Object.entries(BUILTIN_DESCRIPTORS) as [ObjectType, TypeDescriptor][])
+    .filter(([, d]) => d.creatable)
+    .map(([type, d]) => ({ type, ...d }));
 }
 
 /** Default `props` map for a newly created object of this type (all fields absent = empty map). */

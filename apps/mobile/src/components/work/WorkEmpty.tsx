@@ -2,16 +2,18 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
+import { creatableTypes } from '@/lib/object-types';
+import type { ObjectType } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 /**
  * Empty state for a space with no content yet — shown once the object index has
- * loaded and holds no pages/boards (gated on `loaded`). Plain-spoken copy (the
- * encryption/CRDT story belongs in onboarding, not an empty screen) over two
- * LIVE create CTAs wired to `useObjects.create`.
+ * loaded and holds no pages/boards (gated on `loaded`). Buttons are driven by
+ * the type registry so any new creatable workTree type appears automatically.
  */
-export function WorkEmpty({ onNewPage, onNewBoard, disabled }: { onNewPage: () => void; onNewBoard: () => void; disabled?: boolean }) {
+export function WorkEmpty({ onCreate, disabled }: { onCreate: (type: ObjectType) => void; disabled?: boolean }) {
+  const workTreeTypes = creatableTypes().filter((d) => d.workTree && d.editor !== 'file');
   return (
     <View style={styles.floor}>
       <EmptyState
@@ -20,8 +22,17 @@ export function WorkEmpty({ onNewPage, onNewBoard, disabled }: { onNewPage: () =
         subtitle="Pages hold your notes and documents; boards track work in columns. Everything here is private to this space and syncs to all your devices."
       >
         <View style={styles.actions}>
-          <Button label="New page" variant="primary" iconName="plus" size="sm" disabled={disabled} onPress={onNewPage} />
-          <Button label="New board" variant="secondary" iconName="plus" size="sm" disabled={disabled} onPress={onNewBoard} />
+          {workTreeTypes.map((d, i) => (
+            <Button
+              key={d.type}
+              label={`New ${d.label.toLowerCase()}`}
+              variant={i === 0 ? 'primary' : 'secondary'}
+              iconName="plus"
+              size="sm"
+              disabled={disabled}
+              onPress={() => onCreate(d.type)}
+            />
+          ))}
         </View>
       </EmptyState>
     </View>

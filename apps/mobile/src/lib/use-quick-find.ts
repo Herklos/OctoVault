@@ -23,7 +23,7 @@ import { router } from 'expo-router';
 
 import type { IconName } from '@/components/ui/Icon';
 
-import { isFindableType } from './object-types';
+import { creatableTypes, isFindableType } from './object-types';
 import { rankResults, type MatchRange } from './search-match';
 import { relativeTimeShort } from './relative-time';
 import { recordVisit, useRecents } from './use-recents';
@@ -136,7 +136,7 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
   const items = useMemo<QuickFindItem[]>(() => {
     const navigate = () => onNavigateRef.current?.();
 
-    const createObject = (type: 'page' | 'board', title: string) => {
+    const createObject = (type: string, title: string) => {
       if (!spaceId) return;
       const id = objects.create({ type, title, parentId: null });
       if (!id) return;
@@ -189,24 +189,18 @@ export function useQuickFind(opts: { limit?: number; onNavigate?: () => void } =
       // No active space (zero-space identity) → no inert create rows; the
       // Vault's first-run CTA owns that moment.
       if (spaceId) {
-        out.push(
-          {
+        const workTreeCreatable = creatableTypes().filter((d) => d.workTree && d.findable && d.editor !== 'file');
+        workTreeCreatable.forEach((d, i) => {
+          out.push({
             kind: 'action',
-            key: 'action:new-page',
-            section: 'Actions',
-            icon: 'page',
-            label: 'New page',
-            hint: formatShortcut('mod+n') || undefined,
-            run: () => createObject('page', ''),
-          },
-          {
-            kind: 'action',
-            key: 'action:new-board',
-            icon: 'work',
-            label: 'New board',
-            run: () => createObject('board', ''),
-          },
-        );
+            key: `action:new-${d.type}`,
+            section: i === 0 ? 'Actions' : undefined,
+            icon: d.icon,
+            label: `New ${d.label.toLowerCase()}`,
+            hint: i === 0 ? (formatShortcut('mod+n') || undefined) : undefined,
+            run: () => createObject(d.type, ''),
+          });
+        });
       }
       return out;
     }

@@ -6,26 +6,24 @@ import { useRouter } from 'expo-router';
 
 import { layout, opacity, radii, spacing } from '@/theme';
 import { copyText } from '@/lib/clipboard';
-import { iconForNode, objectDescriptor, objectLink, routeForNode, showsInWorkTree } from '@/lib/object-types';
+import { creatableTypes, iconForNode, objectDescriptor, objectLink, routeForNode, showsInWorkTree } from '@/lib/object-types';
+import type { ObjectType } from '@/lib/types';
 import { relativeTime } from '@/lib/relative-time';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { buildTree, type ObjectTreeNode } from '@/lib/starfish/objects';
 import type { ID, ObjectNode } from '@/lib/types';
 import { useHover } from '@/lib/use-hover';
 import { useRecents } from '@/lib/use-recents';
-import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
 import { useTreeCollapse } from '@/lib/use-tree-collapse';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { Menu, MenuItem } from '@/components/ui/Menu';
-import { Popover } from '@/components/ui/Popover';
-import { Sheet } from '@/components/ui/Sheet';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { ObjectTree, type ObjectTreeActions } from '@/components/objects/ObjectTree';
 
+import { CreateTypeMenu } from './CreateTypeMenu';
 import { WorkEmpty } from './WorkEmpty';
 
 interface WorkObjectsProps {
@@ -78,7 +76,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   // Title-first creation: nodes are born UNTITLED (empty title, no forced emoji)
   // and the route opens with `focusTitle=1` so the hero mounts editing — naming
   // the thing you just made is the cheapest action, not three taps deep.
-  const createAndOpen = (type: 'page' | 'board', parentId?: ID) => {
+  const createAndOpen = (type: ObjectType, parentId?: ID) => {
     const id = create({ type, title: '', parentId });
     if (!id) return;
     if (parentId) expand([parentId]); // a child born under a collapsed parent must be visible
@@ -119,7 +117,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   };
 
   const actions: ObjectTreeActions = {
-    addChild: (node, type) => createAndOpen(type, node.id),
+    addChild: (node, type: ObjectType) => createAndOpen(type, node.id),
     rename: (node, title) => rename(node.id, { title: title.trim() }),
     moveTo: (node, parentId) => {
       move(node.id, parentId);
@@ -155,7 +153,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   };
 
   if (hero && loaded && tree.length === 0) {
-    return <WorkEmpty onNewPage={() => newPage()} onNewBoard={() => newBoard()} disabled={!ready} />;
+    return <WorkEmpty onCreate={(type) => createAndOpen(type)} disabled={!ready} />;
   }
 
   const list =
@@ -217,7 +215,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
       <View style={styles.footer}>
         <View style={styles.footRow}>
           <CreateControl label="New page" iconName="plus" onPress={() => newPage()} disabled={!ready} grow />
-          <FootMenu onNewBoard={() => newBoard()} disabled={!ready} />
+          <FootMenu onCreateType={(type) => createAndOpen(type)} disabled={!ready} />
         </View>
         {agentsRow}
         {archivedRow}
@@ -307,23 +305,18 @@ function RecentRow({ node, ts, onPress }: { node: ObjectNode; ts: number; onPres
 }
 
 interface FootMenuProps {
-  onNewBoard: () => void;
+  onCreateType: (type: ObjectType) => void;
   disabled?: boolean;
 }
 
-/** The sidebar footer's "⋯": secondary create verbs behind one quiet trigger so
- *  the footer stays a single row (popover on wide, sheet on narrow). */
-function FootMenu({ onNewBoard, disabled }: FootMenuProps) {
+/** The sidebar footer's "⋯": secondary create verbs behind one quiet trigger —
+ *  driven by the registry so any future creatable type drops in automatically. */
+function FootMenu({ onCreateType, disabled }: FootMenuProps) {
   const { colors } = useTheme();
-  const { isWide } = useResponsive();
   const [open, setOpen] = useState(false);
   const ref = useRef<ViewType>(null);
-
-  const menu = (
-    <Menu>
-      <MenuItem icon="layers" label="New board" disabled={disabled} onPress={() => { setOpen(false); onNewBoard(); }} />
-    </Menu>
-  );
+  // Secondary types = creatable workTree types that aren't the primary (page).
+  const secondaryTypes = creatableTypes().filter((d) => d.workTree && d.editor !== 'file' && d.type !== 'page');
 
   return (
     <>
@@ -337,15 +330,15 @@ function FootMenu({ onNewBoard, disabled }: FootMenuProps) {
           accessibilityLabel="More ways to create"
         />
       </View>
-      {isWide ? (
-        <Popover visible={open} onClose={() => setOpen(false)} anchorRef={ref} placement="top-start">
-          {menu}
-        </Popover>
-      ) : (
-        <Sheet visible={open} onClose={() => setOpen(false)} title="Create">
-          {menu}
-        </Sheet>
-      )}
+      <CreateTypeMenu
+        visible={open}
+        onClose={() => setOpen(false)}
+        anchorRef={ref}
+        onCreate={(type) => { setOpen(false); onCreateType(type); }}
+        disabled={disabled}
+        types={secondaryTypes}
+        title="Create"
+      />
     </>
   );
 }

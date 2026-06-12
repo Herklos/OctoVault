@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { layout, radii, spacing } from '@/theme';
 import { focusRingStyle, useFocusRing } from '@/lib/focus';
-import { iconForNode, showsInWorkTree } from '@/lib/object-types';
+import { creatableTypes, iconForNode, showsInWorkTree } from '@/lib/object-types';
 import { useHover } from '@/lib/use-hover';
 import { useQuickCreate } from '@/lib/use-quick-create';
 import { useRecents } from '@/lib/use-recents';
@@ -34,7 +34,7 @@ export function WorkHome({ spaceId }: { spaceId: string | null }) {
   const router = useRouter();
   const { objects } = useSpaceObjects();
   const { recents } = useRecents();
-  const { newPage, newBoard, ready } = useQuickCreate();
+  const { createObject, ready } = useQuickCreate();
 
   // Resolve the device MRU to live nodes in THIS space; drop archived/foreign
   // entries instead of showing dead rows.
@@ -79,7 +79,7 @@ export function WorkHome({ spaceId }: { spaceId: string | null }) {
 
   // Nothing in the space yet — the first-page moment, with live CTAs.
   if (!hasContent) {
-    return <WorkEmpty onNewPage={newPage} onNewBoard={newBoard} disabled={!ready} />;
+    return <WorkEmpty onCreate={createObject} disabled={!ready} />;
   }
 
   return (
@@ -105,8 +105,9 @@ export function WorkHome({ spaceId }: { spaceId: string | null }) {
         <Txt variant="micro" mono uppercase weight="bold" tone="inkFaint" style={styles.label}>
           Start
         </Txt>
-        <HomeRow icon="page" label="New page" disabled={!ready} onPress={newPage} />
-        <HomeRow icon="layers" label="New board" disabled={!ready} onPress={newBoard} />
+        {creatableTypes().filter((d) => d.workTree && d.editor !== 'file').map((d) => (
+          <HomeRow key={d.type} icon={d.icon} label={`New ${d.label.toLowerCase()}`} disabled={!ready} onPress={() => createObject(d.type)} />
+        ))}
       </View>
     </View>
   );

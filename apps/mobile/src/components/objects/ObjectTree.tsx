@@ -9,9 +9,9 @@ import { useHover, useRowHover } from '@/lib/use-hover';
 import { useInlineEdit, type InlineEdit } from '@/lib/use-inline-edit';
 import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
-import { iconForNode, isContainerType } from '@/lib/object-types';
+import { creatableTypes, iconForNode, isContainerType } from '@/lib/object-types';
 import type { ObjectTreeNode } from '@/lib/starfish/objects';
-import type { ID } from '@/lib/types';
+import type { ID, ObjectType } from '@/lib/types';
 import { AutosaveField } from '@/components/ui/AutosaveField';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu';
@@ -28,7 +28,7 @@ import { Txt } from '@/components/ui/Txt';
  */
 export interface ObjectTreeActions {
   /** Create a child of `type` under the row (owner expands the parent + navigates). */
-  addChild: (node: ObjectTreeNode, type: 'page' | 'board') => void;
+  addChild: (node: ObjectTreeNode, type: ObjectType) => void;
   /** Persist a non-empty title typed into the in-row rename field. */
   rename: (node: ObjectTreeNode, title: string) => void;
   /** Reparent to `parentId` (`null` = workspace root). Cycle-safety lives in the reducer. */
@@ -251,7 +251,7 @@ function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
         {controlsVisible ? (
           <View style={styles.controls}>
             {Platform.OS === 'web' ? (
-              <RowControl icon="plus" label={`Add a page inside ${node.title || 'Untitled'}`} tooltip="Add a page inside" onPress={() => actions!.addChild(node, 'page')} />
+              <RowControl icon="plus" label={`Add a page inside ${node.title || 'Untitled'}`} tooltip="Add a page inside" onPress={() => actions!.addChild(node, creatableTypes().find((d) => d.workTree)?.type ?? 'page')} />
             ) : null}
             <RowControl
               icon="dots"
@@ -279,8 +279,9 @@ function ObjectTreeRow({ node, isFirst, isLast, ctx }: RowProps) {
           >
             <Menu>
               <MenuItem icon="edit" label="Rename" onPress={() => { setMenuOpen(false); ctx.edit.begin(node.id); }} />
-              <MenuItem icon="page" label="Add sub-page" onPress={() => { setMenuOpen(false); actions.addChild(node, 'page'); }} />
-              <MenuItem icon="work" label="Add sub-board" onPress={() => { setMenuOpen(false); actions.addChild(node, 'board'); }} />
+              {creatableTypes().filter((d) => d.workTree && d.editor !== 'file').map((d) => (
+                <MenuItem key={d.type} icon={d.icon} label={`Add sub-${d.label.toLowerCase()}`} onPress={() => { setMenuOpen(false); actions.addChild(node, d.type); }} />
+              ))}
               <MenuSeparator />
               <MenuItem icon="move-to" label="Move to…" onPress={() => { setMenuOpen(false); setMoveOpen(true); }} />
               <MenuItem icon="arrow-up" label="Move up" disabled={isFirst} onPress={() => { setMenuOpen(false); actions.moveUp(node); }} />
