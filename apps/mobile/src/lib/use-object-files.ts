@@ -1,0 +1,86 @@
+/**
+ * Hook for creating file/image objects by picking + uploading a blob.
+ *
+ * Handles: document picker → read bytes → encrypt + upload → create ObjectNode
+ * with props {blobId, name, mime, size}. Returns an imperative API called from
+ * event handlers, NOT during render (it's async).
+ */
+import { useCallback } from 'react';
+import * as DocumentPicker from 'expo-document-picker';
+import { File as FSFile } from 'expo-file-system';
+
+import type { ByteSealer } from './starfish/attachments';
+import { uploadObjectBlob } from './starfish/object-blobs';
+import { getSpaceEncryptor } from './starfish/space-encryptor';
+import type { Encryptor } from '@drakkar.software/starfish-client';
+import { useSession } from './session-context';
+import { useSpaceObjects } from './space-objects-context';
+import type { ID } from './types';
+
+export interface UseObjectFilesResult {
+  /** Pick a document, upload it as a `file` object, return the created id (or null on cancel). */
+  createFileObject: (opts?: { parentId?: ID }) => Promise<string | null>;
+  /** Pick an image document, upload it as an `image` object, return the created id (or null on cancel). */
+  createImageObject: (opts?: { parentId?: ID }) => Promise<string | null>;
+  /** Update an existing file/image object's blob by picking a new file. */
+  attachBlob: (objectId: string, asImage?: boolean) => Promise<void>;
+}
+
+export function useObjectFiles(spaceId: string): UseObjectFilesResult {
+  const { session } = useSession();
+  const { objects } = useSpaceObjects();
+
+  const pickAndUpload = useCallback(async (mimeFilter: string[], asImage: boolean) => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: mimeFilter,
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets?.[0]) return null;
+    const asset = result.assets[0];
+    const uri = asset.uri;
+    const name = asset.name ?? 'file';
+    const mime = asset.mimeType ?? (asImage ? 'image/jpeg' : 'application/octet-stream');
+
+    const bytes = await new FSFile(uri).bytes();
+
+    if (!session) throw new Error('No active session');
+    const spaceEnc = await getSpaceEncryptor(spaceId, session, null);
+    const enc = spaceEnc.encryptor as unknown as ByteSealer;
+    const client = spaceEnc.client;
+
+    const ref = await uploadObjectBlob(client, enc, spaceId, bytes, name, mime);
+    return { ...ref, asImage };
+  }, [session, spaceId]);
+
+  const createFileObject = useCallback(async (opts?: { parentId?: ID }): Promise<string | null> => {
+    const uploaded = await pickAndUpload(['*/*'], false).catch(() => null);
+    if (!uploaded) return null;
+    const id = objects.create({
+      type: 'file',
+      title: uploaded.name,
+      parentId: opts?.parentId,
+      props: { blobId: uploaded.blobId, name: uploaded.name, mime: uploaded.mime, size: uploaded.size },
+    });
+    return id ?? null;
+  }, [pickAndUpload, objects]);
+
+  const createImageObject = useCallback(async (opts?: { parentId?: ID }): Promise<string | null> => {
+    const uploaded = await pickAndUpload(['image/*'], true).catch(() => null);
+    if (!uploaded) return null;
+    const id = objects.create({
+      type: 'image',
+      title: uploaded.name,
+      parentId: opts?.parentId,
+      props: { blobId: uploaded.blobId, name: uploaded.name, mime: uploaded.mime, size: uploaded.size },
+    });
+    return id ?? null;
+  }, [pickAndUpload, objects]);
+
+  const attachBlob = useCallback(async (objectId: string, asImage = false): Promise<void> => {
+    const uploaded = await pickAndUpload(asImage ? ['image/*'] : ['*/*'], asImage).catch(() => null);
+    if (!uploaded) return;
+    objects.setProps(objectId, { blobId: uploaded.blobId, name: uploaded.name, mime: uploaded.mime, size: uploaded.size });
+  }, [pickAndUpload, objects]);
+
+  return { createFileObject, createImageObject, attachBlob };
+}

@@ -31,7 +31,12 @@ export type BlockType =
   | 'quote'
   | 'code'
   | 'divider'
-  | 'page';
+  | 'page'
+  | 'image'
+  | 'file';
+
+/** Block types that reference a child Object by id (no inline text; clicking navigates). */
+export const REF_BLOCK_TYPES: ReadonlySet<BlockType> = new Set<BlockType>(['page', 'image', 'file']);
 
 export interface Block {
   id: string;

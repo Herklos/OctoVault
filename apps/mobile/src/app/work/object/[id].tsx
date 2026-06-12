@@ -18,6 +18,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ObjectActions } from '@/components/objects/ObjectActions';
 import { PageView } from '@/components/work/PageView';
 import { BoardView } from '@/components/work/BoardView';
+import { FileObjectView } from '@/components/work/FileObjectView';
 
 /** Generic object viewer — resolves the editor from the object's type descriptor.
  *  Single route for all object types (page, board, task, file, custom). */
@@ -57,7 +58,17 @@ export default function WorkObjectScreen() {
   );
 
   const content =
-    editor === 'board' ? (
+    editor === 'file' ? (
+      <Stage maxWidth={layout.editorMaxWidth} style={styles.stage}>
+        <ErrorBoundary label="File">
+          <FileObjectView
+            spaceId={spaceId}
+            objectId={id}
+            onRenameTitle={(t) => rename(id, { title: t.trim() || 'Untitled' })}
+          />
+        </ErrorBoundary>
+      </Stage>
+    ) : editor === 'board' ? (
       <ErrorBoundary label="Board">
         <BoardView
           spaceId={spaceId}

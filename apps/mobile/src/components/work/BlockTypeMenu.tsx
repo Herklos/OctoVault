@@ -4,7 +4,7 @@ import type { View as ViewType, ViewProps } from 'react-native';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { layers, layout, paperBorder, radii, shadows, spacing } from '@/theme';
-import { BLOCK_SECTIONS, BLOCK_TYPES, type BlockTypeDef } from '@/lib/blocks';
+import { BLOCK_SECTIONS, BLOCK_TYPES, REF_BLOCK_TYPES, type BlockTypeDef } from '@/lib/blocks';
 import { useHover } from '@/lib/use-hover';
 import { useResponsive } from '@/lib/use-responsive';
 import { useTheme } from '@/lib/use-theme';
@@ -273,7 +273,7 @@ export function BlockHandleMenu({
           <MenuSeparator />
           <MenuLabel>Turn into</MenuLabel>
           {BLOCK_TYPES
-            .filter((d) => d.type !== 'page') // an existing block can't become a child page
+            .filter((d) => !REF_BLOCK_TYPES.has(d.type)) // ref-blocks can't be turned into inline types
             .map((def) => (
               <TypeRow key={def.type} def={def} checked={def.type === currentType} onSelect={onTurnInto} />
             ))}

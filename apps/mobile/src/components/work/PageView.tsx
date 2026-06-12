@@ -18,9 +18,10 @@ import {
   type BlockTypeDef,
   type MdShortcutMatch,
 } from '@/lib/blocks';
-import { visibleBlocks } from '@/lib/page-content';
+import { REF_BLOCK_TYPES, visibleBlocks } from '@/lib/page-content';
 import { usePage, type Block, type BlockType } from '@/lib/use-page';
 import { isPublicSpaceId } from '@/lib/starfish/pubspace';
+import { iconForNode } from '@/lib/object-types';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import type { ObjectNode } from '@/lib/types';
 import { useCopy } from '@/lib/clipboard';
@@ -123,7 +124,7 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
   /** Index children rendered as link rows: every `page` block's ref is "claimed";
    *  the rest show in the trailing Sub-pages section so nothing nested is invisible. */
   const unclaimedChildren = useMemo(() => {
-    const claimed = new Set(blocks.filter((b) => b.type === 'page' && b.ref).map((b) => b.ref!));
+    const claimed = new Set(blocks.filter((b) => REF_BLOCK_TYPES.has(b.type) && b.ref).map((b) => b.ref!));
     return objects.nodes.filter((n) => n.parentId === objectId && !claimed.has(n.id));
   }, [blocks, objects.nodes, objectId]);
 
@@ -186,8 +187,8 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
     if (!def) return;
     // The "/query" the user typed was navigation, not content — drop its flush.
     suppressOnce(s.id, `/${s.query}`);
-    if (def.type === 'page') {
-      convertToSubPage(s.id);
+    if (REF_BLOCK_TYPES.has(def.type)) {
+      convertToRefBlock(s.id, def.type);
       return;
     }
     if (def.type === 'divider') {
@@ -386,16 +387,24 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
   const openObject = (id: string) =>
     router.push({ pathname: '/work/object/[id]', params: { id, spaceId } });
 
-  /** "/Page": create a child Object in the index, turn this block into a link to
-   *  it, and jump in with the title editor open — the Notion sub-page motion. */
-  const convertToSubPage = (blockId: string) => {
-    const childId = objects.create({ type: 'page', title: 'Untitled', parentId: objectId });
+  /** "/Page|Image|File": create a child Object, turn this block into a ref-link,
+   *  and navigate into the created object so it can be named / filled. */
+  const convertToRefBlock = (blockId: string, type: BlockType) => {
+    const isPage = type === 'page';
+    const childId = objects.create({
+      type,
+      title: isPage ? 'Untitled' : '',
+      parentId: objectId,
+    });
     if (!childId) return;
-    page.setBlockType(blockId, 'page');
+    page.setBlockType(blockId, type);
     page.setBlockText(blockId, '');
     page.setBlockRef(blockId, childId);
     setEditing(null);
-    router.push({ pathname: '/work/object/[id]', params: { id: childId, spaceId, focusTitle: '1' } });
+    router.push({
+      pathname: '/work/object/[id]',
+      params: { id: childId, spaceId, ...(isPage ? { focusTitle: '1' } : {}) },
+    });
   };
 
   /* ───────────────────────── key routing (slash nav + alt-moves) ─────────── */
@@ -551,7 +560,7 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
             key={b.id}
             block={b}
             ordinal={ordinals.get(b.id)}
-            childNode={b.type === 'page' && b.ref ? objects.get(b.ref) : undefined}
+            childNode={REF_BLOCK_TYPES.has(b.type) && b.ref ? objects.get(b.ref) : undefined}
             editing={editing?.id === b.id}
             editSeed={editing?.id === b.id ? editing.seed : 0}
             editSelection={editing?.id === b.id ? editing.selection : undefined}
@@ -603,7 +612,7 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
             Sub-pages
           </Txt>
           {unclaimedChildren.map((n) => (
-            <PageRefRow key={n.id} node={n} onPress={() => openObject(n.id)} />
+            <ObjectRefRow key={n.id} node={n} blockType="page" onPress={() => openObject(n.id)} />
           ))}
         </View>
       ) : null}
@@ -632,10 +641,10 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
           const afterId = insertMenu?.afterId;
           setInsertMenu(null);
           if (!afterId) return;
-          if (def.type === 'page') {
+          if (REF_BLOCK_TYPES.has(def.type)) {
             const at = insertIndexAfter(afterId);
             const nid = page.insertBlock(at, { type: 'paragraph' });
-            if (nid) convertToSubPage(nid);
+            if (nid) convertToRefBlock(nid, def.type);
             return;
           }
           const nid = page.insertBlock(insertIndexAfter(afterId), { type: def.type, indent: getBlock(afterId)?.indent });
@@ -651,7 +660,7 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
         canMoveUp={!!handleMenu && visIndexOf(handleMenu.id) > 0}
         canMoveDown={!!handleMenu && visIndexOf(handleMenu.id) < visible.length - 1}
         onDuplicate={
-          handleMenu && getBlock(handleMenu.id)?.type !== 'page'
+          handleMenu && !REF_BLOCK_TYPES.has(getBlock(handleMenu.id)?.type ?? 'paragraph')
             ? () => {
                 const nid = page.duplicateBlock(handleMenu.id);
                 setHandleMenu(null);
@@ -668,11 +677,11 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
           setHandleMenu(null);
         }}
         onTurnInto={
-          handleMenu && getBlock(handleMenu.id)?.type !== 'page'
+          handleMenu && !REF_BLOCK_TYPES.has(getBlock(handleMenu.id)?.type ?? 'paragraph')
             ? (def) => {
                 const id = handleMenu.id;
                 setHandleMenu(null);
-                if (def.type === 'page') return; // guarded out of the list as well
+                if (REF_BLOCK_TYPES.has(def.type)) return; // guarded out of the list as well
                 page.setBlockType(id, def.type);
                 if (def.type === 'divider') page.setBlockText(id, '');
               }
@@ -786,7 +795,7 @@ function BlockRow({
     );
   }
 
-  if (block.type === 'page') {
+  if (REF_BLOCK_TYPES.has(block.type)) {
     return (
       <View
         ref={setRef}
@@ -796,7 +805,7 @@ function BlockRow({
         {...hoverProps}
       >
         <BlockGutter visible={showGutter} onAdd={onOpenInsert} onHandle={onOpenHandle} />
-        <PageRefRow node={childNode} onPress={onOpenRef} onLongPress={openHandle} />
+        <ObjectRefRow node={childNode} blockType={block.type} onPress={onOpenRef} onLongPress={openHandle} />
       </View>
     );
   }
@@ -1000,12 +1009,13 @@ function Prefix({ type, ordinal }: { type: BlockType; ordinal?: number }) {
   return null;
 }
 
-/** A child-page link row — icon + LIVE title from the index store (renames
+/** A child-object link row — icon + LIVE title from the index store (renames
  *  propagate), hover-washed like a tree row; long-press opens the handle menu. */
-function PageRefRow({ node, onPress, onLongPress }: { node?: ObjectNode; onPress: () => void; onLongPress?: () => void }) {
+function ObjectRefRow({ node, blockType, onPress, onLongPress }: { node?: ObjectNode; blockType: BlockType; onPress: () => void; onLongPress?: () => void }) {
   const { colors } = useTheme();
   const { hovered, hoverProps } = useHover();
   const gone = !node || node.archived;
+  const fallbackLabel = blockType === 'image' ? 'Deleted image' : blockType === 'file' ? 'Deleted file' : 'Deleted page';
   return (
     <Pressable
       accessibilityRole="button"
@@ -1022,10 +1032,10 @@ function PageRefRow({ node, onPress, onLongPress }: { node?: ObjectNode; onPress
       {node?.emoji ? (
         <Txt variant="body">{node.emoji}</Txt>
       ) : (
-        <Icon name="page" size={16} color={colors.inkMuted} />
+        <Icon name={node ? iconForNode(node) : blockType === 'image' ? 'image' : blockType === 'file' ? 'file' : 'page'} size={16} color={colors.inkMuted} />
       )}
       <Txt variant="body" weight="medium" tone={gone ? 'inkFaint' : 'ink'} numberOfLines={1} style={styles.pageRowTitle}>
-        {gone && !node ? 'Deleted page' : node?.title || 'Untitled'}
+        {gone && !node ? fallbackLabel : node?.title || 'Untitled'}
       </Txt>
     </Pressable>
   );

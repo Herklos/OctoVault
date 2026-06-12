@@ -14,6 +14,8 @@ import type { IconName } from '@/components/ui/Icon';
 import type { type as typeScale } from '@/theme';
 
 import type { Block, BlockType } from './page-content';
+export type { BlockType } from './page-content';
+export { REF_BLOCK_TYPES } from './page-content';
 
 /** Slash/insert menu grouping (Notion-style sections, micro mono headers). */
 export type BlockSection = 'basic' | 'list' | 'other';
@@ -64,6 +66,8 @@ export const BLOCK_TYPES: BlockTypeDef[] = [
   { type: 'quote', label: 'Quote', icon: 'quote-mark', section: 'other', keywords: ['blockquote', 'cite', '>'], variant: 'body', mono: false, multiline: true, placeholder: 'Quote', mdPrefixes: ['> '] },
   { type: 'code', label: 'Code', icon: 'code-block', section: 'other', keywords: ['snippet', 'mono', '```'], variant: 'callout', mono: true, multiline: true, placeholder: 'Code', mdPrefixes: ['``` ', '```'] },
   { type: 'divider', label: 'Divider', icon: 'minus', section: 'other', keywords: ['rule', 'hr', 'separator', '---'], variant: 'body', mono: false, multiline: false, placeholder: '', mdPrefixes: ['--- ', '---'] },
+  { type: 'image', label: 'Image', icon: 'image', section: 'other', keywords: ['photo', 'picture', 'img', 'upload'], variant: 'body', mono: false, multiline: false, placeholder: '' },
+  { type: 'file', label: 'File', icon: 'file', section: 'other', keywords: ['attachment', 'document', 'upload', 'pdf'], variant: 'body', mono: false, multiline: false, placeholder: '' },
 ];
 
 const BY_TYPE: Record<BlockType, BlockTypeDef> = BLOCK_TYPES.reduce(
