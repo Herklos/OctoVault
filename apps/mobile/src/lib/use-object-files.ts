@@ -46,6 +46,7 @@ export function useObjectFiles(spaceId: string): UseObjectFilesResult {
     // Blobs are always space-keyring sealed; open the keyring directly.
     const blobClient = getSpaceClient(spaceId, session);
     const blobEnc = await buildEncryptor(blobClient, session.keys, keyringPull(spaceId), ownerTrustedAdders(session));
+    if (!blobEnc) throw new Error(`[octovault] no space keyring for ${spaceId}`);
     const enc = blobEnc as unknown as ByteSealer;
 
     const ref = await uploadObjectBlob(blobClient, enc, spaceId, bytes, name, mime);

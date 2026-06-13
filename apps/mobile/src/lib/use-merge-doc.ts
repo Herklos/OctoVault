@@ -7,7 +7,7 @@ import { capProviderFor } from '@drakkar.software/octovault-sdk';
 import { fetchWithTimeout } from '@drakkar.software/octovault-sdk';
 import { getMemberCap, getNodeAccessEntry } from '@drakkar.software/octovault-sdk';
 import { pullCache, PULL_CACHE_MAX_AGE_MS } from '@drakkar.software/octovault-sdk';
-import type { NodeAccess } from '@drakkar.software/octovault-sdk';
+import type { NodeAccess, SpaceAccessEntry } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useSpaceOpen } from './use-room-open-flow';
 
@@ -95,7 +95,9 @@ export function useMergeDoc(opts: MergeDocOptions): MergeDocResult {
     // member cap (valid for space:member with paths: ['spaces/{id}/**']).
     const nodeEntry = nodeId ? getNodeAccessEntry(spaceId, nodeId) : null;
     const memberCap = getMemberCap(spaceId);
-    const nodeEntryCap = (nodeEntry && 'cap' in nodeEntry) ? (nodeEntry as { cap: string }).cap : null;
+    const nodeEntryCap = (nodeEntry as SpaceAccessEntry | null)?.kind === 'member'
+      ? (nodeEntry as Extract<SpaceAccessEntry, { kind: 'member' }>).cap
+      : null;
     const rawCap = nodeEntryCap ?? (memberCap ? memberCap : null);
     const cap = rawCap ? JSON.parse(rawCap) : session.chatCap;
     const paths = privatePaths();

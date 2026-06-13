@@ -61,6 +61,7 @@ export function FileObjectView({ spaceId, objectId, onRenameTitle: _onRenameTitl
         // Blobs are always space-keyring sealed; open the keyring directly.
         const blobClient = getSpaceClient(spaceId, session);
         const blobEnc = await buildEncryptor(blobClient, session.keys, keyringPull(spaceId), ownerTrustedAdders(session));
+        if (!blobEnc) throw new Error(`[octovault] no space keyring for ${spaceId}`);
         const enc = blobEnc as unknown as ByteSealer;
         const data = await loadObjectBlob(blobClient, enc, spaceId, blobId);
         if (!cancelled) setBytes(data);

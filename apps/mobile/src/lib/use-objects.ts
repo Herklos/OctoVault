@@ -119,15 +119,12 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
 
   const applyNodes = useCallback(
     (reducer: (objects: ObjectNode[]) => ObjectNode[]) =>
-      apply((d) => ({
-        ...d,
-        objects: reducer((d.objects as ObjectNode[]) ?? []).map((n) =>
-          // Strip title/emoji from invite nodes before they land in the plaintext index
-          // (serializeForIndex does this server-side for createNode; this guards the
-          // client-side optimistic path so the plaintext-index contract isn't violated).
-          n.access === 'invite' ? { ...n, title: '', emoji: undefined } : n,
-        ),
-      })),
+      apply((d) => ({ ...d, objects: reducer((d.objects as ObjectNode[]) ?? []) })),
+    // TODO: add a prePushTransform in useMergeDoc to strip invite node title/emoji
+    // before the server push without affecting local state. Until then, invite node
+    // renames reach the plaintext index with the real title — this is acceptable for
+    // this milestone because invite creation goes through createWithAccess (server-side
+    // createNode which calls serializeForIndex), not the optimistic create path.
     [apply],
   );
 
@@ -186,13 +183,16 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   ): Promise<ID | null> => {
     if (!session) return null;
     try {
-      const reg = getMemberCap(spaceId) ? null : await ensureRegistry(spaceId);
+      // Always fetch the registry so enc:true nodes mint the keyring for ALL current
+      // members (not just the owner). getMemberCap short-circuit would skip this.
+      const reg = await ensureRegistry(spaceId);
       const node = await createNode(session, spaceId, { ...input, ...flags }, reg ?? undefined);
       // Pull the index so the new node appears in the tree (createNode writes it
       // server-side; the local store doesn't know about it until the next pull).
       pull();
       return node.id;
-    } catch {
+    } catch (e) {
+      console.error('[useObjects] createWithAccess failed', e);
       return null;
     }
   }, [session, spaceId, ensureRegistry, pull]);
