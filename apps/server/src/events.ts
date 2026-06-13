@@ -173,10 +173,9 @@ export function createEventsRoute(opts: EventsRouteOptions): Hono {
     }
 
     // 4. Map to sanitized destinationTopics server-side (never trust the client).
-    //    Mirrors Whistlers' per-message derivation for `octovault.object.changed.<spaceId>`.
-    const topics = authorized.map(
-      (s) => `${WHISTLERS_NAMESPACE}-${sanitizeTopic(`octovault.object.changed.${s}`)}`,
-    );
+    //    Delegates to buildWhistlersTopic so this path stays in sync with the
+    //    exported helper (and its tests) — a single rename point for the subject.
+    const topics = authorized.map((s) => buildWhistlersTopic(s));
 
     // 5. ★ Firehose-prevention invariant.
     //    An empty topic list would make Whistlers stream the global firehose.

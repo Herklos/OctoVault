@@ -1,7 +1,7 @@
 # Server-side SSE via NATS + Whistlers
 
-Real-time delivery path for chat change notifications. The OctoVault Starfish
-server publishes chat change-events to **NATS**; **Whistlers**
+Real-time delivery path for object-change notifications. The OctoVault Starfish
+server publishes object change-events to **NATS**; **Whistlers**
 (`@drakkar.software/whistlers`) consumes NATS and serves them as **SSE**;
 an authenticated proxy on the Starfish server gates the stream per-caller.
 
@@ -9,15 +9,15 @@ an authenticated proxy on the Starfish server gates the stream per-caller.
 
 ```
 client push ─▶ Starfish server (apps/server, Hono :8787)
-                   │  afterWrite — queuing plugin, "chat" collection only
-                   │  subject: octovault.chat.changed.<spaceId>
+                   │  afterWrite — queuing plugin, object collections
+                   │  subject: octovault.object.changed.<spaceId>
                    ▼
                  NATS                                          :4222
                    │
                    ▼
                Whistlers  (NatsQueueAdapter → SSEDestination) :8080/events
                namespace "octovault" → topic:
-               octovault-octovault-chat-changed-<spaceId>
+               octovault-octovault-object-changed-<spaceId>
                    │  text/event-stream (internal, not client-facing)
                    ▼
             Starfish /events proxy (events.ts)
@@ -71,7 +71,7 @@ as `/etc/whistlers/config.json`):
   "namespaces": {
     "octovault": {
       "subscriptions": [
-        { "name": "octovault-chat", "topics": ["octovault.chat.changed.*"] }
+        { "name": "octovault-objects", "topics": ["octovault.object.changed.*"] }
       ]
     }
   }
@@ -79,9 +79,9 @@ as `/etc/whistlers/config.json`):
 ```
 
 The `octovault` namespace prefixes every destination topic with `octovault-`,
-producing `octovault-octovault-chat-changed-<spaceId>`. The Starfish proxy
-(`apps/server/src/events.ts`, constant `WHISTLERS_NAMESPACE`) reconstructs the
-same prefix when building `?topic=` filters — the two must stay in sync.
+producing `octovault-octovault-object-changed-<spaceId>`. The Starfish proxy
+(`apps/server/src/events.ts`, `buildWhistlersTopic`) reconstructs the same
+prefix when building `?topic=` filters — the two must stay in sync.
 
 ### 3. Starfish server
 
@@ -89,8 +89,8 @@ same prefix when building `?topic=` filters — the two must stay in sync.
 NATS_URL=nats://localhost:4222 pnpm --filter @octovault/server dev
 ```
 
-With `NATS_URL` unset the server boots normally; chat events are silently
-dropped (no-op queue).
+With `NATS_URL` unset the server boots normally; object-change events are
+silently dropped (no-op queue).
 
 ---
 
@@ -101,18 +101,18 @@ dropped (no-op queue).
 2. Confirm Whistlers subscribes and emits:
    ```
    # terminal 1 — subscribe (should stream a namespaced event)
-   curl -N "http://localhost:8080/events?topic=octovault-octovault-chat-changed-sp-<id>"
+   curl -N "http://localhost:8080/events?topic=octovault-octovault-object-changed-sp-<id>"
 
    # terminal 2 — publish a fake NATS message
    node -e "
    import('@nats-io/transport-node').then(async ({connect}) => {
      const nc = await connect({ servers: 'nats://localhost:4222' });
-     nc.publish('octovault.chat.changed.sp-<id>',
-       new TextEncoder().encode(JSON.stringify({spaceId:'sp-<id>',roomId:'room-x'})));
+     nc.publish('octovault.object.changed.sp-<id>',
+       new TextEncoder().encode(JSON.stringify({params:{spaceId:'sp-<id>'}})));
      await nc.drain();
    });"
    ```
-   Expect a `data: {"topic":"octovault-octovault-chat-changed-sp-<id>", ...}` frame.
+   Expect a `data: {"topic":"octovault-octovault-object-changed-sp-<id>", ...}` frame.
 
 3. In the app (two tabs / identities): send a message to a room you are not
    viewing → the unread badge increments; your own open room does not increment;

@@ -4,7 +4,7 @@
   "namespaces": {
     "octovault": {
       "subscriptions": [
-        { "name": "octovault-chat", "topics": ["octovault.chat.changed.*"] }
+        { "name": "octovault-objects", "topics": ["octovault.object.changed.*"] }
       ]
     }
   }
