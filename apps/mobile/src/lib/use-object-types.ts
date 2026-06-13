@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 
-import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import { typesIndexName, typesIndexPull, typesIndexPush } from '@drakkar.software/octovault-sdk';
 import * as store from '@drakkar.software/octovault-sdk';
 import type { TypesDoc } from '@drakkar.software/octovault-sdk';
@@ -22,8 +21,7 @@ export interface ObjectTypesHook {
 }
 
 export function useObjectTypes(spaceId: string, opts: { enabled?: boolean } = {}): ObjectTypesHook {
-  const isPublic = isPublicSpaceId(spaceId);
-  const enabled = !!spaceId && !isPublic && (opts.enabled ?? true);
+  const enabled = !!spaceId && (opts.enabled ?? true);
 
   const { doc, ready, apply, pull } = useMergeDoc({
     spaceId,

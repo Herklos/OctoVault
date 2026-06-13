@@ -12,7 +12,6 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 
-import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import { readSpaceAccess, removeSpaceMember as removeSpaceMemberDoc } from '@drakkar.software/octovault-sdk';
 import { fingerprintFromUserId } from '@drakkar.software/octovault-sdk';
 import { useAvatars, usePseudos } from './use-pseudos';
@@ -61,13 +60,12 @@ export function useSpaceMembers(spaceId: string): SpaceMembers {
   // memoized resolver JSX would never show a fetched name/avatar. See header note.
   'use no memo';
   const { session } = useSession();
-  const isPublic = isPublicSpaceId(spaceId);
   const [owner, setOwner] = useState<string | null>(null);
   const [ids, setIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!session || !spaceId || isPublic) {
+    if (!session || !spaceId) {
       setLoading(false);
       return;
     }
@@ -90,7 +88,7 @@ export function useSpaceMembers(spaceId: string): SpaceMembers {
     } finally {
       setLoading(false);
     }
-  }, [session, spaceId, isPublic]);
+  }, [session, spaceId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: show loading while (re)reading the roster
@@ -130,12 +128,12 @@ export function useSpaceMembers(spaceId: string): SpaceMembers {
 
   const removeMember = useCallback(
     async (memberUserId: string) => {
-      if (!session || isPublic) return;
+      if (!session) return;
       await removeSpaceMemberDoc(session.accountClient, spaceId, memberUserId);
       await refresh();
     },
-    [session, isPublic, spaceId, refresh],
+    [session, spaceId, refresh],
   );
 
-  return { members, owner, loading, hasRoster: !isPublic, removeMember, refresh };
+  return { members, owner, loading, hasRoster: true, removeMember, refresh };
 }

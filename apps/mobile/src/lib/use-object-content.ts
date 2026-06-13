@@ -13,7 +13,6 @@
 import { useCallback } from 'react';
 import type { WalDocument } from '@drakkar.software/starfish-wal';
 
-import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import { objLogName } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useSpaceOpen } from './use-room-open-flow';
@@ -48,13 +47,12 @@ export function useObjectContent(
   opts: { enabled?: boolean } = {},
 ): ObjectContentHandle {
   const { session } = useSession();
-  const base = (opts.enabled ?? true) && !!spaceId && !!objectId && !isPublicSpaceId(spaceId);
+  const base = (opts.enabled ?? true) && !!spaceId && !!objectId;
   const walEnabled = base && contentKind === 'append';
 
   const { encryptor, client, opening: roomOpening, openError: roomOpenError, offline, reload: reopenSpace } = useSpaceOpen({
     docId: objectId,
     spaceId,
-    isPublic: false,
     enabled: base,
   });
 

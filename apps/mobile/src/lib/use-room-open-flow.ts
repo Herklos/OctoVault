@@ -1,10 +1,9 @@
 /**
  * Shared space-open effect for {@link ./use-merge-doc} (merge-doc) and
- * append-only content hooks. Both resolve the same crypto context the same way:
- *  - PUBLIC space: no keyring/encryptor — authorize with the invite cap (joiner) or the
- *    account cap (owner) via {@link publicSpaceAuth} and build a plain client.
- *  - PRIVATE space (E2EE): open the space keyring encryptor (cached per space; offline
+ * append-only content hooks. Resolves the crypto context for a space:
+ *  - E2EE space: opens the space keyring encryptor (cached per space; offline
  *    from the SDK pull cache) and its doc client.
+ *  - Plaintext space: `encryptor` is null; client is the member cap client.
  * Builds on {@link useSpaceOpenState} for the opening/error/offline flags + reconnect.
  *
  * Reachability is NOT reported here — building the encryptor may have used the
@@ -13,10 +12,8 @@
 import { useEffect, useState } from 'react';
 import type { Encryptor, StarfishClient } from '@drakkar.software/starfish-client';
 
-import { makeClient } from '@drakkar.software/octovault-sdk';
 import { getMemberCap } from '@drakkar.software/octovault-sdk';
 import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
-import { publicSpaceAuth } from '@drakkar.software/octovault-sdk';
 import { useSpaceRegistryActions } from './space-registry-context';
 import { useSession } from './session-context';
 import { useSpaceOpenState } from './use-space-open';
@@ -33,10 +30,9 @@ export interface RoomOpenFlow {
 export function useSpaceOpen(opts: {
   docId: string;
   spaceId: string;
-  isPublic: boolean;
   enabled: boolean;
 }): RoomOpenFlow {
-  const { docId, spaceId, isPublic, enabled } = opts;
+  const { docId, spaceId, enabled } = opts;
   const { session } = useSession();
   const { ensure: ensureRegistry } = useSpaceRegistryActions();
   const [encryptor, setEncryptor] = useState<Encryptor | null>(null);
@@ -53,22 +49,6 @@ export function useSpaceOpen(opts: {
     if (!enabled || !session) return;
     (async () => {
       try {
-        if (isPublic) {
-          // Public space: no keyring, no encryptor. Authorize with the invite cap
-          // (joiner) or the account cap (owner) — see publicSpaceAuth.
-          const auth = publicSpaceAuth(session, spaceId);
-          if (!cancelled) {
-            setEncryptor(null);
-            setClient(makeClient(auth.cap, auth.signingKey));
-            finishOpening(); // public open did no network call — proves no reachability
-          }
-          return;
-        }
-        // PRIVATE: the keyring is space-wide (cached per space; see getSpaceEncryptor),
-        // the doc is per-node. With no stored member cap we need the registry owner
-        // for the owner-vs-no-access decision — read it once via the SHARED registry
-        // rather than a private `readSpaceAccess`, so the doc screen and sidebar don't
-        // each pull it.
         const reg = getMemberCap(spaceId) ? null : await ensureRegistry(spaceId);
         const { encryptor: enc, client: docClient } = await getSpaceEncryptor(spaceId, session, reg);
         if (!cancelled) {
@@ -85,7 +65,7 @@ export function useSpaceOpen(opts: {
     return () => {
       cancelled = true;
     };
-  }, [enabled, session, docId, spaceId, isPublic, ensureRegistry, reloadNonce, beginOpen, finishOpening, failOpen]);
+  }, [enabled, session, docId, spaceId, ensureRegistry, reloadNonce, beginOpen, finishOpening, failOpen]);
 
   return { encryptor, client, opening, openError, offline, reload };
 }

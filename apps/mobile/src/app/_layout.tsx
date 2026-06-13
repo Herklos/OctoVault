@@ -22,7 +22,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
-import { colors } from '@/theme';
+import { OctoSpacesThemeProvider } from '@drakkar.software/octospaces-ui';
+import { colors, resolveOctoSpacesTheme } from '@/theme';
 import { useAppFonts } from '@/lib/use-app-fonts';
 import { AppFrame } from '@/components/ui/AppFrame';
 
@@ -48,6 +49,7 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
+    <OctoSpacesThemeProvider theme={resolveOctoSpacesTheme(scheme)}>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
@@ -84,5 +86,6 @@ export default function RootLayout() {
         </KeyboardProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+    </OctoSpacesThemeProvider>
   );
 }

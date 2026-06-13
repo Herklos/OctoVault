@@ -20,7 +20,6 @@ import {
 } from '@drakkar.software/octovault-sdk';
 import { REF_BLOCK_TYPES, visibleBlocks } from '@drakkar.software/octovault-sdk';
 import { usePage, type Block, type BlockType } from '@/lib/use-page';
-import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import { iconForNode } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import type { ObjectNode } from '@drakkar.software/octovault-sdk';
@@ -492,15 +491,6 @@ export function PageView({ spaceId, objectId, emoji, title, subtitle, onRenameTi
   useEffect(() => () => onToolbar?.(null), [onToolbar]);
 
   /* ───────────────────────── render ──────────────────────────────────────── */
-
-  if (isPublicSpaceId(spaceId)) {
-    return (
-      <View style={styles.wrap}>
-        <ObjectHero emoji={emoji} title={title} />
-        <Callout tone="info" iconName="info">Pages live in private, end-to-end-encrypted spaces in this version.</Callout>
-      </View>
-    );
-  }
 
   const onTailPress = () => {
     const last = visible[visible.length - 1];

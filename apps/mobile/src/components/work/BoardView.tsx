@@ -8,7 +8,6 @@ import { layout, opacity, paperBorder, radii, shadows, spacing } from '@/theme';
 import type { BoardHook, Column, Task } from '@/lib/use-board';
 import { orderBetween, useBoard } from '@/lib/use-board';
 import { useBoardDrag, type BoardDrag } from '@/lib/use-board-drag';
-import { isPublicSpaceId } from '@drakkar.software/octovault-sdk';
 import { tapFeedback } from '@/lib/haptics';
 import { useConfirm } from '@/lib/use-confirm';
 import { useHover, useRowHover } from '@/lib/use-hover';
@@ -179,15 +178,6 @@ export function BoardView({ spaceId, objectId, emoji, title, onRenameTitle, onCh
     // Let the new column mount, then bring it into view.
     setTimeout(() => stripRef.current?.scrollToEnd({ animated: true }), 50);
   };
-
-  if (isPublicSpaceId(spaceId)) {
-    return (
-      <View style={styles.wrap}>
-        <ObjectHero emoji={emoji} title={title} />
-        <Callout tone="info" iconName="info">Boards live in private, end-to-end-encrypted spaces in this version.</Callout>
-      </View>
-    );
-  }
 
   const loading = (!board.ready && !board.openError) || aboutToSeed;
 

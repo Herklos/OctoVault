@@ -658,3 +658,178 @@ export type Theme = {
   scheme: ColorScheme;
   colors: Palette;
 };
+
+// ── octospaces-ui theme adapter ────────────────────────────────────────────
+// Maps OctoVault's Palette tokens to the octospaces-ui Theme contract so the
+// shared UI primitives (presenceColor, verificationColor, focusRingStyle…) work
+// without any per-component migration yet. Keep vault's palette as the single
+// source of truth; update only this function when the octospaces-ui contract changes.
+
+import type { Theme as OctoSpacesTheme } from '@drakkar.software/octospaces-ui';
+
+export function resolveOctoSpacesTheme(scheme: ColorScheme): OctoSpacesTheme {
+  const p = colors[scheme];
+  const sw = swatches[scheme];
+
+  return {
+    scheme,
+
+    colors: {
+      background: p.canvas,
+      surface: p.paper,
+      surfaceElevated: p.fill,
+      surfaceModal: p.paper,
+      surfaceInput: p.paperAlt,
+      sidebar: p.canvas,
+      sidebarActive: p.selected,
+
+      border: p.lineSoft,
+      borderSubtle: p.lineFaint,
+      borderStrong: p.line,
+
+      text: p.ink,
+      textSecondary: p.inkSoft,
+      textTertiary: p.inkMuted,
+      textDisabled: p.inkFaint,
+      textInverse: p.onScrim,
+      textOnPrimary: p.onAccent,
+
+      primary: p.accent,
+      primaryHover: p.accentBgStrong,
+      primaryMuted: p.accentSoft,
+      primarySubtle: p.accentBg,
+
+      success: p.success,
+      successMuted: p.successBg,
+      warning: p.warning,
+      warningMuted: p.warningBg,
+      danger: p.danger,
+      dangerMuted: p.dangerBg,
+      info: p.accent,
+      infoMuted: p.accentBg,
+
+      // presence: dnd → busy
+      presenceOnline: p.success,
+      presenceAway: p.warning,
+      presenceBusy: p.danger,
+      presenceOffline: p.inkFaint,
+
+      // verification: pending → partial, unverified/none → none
+      verificationVerified: p.success,
+      verificationPartial: p.warning,
+      verificationNone: p.inkFaint,
+
+      overlay: p.overlay,
+      shadow: p.scrim,
+      focus: p.focusRing,
+      skeleton: p.fill,
+      skeletonShimmer: p.fillDeep,
+
+      editorCanvas: p.editorCanvas,
+      tooltipBg: p.tooltipBg,
+      onTooltip: p.onTooltip,
+    },
+
+    spacing: {
+      none: spacing.none,
+      xs: spacing.xs,
+      sm: spacing.sm,
+      md: spacing.md,
+      lg: spacing.lg,
+      xl: spacing.xl,
+      xxl: spacing.xxl,
+      xxxl: spacing.xxxl,
+      screenX: spacing.screenX,
+      gutter: spacing.gutter,
+      controlMinHeight: spacing.controlMinHeight,
+    },
+
+    radii: {
+      xs: radii.xs,
+      sm: radii.sm,
+      md: radii.md,
+      lg: radii.lg,
+      xl: radii.xl,
+      card: radii.card,
+      sheet: radii.sheet,
+      pill: radii.pill,
+    },
+
+    type: {
+      pageTitle: { size: type.pageTitle.fontSize, lineHeight: type.pageTitle.lineHeight },
+      display: { size: type.display.fontSize, lineHeight: type.display.lineHeight },
+      title: { size: type.title.fontSize, lineHeight: type.title.lineHeight },
+      heading: { size: type.heading.fontSize, lineHeight: type.heading.lineHeight },
+      subhead: { size: type.subhead.fontSize, lineHeight: type.subhead.lineHeight },
+      body: { size: type.body.fontSize, lineHeight: type.body.lineHeight },
+      callout: { size: type.callout.fontSize, lineHeight: type.callout.lineHeight },
+      footnote: { size: type.footnote.fontSize, lineHeight: type.footnote.lineHeight },
+      caption: { size: type.caption.fontSize, lineHeight: type.caption.lineHeight },
+      micro: { size: type.micro.fontSize, lineHeight: type.micro.lineHeight },
+    },
+
+    fonts: {
+      display: fonts.display,
+      heading: fonts.heading,
+      body: fonts.body,
+      bodyMedium: fonts.bodyMedium,
+      bodySemibold: fonts.bodySemibold,
+      bodyBold: fonts.bodyBold,
+      mono: fonts.mono,
+      monoMedium: fonts.monoMedium,
+      monoBold: fonts.monoBold,
+    },
+
+    // vault's motion durations → MotionToken { duration }; `spring` is native-only, skip
+    motion: {
+      fast: { duration: motion.fast },
+      base: { duration: motion.base },
+      slow: { duration: motion.slow },
+      unlockFade: { duration: motion.unlockFade },
+      pulse: { duration: motion.pulse },
+      shimmer: { duration: motion.shimmer },
+      autosaveDoc: { duration: motion.autosaveDoc },
+      autosaveLog: { duration: motion.autosaveLog },
+      tooltipDelay: { duration: motion.tooltipDelay },
+      toastDuration: { duration: motion.toastDuration },
+    },
+
+    shadows: {
+      none: shadows.none,
+      sm: shadows.sm,
+      md: shadows.md,
+      lg: shadows.lg,
+      accentGlow: shadows.accentGlow,
+    },
+
+    layout: { ...layout },
+
+    opacity: {
+      disabled: opacity.disabled,
+      muted: opacity.muted,
+    },
+
+    // flat swatches: each name → the saturated solid color
+    swatches: {
+      gray: sw.gray.solid,
+      red: sw.red.solid,
+      orange: sw.orange.solid,
+      yellow: sw.yellow.solid,
+      green: sw.green.solid,
+      blue: sw.blue.solid,
+      purple: sw.purple.solid,
+      pink: sw.pink.solid,
+    },
+
+    layers: { ...layers },
+
+    // CSS bezier strings → number[] control-point arrays
+    easing: {
+      out: [0.2, 0, 0, 1],
+      in: [0.4, 0, 1, 1],
+      inOut: [0.4, 0, 0.2, 1],
+    },
+
+    labelTracking: { mono: labelTracking },
+  };
+}

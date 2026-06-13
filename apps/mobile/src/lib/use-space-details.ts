@@ -1,23 +1,18 @@
 /**
- * Editable details (name + image) for ONE space, plus its derived type/role flags.
+ * Editable details (name + image) for ONE space, plus its derived ownership flag.
  *
  * Autosave model (no Save button): the screen seeds an `<AutosaveField>` with
  * {@link SpaceDetails.name} and calls {@link SpaceDetails.commitName} for each
  * committed value; image edits persist the moment they're picked/removed. The
- * name updates optimistically (the field re-seeds to what was typed, not to a
- * stale server copy) and rolls back on failure unless a newer commit superseded
- * it. Writes are SERIALIZED through a promise chain: each private-space save is a
- * read-modify-write of the `_rooms` access record, so a debounced mid-typing
- * commit must never interleave with the blur flush that follows it.
+ * name updates optimistically and rolls back on failure unless a newer commit
+ * superseded it. Writes are SERIALIZED through a promise chain: each save is a
+ * read-modify-write of the `_access` record, so a debounced mid-typing commit
+ * never interleaves with the blur flush that follows it.
  *
- * Two persistence branches (the data layer is split private vs public):
- *  - PRIVATE → the space's `_rooms` access-record doc via {@link writeSpaceAccess} (owner-
- *    gated server-side; threads owner+members through so a meta edit never drops them).
- *  - PUBLIC  → the plaintext `pubspaces/.../_rooms` doc via {@link updatePublicSpaceMeta}.
- * Both are OWNER-ONLY writes (the server gates them). Ownership of a private space
- * resolves ASYNC (the `_rooms.owner` read), so {@link SpaceDetails.loading} is
- * surfaced for the screen to hold skeletons instead of popping owner-only
- * sections in after the roundtrip.
+ * All spaces use the private `_access` record path via {@link writeSpaceAccess}
+ * (owner-gated; threads owner+members through so a meta edit never drops the roster).
+ * Ownership resolves ASYNC (from `_access.owner`), so {@link SpaceDetails.loading}
+ * holds skeletons on owner-only sections until it lands.
  *
  * `image` reuses the avatar data-URI contract (Space.image is the same shape as a
  * profile avatar — see avatar-image / types.ts), so it goes through the same
@@ -30,7 +25,6 @@ import type { Space } from '@drakkar.software/octovault-sdk';
 import { pickAndProcessAvatar } from './avatar-image';
 import { useSession } from './session-context';
 import { useSpaces } from './use-spaces';
-import { isPublicSpaceId, updatePublicSpaceMeta } from '@drakkar.software/octovault-sdk';
 import { broadcastSpaceMeta, readSpaceAccess, writeSpaceAccess } from '@drakkar.software/octovault-sdk';
 
 /** Hard cap on a space name (the old field's maxLength, now enforced in the lib —
@@ -66,12 +60,8 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
   const { session } = useSession();
   const { spaces } = useSpaces();
   const space = useMemo(() => spaces.find((s) => s.id === spaceId) ?? null, [spaces, spaceId]);
-  const isPublic = isPublicSpaceId(spaceId); // always false — pubspace removed; all spaces use _access
-
-  // The signed-in identity owns this space when its userId is the owner. A public
-  // space records the owner inline (`ownerId`); a private space the user CREATED has
-  // no separate owner field on its `_spaces` entry, so the `_rooms.owner` is the
-  // source of truth — fetched below.
+  // The signed-in identity owns this space when its userId is the owner.
+  // The `_access.owner` field is the source of truth — fetched below.
   const [owner, setOwner] = useState<string | null>(null); // resolved from _access by readSpaceAccess
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState(space?.name ?? '');
@@ -89,26 +79,13 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
   const nameRef = useRef(name);
   const imageRef = useRef(image);
 
-  // Load the persisted name/image + owner from the space's `_rooms` access record (the
-  // shared, authoritative identity). For a private space this also resolves ownership.
-  // Keyed on ownerId/loaded-ness (not the `space` object, whose identity churns on
-  // every navigation refresh) so it runs once per space, not once per refresh.
-  const ownerIdHint = null; // Space.ownerId removed — owner resolved from _access
   const spaceLoaded = !!space;
   useEffect(() => {
     if (!session || !spaceId) return;
     let cancelled = false;
     (async () => {
       try {
-        if (isPublic) {
-          // The public `_rooms` lives under the OWNER's path. We can only read it via the
-          // owner's account client (i.e. when we ARE the owner). The `_spaces` entry
-          // already carries name/image/ownerId for a joiner, so nothing async to wait for —
-          // resolved as soon as the space record itself lands.
-          if (ownerIdHint) setOwner(ownerIdHint);
-          if (spaceLoaded && !cancelled) setLoading(false);
-        } else {
-          const { owner: ownr, name: sharedName, image: sharedImage } = await readSpaceAccess(
+        const { owner: ownr, name: sharedName, image: sharedImage } = await readSpaceAccess(
             session.accountClient,
             spaceId,
           );
@@ -123,7 +100,6 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
             setImage(sharedImage);
           }
           setLoading(false);
-        }
       } catch (e) {
         if (!cancelled) {
           console.error('[useSpaceDetails] failed to read space access record', e);
@@ -136,7 +112,7 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
     return () => {
       cancelled = true;
     };
-  }, [session, spaceId, isPublic, ownerIdHint, spaceLoaded]);
+  }, [session, spaceId, spaceLoaded]);
 
   // Adopt the loaded space record into local state unless an edit was persisted
   // (post-save the local copy IS the freshest truth — see `mutated`).
@@ -159,22 +135,18 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
       setPendingSaves((n) => n + 1);
       const job = async () => {
         try {
-          if (isPublic) {
-            await updatePublicSpaceMeta(session, spaceId, { name: nextName, image: nextImage });
-          } else {
-            // Re-read the access record for the freshest owner/members/hash, then rewrite it
-            // with the new shared name/image (owner-gated). Threads owner+members through so
-            // the meta edit never drops the roster.
-            const { owner: ownr, members, hash } = await readSpaceAccess(session.accountClient, spaceId);
-            await writeSpaceAccess(session.accountClient, spaceId, ownr ?? session.userId, members, hash, {
-              name: nextName,
-              image: nextImage,
-            });
-          }
+          // Re-read the access record for the freshest owner/members/hash, then rewrite it
+          // with the new shared name/image (owner-gated). Threads owner+members through so
+          // the meta edit never drops the roster.
+          const { owner: ownr, members, hash } = await readSpaceAccess(session.accountClient, spaceId);
+          await writeSpaceAccess(session.accountClient, spaceId, ownr ?? session.userId, members, hash, {
+            name: nextName,
+            image: nextImage,
+          });
           // Fan the new identity out so the live rail/header adopt it WITHOUT re-reading the
-          // user's `_spaces` doc — neither writeSpaceAccess nor updatePublicSpaceMeta touches that
-          // doc, so a refresh here would re-read the stale name/image and revert the save.
-          // The private member path self-heals via reconcileSpaceMeta on the next space open.
+          // user's `_spaces` doc — writeSpaceAccess does not touch that doc, so a refresh would
+          // re-read the stale name/image and revert the save. Self-heals via reconcileSpaceMeta
+          // on the next space open.
           broadcastSpaceMeta(spaceId, {
             name: nextName,
             short: nextName.slice(0, 2).toUpperCase(),
@@ -189,7 +161,7 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
       persistQueue.current = run.catch(() => {});
       return run;
     },
-    [session, isPublic, spaceId],
+    [session, spaceId],
   );
 
   const commitName = useCallback(
@@ -263,7 +235,7 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
   return {
     space,
     isOwner,
-    isPublic,
+    isPublic: false,
     loading,
     name,
     commitName,
