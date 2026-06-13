@@ -22,7 +22,6 @@ import { router, usePathname } from 'expo-router';
 import type { Space } from '@drakkar.software/octovault-sdk';
 
 import { createSpace as createSpaceDoc, onSpaceMeta, readSpaces, reorderSpaces as reorderSpacesDoc } from '@drakkar.software/octovault-sdk';
-import { createPublicSpace } from '@drakkar.software/octovault-sdk';
 import { consumePrimedSpaces } from '@drakkar.software/octovault-sdk';
 import { hydrateMutes } from '@drakkar.software/octovault-sdk';
 import { flushReadsNow, hydrateReads } from '@drakkar.software/octovault-sdk';
@@ -40,7 +39,7 @@ interface SpacesContextValue {
   switchSpace: (id: string) => void;
   loading: boolean;
   refresh: () => Promise<void>;
-  createSpace: (name: string, type?: 'private' | 'public') => Promise<Space | null>;
+  createSpace: (name: string) => Promise<Space | null>;
   /** Persist a new rail order (an explicit list of space ids). Reorders the local
    *  list optimistically, then writes it to the synced doc so it follows the user across
    *  devices; re-reads to recover if the write fails. */
@@ -202,12 +201,9 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
   );
 
   const createSpace = useCallback(
-    async (name: string, type: 'private' | 'public' = 'private'): Promise<Space | null> => {
+    async (name: string): Promise<Space | null> => {
       if (!session) return null;
-      const space =
-        type === 'public'
-          ? await createPublicSpace(session, name)
-          : await createSpaceDoc(session, name);
+      const space = await createSpaceDoc(session, name);
       await refresh();
       setActiveId(space.id);
       return space;

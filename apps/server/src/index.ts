@@ -87,7 +87,7 @@ const queuing = createQueuingServerPlugin({
   },
 });
 
-// The space enricher reads each space's `_rooms` access record to synthesize
+// The space enricher reads each space's `_access` record to synthesize
 // `space:owner` / `space:member`. Shared between the sync router (collection gating)
 // and the /events proxy (SSE membership validation).
 const spaceEnricher = makeSpaceRoleEnricher(store);

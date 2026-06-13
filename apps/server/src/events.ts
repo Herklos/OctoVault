@@ -1,17 +1,16 @@
 /**
- * Authenticated SSE proxy — gates the Whistlers room-change stream behind
+ * Authenticated SSE proxy — gates the Whistlers object-change stream behind
  * cap-cert auth and per-space membership validation.
  *
  * Auth: verifies the cap-cert + per-request Ed25519 signature WITHOUT enforcing
  * scope.paths (meta-endpoint, not a data collection; access is controlled by the
  * per-space membership check that follows).
  *
- * Filter: client declares candidate spaceIds via ?spaces=sp-a,sp-b. PRIVATE
- * (sp-) spaces are validated against `spaces/{id}/_access` membership
- * (makeSpaceRoleEnricher). PUBLIC (psp-) spaces are open-gated — authorized for
- * any authenticated caller (their content is link-readable and these events carry
- * no content), bounded by MAX_PUBLIC_TOPICS per connection. The authorized ids map
- * to sanitized Whistlers destinationTopics, and only those topics proxy upstream.
+ * Filter: client declares candidate spaceIds via ?spaces=sp-a,sp-b. All spaces are
+ * validated against `spaces/{id}/_access` membership (makeSpaceRoleEnricher). The
+ * authorized ids map to sanitized Whistlers destinationTopics, and only those topics
+ * proxy upstream. There is no space-level public concept — per-node access flags
+ * control content visibility; SSE always requires membership.
  *
  * ★ Firehose-prevention invariant: the upstream Whistlers URL ALWAYS carries at
  * least one ?topic= param. An empty authorized set substitutes the sentinel
@@ -19,9 +18,9 @@
  * stream the global firehose to an unauthorized client.
  *
  * Whistlers topic derivation: queue.ts onPublish emits
- * `octovault.chat.changed.<spaceId>`; Whistlers applies the `octovault` namespace
+ * `octovault.object.changed.<spaceId>`; Whistlers applies the `octovault` namespace
  * prefix then sanitizeTopic — every char outside [a-zA-Z0-9-_~%] → "-", giving
- * `octovault-octovault-chat-changed-<spaceId>`. This proxy reconstructs that exact
+ * `octovault-octovault-object-changed-<spaceId>`. This proxy reconstructs that exact
  * transform server-side so Whistlers' ?topic= filter matches.
  */
 import { Hono, type Context } from "hono";
@@ -49,13 +48,14 @@ const sanitizeTopic = (t: string) => t.replace(/[^a-zA-Z0-9\-_~%]/g, "-");
 /** Whistlers namespace — MUST match the namespace key in infra/whistlers.config.json. */
 const WHISTLERS_NAMESPACE = "octovault";
 
-/** Per-connection cap on PUBLIC (`psp-`) space topics. Public spaces are
- *  open-gated (no membership proof — their content is link-readable and these
- *  events carry no content), so this bounds the only abuse vector: a client
- *  amplifying upstream fan-out by declaring many public topics. Beyond the cap we
- *  silently truncate rather than 4xx — a noisy client isn't an error. Private
- *  (`sp-`) spaces stay fully membership-gated and uncapped. */
-const MAX_PUBLIC_TOPICS = 64;
+/**
+ * Build the sanitized Whistlers destinationTopic for a given spaceId.
+ * Exported for unit testing — the exact string must survive as `octovault.object.changed`
+ * (not the old `octovault.chat.changed`) so the SSE proxy subscribes to the right topic.
+ */
+export function buildWhistlersTopic(spaceId: string): string {
+  return `${WHISTLERS_NAMESPACE}-${sanitizeTopic(`octovault.object.changed.${spaceId}`)}`;
+}
 
 function parseCapHeader(authHeader: string): CapCert | null {
   if (!authHeader.startsWith("Cap ")) return null;
@@ -164,43 +164,18 @@ export function createEventsRoute(opts: EventsRouteOptions): Hono {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    // 3. Authorize each candidate.
-    //    - PUBLIC (psp-): open-gated — authorized for any authenticated caller, no
-    //      membership proof (public content is link-readable; these events carry no
-    //      content). Bounded by MAX_PUBLIC_TOPICS to cap upstream fan-out; excess is
-    //      silently dropped. NB this is also the path that carries `pubstream` /
-    //      `pubspace` change-events, which the enricher would never have authorized.
-    //    - PRIVATE (sp-): validated against `spaces/{id}/_access` membership via the
-    //      enricher. TOFU note: an unseen private spaceId returns [OWNER, MEMBER] —
-    //      ownership is only stamped on the first access-record write.
+    // 3. Authorize each candidate against `spaces/{id}/_access` membership.
+    //    All spaces require membership — there is no space-level public concept.
     const authorized: string[] = [];
-    let publicCount = 0;
-    let truncatedPublic = false;
     for (const spaceId of candidates) {
-      if (spaceId.startsWith("psp-")) {
-        if (publicCount >= MAX_PUBLIC_TOPICS) {
-          truncatedPublic = true;
-          continue;
-        }
-        publicCount += 1;
-        authorized.push(spaceId);
-        continue;
-      }
       const roles = await enricher({ identity, roles: [] }, { spaceId });
       if (roles.includes(SPACE_MEMBER_ROLE)) authorized.push(spaceId);
     }
-    if (truncatedPublic) {
-      // Leave a trail for the "one public space is stale until I open it" report:
-      // beyond the cap, those psp- spaces won't background-update (focus still pulls).
-      console.warn(
-        `[OctoVault] /events: public-topic cap (${MAX_PUBLIC_TOPICS}) reached for ${identity}; extra psp- spaces won't live-update until reconnect.`,
-      );
-    }
 
     // 4. Map to sanitized destinationTopics server-side (never trust the client).
-    //    Mirrors Whistlers' per-message derivation for `octovault.chat.changed.<spaceId>`.
+    //    Mirrors Whistlers' per-message derivation for `octovault.object.changed.<spaceId>`.
     const topics = authorized.map(
-      (s) => `${WHISTLERS_NAMESPACE}-${sanitizeTopic(`octovault.chat.changed.${s}`)}`,
+      (s) => `${WHISTLERS_NAMESPACE}-${sanitizeTopic(`octovault.object.changed.${s}`)}`,
     );
 
     // 5. ★ Firehose-prevention invariant.
