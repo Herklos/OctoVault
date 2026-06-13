@@ -15,6 +15,7 @@ import { createQueuingServerPlugin } from "@drakkar.software/starfish-queuing";
 
 import { config } from "./config.js";
 import { createNatsQueue } from "./queue.js";
+import { createPubdirProjection } from "./projections.js";
 import { createFileRevocationStore } from "./revocation-store.js";
 import { makeSpaceRoleEnricher } from "./space-role.js";
 
@@ -100,6 +101,10 @@ const syncRouter = createSyncRouter({
 });
 
 await saveConfig(store, config);
+
+// Server-maintained projection: rebuild `_pubdir` (public node list) for a space on
+// every object-change event so anonymous clients can discover public content.
+createPubdirProjection(store, nc);
 
 const app = new Hono();
 

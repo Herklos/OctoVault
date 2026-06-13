@@ -81,6 +81,19 @@ export const config: SyncConfig = {
       maxBodyBytes: 262_144,
       allowedMimeTypes: JSON_ONLY,
     },
+    // PUBLIC DIRECTORY (server projection): world-readable snapshot of the object index
+    // filtered to `access:'public'` nodes only. Rebuilt by the server on every space
+    // change event (see projections.ts). `writeRoles: []` — no client writes; the server
+    // writes directly via store.put(), bypassing role gating.
+    {
+      name: "pubdir",
+      storagePath: "spaces/{spaceId}/objects/_pubdir",
+      readRoles: ["public"],
+      writeRoles: [],
+      encryption: "none",
+      maxBodyBytes: 262_144,
+      allowedMimeTypes: JSON_ONLY,
+    },
     // INVITE-ONLY PLAINTEXT CONTENT (access:'invite'+enc:false): gated by the per-node
     // cap via the sharing plugin path-match — NOT by space:member. The collection has no
     // broad role rules; access is entirely cap-scope (objinv + path) controlled.
