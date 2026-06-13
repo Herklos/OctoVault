@@ -108,10 +108,6 @@ export {
 // Blob uploads
 export * from './starfish/object-blobs';
 
-// Public spaces — deprecated stubs (pubspace subsystem removed; use per-node access:'public')
-export * from './starfish/pubspace';
-export * from './starfish/pubspace-caps';
-
 // Attachments / crypto helpers
 export * from './starfish/attachments';
 export * from './starfish/account-seal';

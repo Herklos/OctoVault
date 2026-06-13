@@ -13,8 +13,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { spacing } from '@/theme';
 import type { ByteSealer } from '@drakkar.software/octovault-sdk';
-import { loadObjectBlob, propsOf } from '@drakkar.software/octovault-sdk';
-import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
+import { loadObjectBlob, propsOf, getSpaceClient, buildEncryptor, keyringPull, ownerTrustedAdders } from '@drakkar.software/octovault-sdk';
 import { useSession } from '@/lib/session-context';
 import { useSpaceObjects } from '@/lib/space-objects-context';
 import { useObjectFiles } from '@/lib/use-object-files';
@@ -59,9 +58,11 @@ export function FileObjectView({ spaceId, objectId, onRenameTitle: _onRenameTitl
     setError(null);
     (async () => {
       try {
-        const spaceEnc = await getSpaceEncryptor(spaceId, session, null);
-        const enc = spaceEnc.encryptor as unknown as ByteSealer;
-        const data = await loadObjectBlob(spaceEnc.client, enc, spaceId, blobId);
+        // Blobs are always space-keyring sealed; open the keyring directly.
+        const blobClient = getSpaceClient(spaceId, session);
+        const blobEnc = await buildEncryptor(blobClient, session.keys, keyringPull(spaceId), ownerTrustedAdders(session));
+        const enc = blobEnc as unknown as ByteSealer;
+        const data = await loadObjectBlob(blobClient, enc, spaceId, blobId);
         if (!cancelled) setBytes(data);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load file');

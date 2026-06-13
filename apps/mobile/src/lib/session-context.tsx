@@ -14,7 +14,6 @@ import {
 } from '@drakkar.software/octovault-sdk';
 import { clearMemberCaps } from '@drakkar.software/octovault-sdk';
 import { recoverSpaceAccess } from '@drakkar.software/octovault-sdk';
-import { clearPubspaceCaps } from '@drakkar.software/octovault-sdk';
 import { readSpaces } from '@drakkar.software/octovault-sdk';
 import { hydrateMutes, resetMutes } from '@drakkar.software/octovault-sdk';
 import { hydrateQuickReactions, resetQuickReactions } from '@drakkar.software/octovault-sdk';
@@ -127,7 +126,6 @@ const yieldToPaint = () => new Promise((r) => setTimeout(r, 0));
 // session userId and self-reset via their own effect cleanups.
 function resetAccountScopedState(): void {
   clearMemberCaps();
-  clearPubspaceCaps();
   clearAttachmentCache();
   clearPseudoCache();
   clearNodeAccessCache();

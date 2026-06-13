@@ -10,8 +10,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File as FSFile } from 'expo-file-system';
 
 import type { ByteSealer } from '@drakkar.software/octovault-sdk';
-import { uploadObjectBlob } from '@drakkar.software/octovault-sdk';
-import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
+import { uploadObjectBlob, getSpaceClient, buildEncryptor, keyringPull, ownerTrustedAdders } from '@drakkar.software/octovault-sdk';
 import type { Encryptor } from '@drakkar.software/starfish-client';
 import { useSession } from './session-context';
 import { useSpaceObjects } from './space-objects-context';
@@ -44,11 +43,12 @@ export function useObjectFiles(spaceId: string): UseObjectFilesResult {
     const bytes = await new FSFile(uri).bytes();
 
     if (!session) throw new Error('No active session');
-    const spaceEnc = await getSpaceEncryptor(spaceId, session, null);
-    const enc = spaceEnc.encryptor as unknown as ByteSealer;
-    const client = spaceEnc.client;
+    // Blobs are always space-keyring sealed; open the keyring directly.
+    const blobClient = getSpaceClient(spaceId, session);
+    const blobEnc = await buildEncryptor(blobClient, session.keys, keyringPull(spaceId), ownerTrustedAdders(session));
+    const enc = blobEnc as unknown as ByteSealer;
 
-    const ref = await uploadObjectBlob(client, enc, spaceId, bytes, name, mime);
+    const ref = await uploadObjectBlob(blobClient, enc, spaceId, bytes, name, mime);
     return { ...ref, asImage };
   }, [session, spaceId]);
 

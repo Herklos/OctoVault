@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 
-import { objIndexPull, objIndexPush } from '@drakkar.software/octovault-sdk';
+import { objIndexPull, objIndexPush, createNode } from '@drakkar.software/octovault-sdk';
 import {
   addObject,
   ancestors as ancestorsOf,
@@ -15,10 +15,14 @@ import {
   subtreeIds,
   type NewObjectInput,
   type ObjectTreeNode,
+  type NodeAccess,
 } from '@drakkar.software/octovault-sdk';
 import type { ID, ObjectNode, PropValue } from '@drakkar.software/octovault-sdk';
+import { getMemberCap } from '@drakkar.software/octovault-sdk';
 import { useMergeDoc } from './use-merge-doc';
 import { useDocLiveSync } from './use-doc-live-sync';
+import { useSession } from './session-context';
+import { useSpaceRegistryActions } from './space-registry-context';
 
 /** The unified object-index hook for one space — a union-merged merge-doc (see
  *  {@link useMergeDoc}) exposing the repaired render tree plus the create/rename/move/
@@ -47,6 +51,12 @@ export interface ObjectsHook {
    *  {@link SpaceObjectsProvider} for live convergence). */
   pull: () => void;
   create: (input: NewObjectInput) => ID | null;
+  /**
+   * Create a node with non-default access flags (public / invite / invite+enc).
+   * Async: calls createNode server-side (which handles keyring minting for enc:true
+   * and title/emoji stripping for invite nodes in the index). Returns the new node id.
+   */
+  createWithAccess: (input: NewObjectInput, flags: { access: NodeAccess; enc: boolean }) => Promise<ID | null>;
   rename: (id: ID, patch: { title?: string; emoji?: string }) => void;
   move: (id: ID, parentId: ID | null) => void;
   reorder: (orderById: Record<ID, number>) => void;
@@ -70,12 +80,16 @@ export interface ObjectsHook {
 
 export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?: boolean } = {}): ObjectsHook {
   const enabled = (opts.enabled ?? true) && !!spaceId;
+  const { session } = useSession();
+  const { ensure: ensureRegistry } = useSpaceRegistryActions();
 
   const { doc, ready, loaded, opening, openError, offline, reload, apply, pull } = useMergeDoc({
     spaceId,
     openId: spaceId,
     enabled,
     storeKey: `objindex:${spaceId}`,
+    // objindex is plaintext (encryption:"none") — always use null encryptor.
+    plaintext: true,
     privatePaths: () => ({ pull: objIndexPull(spaceId), push: objIndexPush(spaceId) }),
   });
 
@@ -105,7 +119,15 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
 
   const applyNodes = useCallback(
     (reducer: (objects: ObjectNode[]) => ObjectNode[]) =>
-      apply((d) => ({ ...d, objects: reducer((d.objects as ObjectNode[]) ?? []) })),
+      apply((d) => ({
+        ...d,
+        objects: reducer((d.objects as ObjectNode[]) ?? []).map((n) =>
+          // Strip title/emoji from invite nodes before they land in the plaintext index
+          // (serializeForIndex does this server-side for createNode; this guards the
+          // client-side optimistic path so the plaintext-index contract isn't violated).
+          n.access === 'invite' ? { ...n, title: '', emoji: undefined } : n,
+        ),
+      })),
     [apply],
   );
 
@@ -158,6 +180,23 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
     });
   }, [applyNodes]);
 
+  const createWithAccess = useCallback(async (
+    input: NewObjectInput,
+    flags: { access: NodeAccess; enc: boolean },
+  ): Promise<ID | null> => {
+    if (!session) return null;
+    try {
+      const reg = getMemberCap(spaceId) ? null : await ensureRegistry(spaceId);
+      const node = await createNode(session, spaceId, { ...input, ...flags }, reg ?? undefined);
+      // Pull the index so the new node appears in the tree (createNode writes it
+      // server-side; the local store doesn't know about it until the next pull).
+      pull();
+      return node.id;
+    } catch {
+      return null;
+    }
+  }, [session, spaceId, ensureRegistry, pull]);
+
   const setProps = useCallback((id: ID, patch: Record<string, PropValue>) => {
     const now = stamp();
     applyNodes((cur) => setPropsReducer(cur, id, patch, now));
@@ -179,5 +218,5 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   const ancestors = useCallback((id: ID) => ancestorsOf(objects, id), [objects]);
   const get = useCallback((id: ID) => objects.find((n) => n.id === id), [objects]);
 
-  return { tree, nodes, allNodes: objects, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, pull, create, rename, move, reorder, archive, restore, purge, setProps, clearProp: clearPropFn, mutate };
+  return { tree, nodes, allNodes: objects, breadcrumbs, ancestors, get, opening, openError, offline, ready, loaded, reload, pull, create, createWithAccess, rename, move, reorder, archive, restore, purge, setProps, clearProp: clearPropFn, mutate };
 }

@@ -1,9 +1,10 @@
 /**
  * Shared space-open effect for {@link ./use-merge-doc} (merge-doc) and
  * append-only content hooks. Resolves the crypto context for a space:
- *  - E2EE space: opens the space keyring encryptor (cached per space; offline
- *    from the SDK pull cache) and its doc client.
- *  - Plaintext space: `encryptor` is null; client is the member cap client.
+ *  - E2EE node (enc:true): opens the space keyring encryptor via getNodeAccess.
+ *  - Plaintext node (enc:false, public, invite-plaintext): encryptor is null.
+ *  - Space-wide plaintext (no node, plaintext:true): member client, no encryptor.
+ *  - Space-wide E2EE (no node, plaintext:false — typeindex etc.): space keyring.
  * Builds on {@link useSpaceOpenState} for the opening/error/offline flags + reconnect.
  *
  * Reachability is NOT reported here — building the encryptor may have used the
@@ -13,7 +14,8 @@ import { useEffect, useState } from 'react';
 import type { Encryptor, StarfishClient } from '@drakkar.software/starfish-client';
 
 import { getMemberCap } from '@drakkar.software/octovault-sdk';
-import { getSpaceEncryptor } from '@drakkar.software/octovault-sdk';
+import { getSpaceEncryptor, getNodeAccess, getSpaceClient } from '@drakkar.software/octovault-sdk';
+import type { NodeAccess } from '@drakkar.software/octovault-sdk';
 import { useSpaceRegistryActions } from './space-registry-context';
 import { useSession } from './session-context';
 import { useSpaceOpenState } from './use-space-open';
@@ -31,6 +33,10 @@ export function useSpaceOpen(opts: {
   docId: string;
   spaceId: string;
   enabled: boolean;
+  /** Per-node crypto: getNodeAccess for enc:true, null encryptor for plaintext nodes. */
+  node?: { id: string; access?: NodeAccess; enc?: boolean };
+  /** When true, always use null encryptor (space-wide plaintext docs like objindex). */
+  plaintext?: boolean;
 }): RoomOpenFlow {
   const { docId, spaceId, enabled } = opts;
   const { session } = useSession();
@@ -39,6 +45,11 @@ export function useSpaceOpen(opts: {
   const [client, setClient] = useState<StarfishClient | null>(null);
   const { opening, openError, offline, reloadNonce, reload, beginOpen, finishOpening, failOpen } =
     useSpaceOpenState();
+
+  const nodeId = opts.node?.id;
+  const nodeAccess = opts.node?.access;
+  const nodeEnc = opts.node?.enc;
+  const plaintext = opts.plaintext;
 
   useEffect(() => {
     let cancelled = false;
@@ -49,14 +60,37 @@ export function useSpaceOpen(opts: {
     if (!enabled || !session) return;
     (async () => {
       try {
-        const reg = getMemberCap(spaceId) ? null : await ensureRegistry(spaceId);
-        const { encryptor: enc, client: docClient } = await getSpaceEncryptor(spaceId, session, reg);
-        if (!cancelled) {
-          setEncryptor(enc);
-          setClient(docClient);
-          // NOTE: no openReached() — building the encryptor may have used the cached
-          // keyring (offline). Reachability is reported from the caller's first fresh pull.
-          finishOpening();
+        if (plaintext) {
+          // Space-wide plaintext (e.g., objindex): member client, no encryption.
+          const docClient = getSpaceClient(spaceId, session);
+          if (!cancelled) {
+            setEncryptor(null);
+            setClient(docClient);
+            finishOpening();
+          }
+        } else if (nodeId) {
+          // Per-node: use getNodeAccess — null encryptor for plaintext nodes,
+          // space-keyring encryptor for enc:true nodes.
+          const reg = getMemberCap(spaceId) ? null : await ensureRegistry(spaceId);
+          const { encryptor: enc, client: docClient } = await getNodeAccess(
+            spaceId, nodeId, { access: nodeAccess, enc: nodeEnc }, session, reg,
+          );
+          if (!cancelled) {
+            setEncryptor(enc);
+            setClient(docClient);
+            finishOpening();
+          }
+        } else {
+          // Space-wide E2EE (typeindex, or any call without a node): space keyring.
+          const reg = getMemberCap(spaceId) ? null : await ensureRegistry(spaceId);
+          const { encryptor: enc, client: docClient } = await getSpaceEncryptor(spaceId, session, reg);
+          if (!cancelled) {
+            setEncryptor(enc);
+            setClient(docClient);
+            // NOTE: no openReached() — building the encryptor may have used the cached
+            // keyring (offline). Reachability is reported from the caller's first fresh pull.
+            finishOpening();
+          }
         }
       } catch (e) {
         if (!cancelled) failOpen(e);
@@ -65,7 +99,7 @@ export function useSpaceOpen(opts: {
     return () => {
       cancelled = true;
     };
-  }, [enabled, session, docId, spaceId, ensureRegistry, reloadNonce, beginOpen, finishOpening, failOpen]);
+  }, [enabled, session, docId, spaceId, nodeId, nodeAccess, nodeEnc, plaintext, ensureRegistry, reloadNonce, beginOpen, finishOpening, failOpen]);
 
   return { encryptor, client, opening, openError, offline, reload };
 }

@@ -1,28 +1,32 @@
 /**
- * Generic content hook for any object with WAL-backed content.
+ * Generic content hook for any object with WAL-backed or plaintext content.
  *
- * Collapses `usePage`/`useBoard` into a single lifecycle owner:
- *  open → pull → commit.
+ * Routes by node access flags:
+ *   access:'public'          → objPub plaintext merge-doc (merge-kind only)
+ *   access:'invite', enc:false → objInv cap-gated plaintext merge-doc (merge-kind only)
+ *   access:'space'/'invite', enc:true → objLog WAL / objDoc merge-doc (E2EE, default)
  *
- * Hook-order stability: `useWalDoc` is called unconditionally every render with
- * an `enabled` gate. When a future content kind (`'merge'`) is added, its hook
- * will likewise be called unconditionally with its own `enabled` flag so React
- * never sees a different number of hooks per render regardless of which content
- * kind the object currently has.
+ * Hook-order stability: useWalDoc and both useMergeDoc variants are called
+ * unconditionally every render with enabled gates so React never sees a different
+ * number of hooks per render regardless of which content path is active.
  */
 import { useCallback } from 'react';
 import type { WalDocument } from '@drakkar.software/starfish-wal';
 
-import { objLogName } from '@drakkar.software/octovault-sdk';
+import { objLogName, objPubPull, objPubPush, objInvPull, objInvPush } from '@drakkar.software/octovault-sdk';
+import type { ObjectContentKind, NodeAccess } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useSpaceOpen } from './use-room-open-flow';
+import { useMergeDoc } from './use-merge-doc';
 import { useDocLiveSync } from './use-doc-live-sync';
 import { useWalDoc } from './use-wal-doc';
-import type { ObjectContentKind } from '@drakkar.software/octovault-sdk';
+import { useSpaceObjects } from './space-objects-context';
 
 export interface ObjectContentHandle {
-  /** WAL document — non-null once open (contentKind === 'append'). */
+  /** WAL document — non-null once open (contentKind === 'append', default E2EE path). */
   walDoc: WalDocument | null;
+  /** Plaintext merge-doc data for public/invite-plaintext nodes. */
+  mergeDoc: Record<string, unknown> | null;
   contentKind: ObjectContentKind;
   ready: boolean;
   version: number;
@@ -36,8 +40,9 @@ export interface ObjectContentHandle {
 }
 
 /**
- * Open a single object's WAL content doc, expose the shared lifecycle state,
- * and wire live cross-device sync. Compose this in `usePage`/`useBoard` wrappers
+ * Open a single object's content doc, expose the shared lifecycle state,
+ * and wire live cross-device sync. Routes to objPub, objInv, or objLog/objDoc
+ * based on the node's access flags. Compose this in `usePage`/`useBoard` wrappers
  * to add model-specific read/mutate ops on top.
  */
 export function useObjectContent(
@@ -47,43 +52,92 @@ export function useObjectContent(
   opts: { enabled?: boolean } = {},
 ): ObjectContentHandle {
   const { session } = useSession();
-  const base = (opts.enabled ?? true) && !!spaceId && !!objectId;
-  const walEnabled = base && contentKind === 'append';
+  const { objects } = useSpaceObjects();
+  const node = objects.get(objectId);
 
-  const { encryptor, client, opening: roomOpening, openError: roomOpenError, offline, reload: reopenSpace } = useSpaceOpen({
+  const base = (opts.enabled ?? true) && !!spaceId && !!objectId;
+
+  const isPublicPlaintext = node?.access === 'public';
+  const isInvitePlaintext = node?.access === 'invite' && !node.enc;
+  const isPlaintext = isPublicPlaintext || isInvitePlaintext;
+
+  const walEnabled = base && !isPlaintext && contentKind === 'append';
+
+  // E2EE / default WAL path.
+  const spaceOpen = useSpaceOpen({
     docId: objectId,
     spaceId,
-    enabled: base,
+    enabled: base && !isPlaintext,
+    node: (node && !isPlaintext) ? { id: node.id, access: node.access as NodeAccess, enc: node.enc } : undefined,
   });
 
-  // Always call useWalDoc (even when walEnabled=false) for stable hook order.
-  const { doc: walDoc, ready, version, touch, pull, reload: reloadDoc, opening: walOpening, openError: walOpenError } = useWalDoc({
-    client,
-    encryptor,
+  // WAL doc (always called; gate via enabled for hook-order stability).
+  const { doc: walDoc, ready: walReady, version, touch, pull: walPull, reload: reloadDoc, opening: walOpening, openError: walOpenError } = useWalDoc({
+    client: spaceOpen.client,
+    encryptor: spaceOpen.encryptor,
     documentKey: objLogName(spaceId, objectId),
     edPubHex: session?.keys.edPub,
     edPrivHex: session?.keys.edPriv,
-    enabled: walEnabled && !!client && !!encryptor,
+    enabled: walEnabled && !!spaceOpen.client && !!spaceOpen.encryptor,
   });
 
+  // Public plaintext path (objpub) — always called, gate via enabled.
+  const pubPaths = useCallback(
+    () => ({ pull: objPubPull(spaceId, objectId), push: objPubPush(spaceId, objectId) }),
+    [spaceId, objectId],
+  );
+  const pubResult = useMergeDoc({
+    spaceId,
+    openId: objectId,
+    enabled: base && isPublicPlaintext,
+    storeKey: `objpub:${spaceId}:${objectId}`,
+    privatePaths: pubPaths,
+    node: (node && isPublicPlaintext) ? { id: node.id, access: 'public' as NodeAccess } : undefined,
+  });
+
+  // Invite-plaintext path (objinv) — always called, gate via enabled.
+  const invPaths = useCallback(
+    () => ({ pull: objInvPull(spaceId, objectId), push: objInvPush(spaceId, objectId) }),
+    [spaceId, objectId],
+  );
+  const invResult = useMergeDoc({
+    spaceId,
+    openId: objectId,
+    enabled: base && isInvitePlaintext,
+    storeKey: `objinv:${spaceId}:${objectId}`,
+    privatePaths: invPaths,
+    node: (node && isInvitePlaintext) ? { id: node.id, access: 'invite' as NodeAccess, enc: false } : undefined,
+    nodeId: isInvitePlaintext ? objectId : undefined,
+  });
+
+  // Derive the active lifecycle from the routed path.
+  const activeReady = isPublicPlaintext ? pubResult.ready : isInvitePlaintext ? invResult.ready : walReady;
+  const activePull  = isPublicPlaintext ? pubResult.pull  : isInvitePlaintext ? invResult.pull  : walPull;
+  const activeOpening   = isPublicPlaintext ? pubResult.opening   : isInvitePlaintext ? invResult.opening   : (spaceOpen.opening || walOpening);
+  const activeOpenError = isPublicPlaintext ? pubResult.openError : isInvitePlaintext ? invResult.openError : (spaceOpen.openError ?? walOpenError);
+  const activeOffline   = isPublicPlaintext ? pubResult.offline   : isInvitePlaintext ? invResult.offline   : spaceOpen.offline;
+
   // Live cross-device sync (focus-pull + SSE poll).
-  useDocLiveSync({ docId: objectId, ready, pull, skipFirstFocus: true, firstFocusKey: objectId });
+  useDocLiveSync({ docId: objectId, ready: activeReady, pull: activePull, skipFirstFocus: true, firstFocusKey: objectId });
 
   const reload = useCallback(() => {
-    reopenSpace();
+    spaceOpen.reload();
     reloadDoc();
-  }, [reopenSpace, reloadDoc]);
+    pubResult.reload();
+    invResult.reload();
+  }, [spaceOpen.reload, reloadDoc, pubResult.reload, invResult.reload]);
 
   return {
     walDoc,
+    mergeDoc: isPublicPlaintext ? pubResult.doc : isInvitePlaintext ? invResult.doc : null,
     contentKind,
-    ready,
+    ready: base ? activeReady : false,
     version,
     touch,
-    pull,
-    opening: base ? (roomOpening || walOpening) : false,
-    openError: roomOpenError ?? walOpenError,
-    offline,
+    pull: activePull,
+    opening: base ? activeOpening : false,
+    openError: activeOpenError,
+    offline: activeOffline,
     reload,
   };
 }

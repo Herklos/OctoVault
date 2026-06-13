@@ -5,8 +5,9 @@ import { useSyncInit } from '@drakkar.software/starfish-client/zustand';
 import { getSyncBase, getSyncNamespace } from '@drakkar.software/octovault-sdk';
 import { capProviderFor } from '@drakkar.software/octovault-sdk';
 import { fetchWithTimeout } from '@drakkar.software/octovault-sdk';
-import { getMemberCap } from '@drakkar.software/octovault-sdk';
+import { getMemberCap, getNodeAccessEntry } from '@drakkar.software/octovault-sdk';
 import { pullCache, PULL_CACHE_MAX_AGE_MS } from '@drakkar.software/octovault-sdk';
+import type { NodeAccess } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { useSpaceOpen } from './use-room-open-flow';
 
@@ -27,6 +28,12 @@ export interface MergeDocOptions {
   storeKey: string;
   /** Build the paths for this doc. */
   privatePaths: () => DocPaths;
+  /** When provided, pass to useSpaceOpen for per-node crypto (getNodeAccess). */
+  node?: { id: string; access?: NodeAccess; enc?: boolean };
+  /** When provided, look up the node-specific cap for the capProvider (objinv path). */
+  nodeId?: string;
+  /** When true, always use null encryptor (space-wide plaintext docs like objindex). */
+  plaintext?: boolean;
   /** @deprecated pubspace removed — ignored. */
   publicPaths?: (ownerId: string) => DocPaths;
 }
@@ -61,13 +68,15 @@ export interface MergeDocResult {
  * Callers layer their domain shape (which array, which mutations) on top.
  */
 export function useMergeDoc(opts: MergeDocOptions): MergeDocResult {
-  const { spaceId, openId, enabled, storeKey, privatePaths } = opts;
+  const { spaceId, openId, enabled, storeKey, privatePaths, node, nodeId, plaintext } = opts;
   const { session } = useSession();
 
   const { encryptor, client, opening, openError, offline, reload } = useSpaceOpen({
     docId: openId,
     spaceId,
     enabled,
+    node,
+    plaintext,
   });
 
   const config = useMemo(() => {
@@ -81,8 +90,14 @@ export function useMergeDoc(opts: MergeDocOptions): MergeDocResult {
       cache: pullCache(),
       cacheMaxAgeMs: PULL_CACHE_MAX_AGE_MS,
     };
+    // For objinv (invite-plaintext), try the node-specific cap first so the
+    // sharing plugin path-match accepts the request. Falls back to the space
+    // member cap (valid for space:member with paths: ['spaces/{id}/**']).
+    const nodeEntry = nodeId ? getNodeAccessEntry(spaceId, nodeId) : null;
     const memberCap = getMemberCap(spaceId);
-    const cap = memberCap ? JSON.parse(memberCap) : session.chatCap;
+    const nodeEntryCap = (nodeEntry && 'cap' in nodeEntry) ? (nodeEntry as { cap: string }).cap : null;
+    const rawCap = nodeEntryCap ?? (memberCap ? memberCap : null);
+    const cap = rawCap ? JSON.parse(rawCap) : session.chatCap;
     const paths = privatePaths();
     return {
       ...base,
@@ -95,7 +110,7 @@ export function useMergeDoc(opts: MergeDocOptions): MergeDocResult {
     // privatePaths is stable per render from the caller's closure; the path
     // values it returns are captured by spaceId/openId which ARE deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, session, client, encryptor, spaceId, storeKey]);
+  }, [enabled, session, client, encryptor, spaceId, storeKey, nodeId]);
 
   const store = useSyncInit(config);
 
