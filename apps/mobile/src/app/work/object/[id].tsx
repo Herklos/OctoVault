@@ -18,6 +18,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ObjectActions } from '@/components/objects/ObjectActions';
 import { PageView } from '@/components/work/PageView';
 import { BoardView } from '@/components/work/BoardView';
+import { DatabaseView } from '@/components/work/DatabaseView';
 import { FileObjectView } from '@/components/work/FileObjectView';
 import { RecordView } from '@/components/work/RecordView';
 import { TaskPropsStrip } from '@/components/work/TaskPropsStrip';
@@ -61,7 +62,11 @@ export default function WorkObjectScreen() {
   );
 
   const content =
-    editor === 'record' ? (
+    editor === 'database' ? (
+      <ErrorBoundary label="Database">
+        <DatabaseView spaceId={spaceId} objectId={id} />
+      </ErrorBoundary>
+    ) : editor === 'record' ? (
       <Stage maxWidth={layout.editorMaxWidth} style={styles.stage}>
         <ErrorBoundary label="Record">
           <RecordView spaceId={spaceId} objectId={id} />
@@ -113,9 +118,9 @@ export default function WorkObjectScreen() {
 
   return (
     <StackScreen
-      scroll={editor !== 'board'}
-      contentStyle={editor !== 'board' ? styles.content : undefined}
-      footer={editor !== 'board' ? toolbar : undefined}
+      scroll={editor !== 'board' && editor !== 'database'}
+      contentStyle={editor !== 'board' && editor !== 'database' ? styles.content : undefined}
+      footer={editor !== 'board' && editor !== 'database' ? toolbar : undefined}
       header={
         <AppBar
           title={node?.title || label || 'Object'}

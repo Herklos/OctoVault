@@ -84,6 +84,9 @@ export * from './starfish/objects';
 // Vault-specific object extensions (props/automation in meta)
 export * from './starfish/objects-ext';
 
+// Database object type helpers (filter/sort/group for 'database' editor)
+export * from './starfish/database';
+
 // User-defined types store — re-export PropKind/EditorKind under aliases to avoid
 // shadowing the same names in domain/object-types (both unions are identical, but
 // TypeScript requires exactly one name per barrel entry).

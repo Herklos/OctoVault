@@ -15,7 +15,7 @@ import type { TypeDef } from '../starfish/object-types-store';
 
 /** The fixed renderer a type reuses — a closed set of editors the app ships.
  *  Data can declare new types but cannot ship new renderers without a code change. */
-export type EditorKind = 'page' | 'board' | 'file' | 'record' | 'none';
+export type EditorKind = 'page' | 'board' | 'file' | 'record' | 'database' | 'none';
 
 export type PropKind = 'text' | 'number' | 'select' | 'date' | 'checkbox' | 'url' | 'relation';
 
@@ -81,9 +81,10 @@ const BLOB_PROPS: PropField[] = [
 
 const BUILTIN_DESCRIPTORS: Record<string, TypeDescriptor> = {
   // OctoVault primary types
-  folder:   { contentKind: 'none',   icon: 'folder', label: 'Folder',   editor: 'none',   props: [],         creatable: true,  workTree: false, findable: false },
-  page:     { contentKind: 'append', icon: 'file',   label: 'Page',     editor: 'page',   props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled' },
-  board:    { contentKind: 'append', icon: 'work',   label: 'Board',    editor: 'board',  props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled Board' },
+  folder:   { contentKind: 'none',   icon: 'folder', label: 'Folder',   editor: 'none',     props: [],         creatable: true,  workTree: false, findable: false },
+  page:     { contentKind: 'append', icon: 'file',   label: 'Page',     editor: 'page',     props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled' },
+  board:    { contentKind: 'append', icon: 'work',   label: 'Board',    editor: 'board',    props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled Board' },
+  database: { contentKind: 'none',   icon: 'list',   label: 'Database', editor: 'database', props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled Database' },
   task:     { contentKind: 'append', icon: 'check',  label: 'Task',     editor: 'page',   props: TASK_PROPS, creatable: false, workTree: false, findable: false },
   file:     { contentKind: 'none',   icon: 'file',   label: 'File',     editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled File' },
   image:    { contentKind: 'none',   icon: 'image',  label: 'Image',    editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled Image' },
