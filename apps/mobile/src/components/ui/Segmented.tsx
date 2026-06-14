@@ -94,5 +94,5 @@ export function Segmented<T extends string>({ options, value, onChange, disabled
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.xs },
-  segment: { paddingVertical: 5, paddingHorizontal: spacing.sm, borderRadius: radii.md },
+  segment: { minHeight: spacing.controlMinHeight, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radii.md },
 });

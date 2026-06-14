@@ -57,7 +57,6 @@ export default function SpaceDetailsScreen() {
 
   // Local UI state (page-thin: just inputs, like join.tsx).
   const [joinRequest, setJoinRequest] = useState('');
-  const [publicWrite, setPublicWrite] = useState(false);
   const [leaving, setLeaving] = useState(false);
   // Bumped on blur so the autosave name field re-seeds from the persisted name —
   // an abandoned edit (emptied / whitespace-only, never committed) snaps back.
@@ -224,66 +223,58 @@ export default function SpaceDetailsScreen() {
       </Card>
 
       {/* MEMBERS */}
-      {members.hasRoster ? (
-        <Card title="MEMBERS">
-          {members.loading ? (
-            // Roster shape while the access record loads — same row metrics as the
-            // real list so the card doesn't grow when members land.
-            [0, 1, 2].map((i) => (
-              <View key={i} style={styles.memberRow}>
-                <Skeleton width={32} height={32} radius={radii.pill} />
-                <View style={styles.memberText}>
-                  <Skeleton width="40%" height={12} />
-                  <Skeleton width="55%" height={9} />
-                </View>
+      <Card title="MEMBERS">
+        {members.loading ? (
+          // Roster shape while the access record loads — same row metrics as the
+          // real list so the card doesn't grow when members land.
+          [0, 1, 2].map((i) => (
+            <View key={i} style={styles.memberRow}>
+              <Skeleton width={32} height={32} radius={radii.pill} />
+              <View style={styles.memberText}>
+                <Skeleton width="40%" height={12} />
+                <Skeleton width="55%" height={9} />
               </View>
-            ))
-          ) : members.members.length === 0 ? (
-            <Txt variant="footnote" tone="inkSoft">
-              No members yet.
-            </Txt>
-          ) : (
-            members.members.map((m, i) => (
-              <View key={m.userId}>
-                {i > 0 ? <Divider style={styles.divider} /> : null}
-                <View style={styles.memberRow}>
-                  <Avatar label={m.monogram} image={m.avatar} size={32} />
-                  <View style={styles.memberText}>
-                    {/* Skeleton until the profile cache resolves — never flash a raw
-                        fingerprint as someone's name on first paint. */}
-                    {m.resolving ? (
-                      <Skeleton width="40%" height={12} />
-                    ) : (
-                      <Txt variant="callout" weight="semibold" numberOfLines={1}>
-                        {m.name ?? m.fingerprint}
-                      </Txt>
-                    )}
-                    <Txt variant="caption" tone="inkMuted" mono numberOfLines={1}>
-                      {m.isOwner ? `Owner · ${m.fingerprint}` : m.fingerprint}
-                    </Txt>
-                  </View>
-                  {details.isOwner && !m.isOwner ? (
-                    <IconButton
-                      name="x"
-                      size={16}
-                      color={colors.inkMuted}
-                      tooltip="Remove member"
-                      accessibilityLabel={`Remove ${m.name ?? m.fingerprint}`}
-                      onPress={() => void confirmRemoveMember(m)}
-                    />
-                  ) : null}
-                </View>
-              </View>
-            ))
-          )}
-        </Card>
-      ) : (
-        <Card title="MEMBERS">
+            </View>
+          ))
+        ) : members.members.length === 0 ? (
           <Txt variant="footnote" tone="inkSoft">
-            A public space has no member roster — anyone with the invitation link can read it.
+            No members yet.
           </Txt>
-        </Card>
-      )}
+        ) : (
+          members.members.map((m, i) => (
+            <View key={m.userId}>
+              {i > 0 ? <Divider style={styles.divider} /> : null}
+              <View style={styles.memberRow}>
+                <Avatar label={m.monogram} image={m.avatar} size={32} />
+                <View style={styles.memberText}>
+                  {/* Skeleton until the profile cache resolves — never flash a raw
+                      fingerprint as someone's name on first paint. */}
+                  {m.resolving ? (
+                    <Skeleton width="40%" height={12} />
+                  ) : (
+                    <Txt variant="callout" weight="semibold" numberOfLines={1}>
+                      {m.name ?? m.fingerprint}
+                    </Txt>
+                  )}
+                  <Txt variant="caption" tone="inkMuted" mono numberOfLines={1}>
+                    {m.isOwner ? `Owner · ${m.fingerprint}` : m.fingerprint}
+                  </Txt>
+                </View>
+                {details.isOwner && !m.isOwner ? (
+                  <IconButton
+                    name="x"
+                    size={16}
+                    color={colors.inkMuted}
+                    tooltip="Remove member"
+                    accessibilityLabel={`Remove ${m.name ?? m.fingerprint}`}
+                    onPress={() => void confirmRemoveMember(m)}
+                  />
+                ) : null}
+              </View>
+            </View>
+          ))
+        )}
+      </Card>
 
       {/* INVITE — owner only; skeleton while ownership resolves so it doesn't pop in. */}
       {details.loading ? (
@@ -294,74 +285,34 @@ export default function SpaceDetailsScreen() {
         </Card>
       ) : details.isOwner ? (
         <Card title="INVITE">
-          {invite.isPublic ? (
-            <>
-              <Txt variant="footnote" tone="inkSoft">
-                Generate a space-wide invitation link. Read-only lets people read; read &amp; write lets them post.
-              </Txt>
-              <View style={styles.typeRow}>
-                <Button
-                  label="Read-only"
-                  variant={!publicWrite ? 'primary' : 'secondary'}
-                  size="sm"
-                  iconName="globe"
-                  onPress={() => {
-                    setPublicWrite(false);
-                    invite.reset();
-                  }}
-                />
-                <Button
-                  label="Read & write"
-                  variant={publicWrite ? 'primary' : 'secondary'}
-                  size="sm"
-                  iconName="link"
-                  onPress={() => {
-                    setPublicWrite(true);
-                    invite.reset();
-                  }}
-                />
-              </View>
-              <Button
-                label={invite.busy ? 'Generating…' : 'Generate invite link'}
-                variant="secondary"
-                size="md"
-                iconName="link"
-                loading={invite.busy}
-                onPress={() => void invite.generatePublicInvite(publicWrite)}
-              />
-            </>
-          ) : (
-            <>
-              <Txt variant="footnote" tone="inkSoft">
-                Paste the invitee’s join request (from their Join screen), then generate an encrypted invite cap to send back.
-              </Txt>
-              <TextField
-                value={joinRequest}
-                onChangeText={(v) => {
-                  setJoinRequest(v);
-                  if (invite.result) invite.reset();
-                }}
-                placeholder="Paste join request…"
-                multiline
-                mono
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Button
-                label={invite.busy ? 'Generating…' : 'Generate invite'}
-                variant="secondary"
-                size="md"
-                iconName="people"
-                loading={invite.busy}
-                onPress={() => void invite.generatePrivateInvite(joinRequest)}
-              />
-            </>
-          )}
+          <Txt variant="footnote" tone="inkSoft">
+            Paste the invitee’s join request (from their Join screen), then generate an encrypted invite cap to send back.
+          </Txt>
+          <TextField
+            value={joinRequest}
+            onChangeText={(v) => {
+              setJoinRequest(v);
+              if (invite.result) invite.reset();
+            }}
+            placeholder="Paste join request…"
+            multiline
+            mono
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Button
+            label={invite.busy ? 'Generating…' : 'Generate invite'}
+            variant="secondary"
+            size="md"
+            iconName="people"
+            loading={invite.busy}
+            onPress={() => void invite.generatePrivateInvite(joinRequest)}
+          />
           {invite.result ? (
             <CopyField
               value={invite.result}
-              label={invite.isPublic ? 'Invitation link' : 'Invite cap'}
-              copyLabel={invite.isPublic ? 'Copy link' : 'Copy invite'}
+              label="Invite cap"
+              copyLabel="Copy invite"
               share
               shareTitle={`Join ${spaceName} on OctoVault`}
             />

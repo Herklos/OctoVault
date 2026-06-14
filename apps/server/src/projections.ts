@@ -51,8 +51,10 @@ export function extractPublicNodes(body: unknown): PubNode[] {
     const node = n as Record<string, unknown>;
     if (node.access !== "public") continue;
     if (node.archived) continue;
+    const rawId = String(node.id ?? "");
+    if (!rawId) continue; // skip nodes with missing/empty id — an empty id would corrupt the directory
     const stub: PubNode = {
-      id: String(node.id ?? ""),
+      id: rawId,
       title: typeof node.title === "string" ? node.title : "",
       type: typeof node.type === "string" ? node.type : "page",
       updatedAt: typeof node.updatedAt === "number" ? node.updatedAt : 0,

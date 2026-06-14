@@ -66,6 +66,19 @@ describe("extractPublicNodes", () => {
     expect(extractPublicNodes({ objects: [] })).toEqual([]);
   });
 
+  it("skips public nodes with missing or empty id (would corrupt directory)", () => {
+    const body = {
+      objects: [
+        { title: "No ID", type: "page", access: "public", updatedAt: 1000 },
+        { id: null, title: "Null ID", type: "page", access: "public", updatedAt: 2000 },
+        { id: "n1", title: "Valid", type: "page", access: "public", updatedAt: 3000 },
+      ],
+    };
+    const result = extractPublicNodes(body);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("n1");
+  });
+
   it("handles multiple public nodes across types", () => {
     const body = {
       objects: [
