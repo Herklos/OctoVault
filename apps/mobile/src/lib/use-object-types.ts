@@ -29,7 +29,6 @@ export function useObjectTypes(spaceId: string, opts: { enabled?: boolean } = {}
     enabled,
     storeKey: `typeindex:${spaceId}`,
     privatePaths: () => ({ pull: typesIndexPull(spaceId), push: typesIndexPush(spaceId) }),
-    publicPaths: () => ({ pull: typesIndexPull(spaceId), push: typesIndexPush(spaceId) }),
   });
 
   const d = (doc as TypesDoc | null) ?? store.EMPTY_TYPES_DOC;

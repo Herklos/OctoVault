@@ -84,6 +84,7 @@ const queuing = createQueuingServerPlugin({
     objlog:    { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
     objdoc:    { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
     objpub:    { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
+    objinv:    { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
     typeindex: { topic: "octovault.object.changed", includeParams: true, includeIdentity: false },
   },
 });

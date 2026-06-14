@@ -1,8 +1,6 @@
 /**
- * The member roster of a PRIVATE space — the userIds from its `_access` record
- * (owner + members), each resolved to a display name/avatar through the shared
- * profile cache. A PUBLIC space has no roster (access is link-cap only, the joiners
- * are unknown to the owner), so this returns empty with `hasRoster: false`.
+ * The member roster of a space — the userIds from its `_access` record (owner +
+ * members), each resolved to a display name/avatar through the shared profile cache.
  *
  * React Compiler note (see use-pseudos.ts caveat + AccountSwitcher.tsx precedent):
  * the member id set is STABLE, so the compiler would memoize the resolver-derived

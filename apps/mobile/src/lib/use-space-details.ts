@@ -35,7 +35,6 @@ export interface SpaceDetails {
   /** The space record (from the user's `_spaces` list), or null until it loads. */
   space: Space | null;
   isOwner: boolean;
-  isPublic: boolean;
   /** True until the shared identity (owner + name/image) resolves — hold skeletons
    *  on the owner-gated sections so they don't pop in after the roundtrip. */
   loading: boolean;
@@ -235,7 +234,6 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
   return {
     space,
     isOwner,
-    isPublic: false,
     loading,
     name,
     commitName,

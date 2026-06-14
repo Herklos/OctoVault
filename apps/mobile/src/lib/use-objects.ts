@@ -187,15 +187,16 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
       // members (not just the owner). getMemberCap short-circuit would skip this.
       const reg = await ensureRegistry(spaceId);
       const node = await createNode(session, spaceId, { ...input, ...flags }, reg ?? undefined);
-      // Pull the index so the new node appears in the tree (createNode writes it
-      // server-side; the local store doesn't know about it until the next pull).
+      // Optimistic local insert so the sidebar and open-screen see the new node
+      // immediately — pull() converges with the authoritative server state.
+      applyNodes((cur) => addObject(cur, { ...input, ...flags, id: node.id }, stamp()).nodes);
       pull();
       return node.id;
     } catch (e) {
       console.error('[useObjects] createWithAccess failed', e);
       return null;
     }
-  }, [session, spaceId, ensureRegistry, pull]);
+  }, [session, spaceId, ensureRegistry, pull, stamp, applyNodes]);
 
   const setProps = useCallback((id: ID, patch: Record<string, PropValue>) => {
     const now = stamp();

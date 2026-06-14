@@ -43,14 +43,18 @@ import type { Encryptor, StarfishClient } from '@drakkar.software/starfish-clien
 export async function getSpaceEncryptor(
   spaceId: string,
   session: Session,
-  _reg: { owner: string | null; members: string[] } | null,
+  reg: { owner: string | null; members: string[] } | null,
 ): Promise<{ encryptor: Encryptor | null; client: StarfishClient }> {
   const client = getSpaceClient(spaceId, session);
+  // Use the owner's known public key as the trusted adder so non-owner members
+  // can open the shared keyring. Falls back to ownerTrustedAdders(session) when
+  // reg is unavailable (first-open as the owner before reg has been fetched).
+  const trustedAdders = reg?.owner ? [reg.owner] : ownerTrustedAdders(session);
   const encryptor = await buildEncryptor(
     client,
     session.keys,
     keyringPull(spaceId),
-    ownerTrustedAdders(session),
+    trustedAdders,
   );
   return { encryptor, client };
 }

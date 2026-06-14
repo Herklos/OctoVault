@@ -11,16 +11,12 @@ import { useSession } from './session-context';
 import { inviteToSpace } from '@drakkar.software/octovault-sdk';
 
 export interface SpaceInviteState {
-  /** Always false — public spaces have been removed. */
-  isPublic: boolean;
   busy: boolean;
   error: string | null;
   /** The minted invite cap bundle, or null until generated. */
   result: string | null;
   /** Mint an invite cap from a pasted join-request. */
   generatePrivateInvite: (joinRequestJson: string) => Promise<void>;
-  /** @deprecated Public spaces removed — always sets an error. */
-  generatePublicInvite: (write: boolean) => Promise<void>;
   /** Clear the current result/error (e.g. when the input changes). */
   reset: () => void;
 }
@@ -58,12 +54,5 @@ export function useSpaceInvite(spaceId: string): SpaceInviteState {
     [session, busy, spaceId],
   );
 
-  const generatePublicInvite = useCallback(
-    async (_write: boolean) => {
-      setError('Public spaces have been removed. Use a private invite instead.');
-    },
-    [],
-  );
-
-  return { isPublic: false, busy, error, result, generatePrivateInvite, generatePublicInvite, reset };
+  return { busy, error, result, generatePrivateInvite, reset };
 }

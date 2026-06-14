@@ -148,11 +148,7 @@ export default function SpaceDetailsScreen() {
             {spaceName}
           </Txt>
           <View style={styles.pills}>
-            <Pill
-              label={details.isPublic ? 'Public' : 'Private'}
-              tone={details.isPublic ? 'note' : 'accent'}
-              iconName={details.isPublic ? 'globe' : 'lock'}
-            />
+            <Pill label="Private" tone="accent" iconName="lock" />
             {/* Role resolves async — hold a chip-shaped skeleton so the row doesn't reflow. */}
             {details.loading ? (
               <Skeleton width={72} height={20} radius={radii.pill} />
@@ -326,7 +322,7 @@ export default function SpaceDetailsScreen() {
       ) : null}
 
       {/* TYPES — owner-only; custom object types for this space. */}
-      {details.isOwner && !details.isPublic ? (
+      {details.isOwner ? (
         <Card title="TYPES">
           <Txt variant="footnote" tone="inkSoft">
             Define custom object types with their own fields and icon — boards, trackers, databases, anything.
