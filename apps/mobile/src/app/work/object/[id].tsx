@@ -13,6 +13,7 @@ import { useTypeRegistry } from '@/lib/type-registry-context';
 import { AppBar } from '@/components/ui/AppBar';
 import { Stage } from '@/components/ui/Stage';
 import { StackScreen } from '@/components/ui/StackScreen';
+import { Txt } from '@/components/ui/Txt';
 import { Breadcrumbs } from '@/components/objects/Breadcrumbs';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ObjectActions } from '@/components/objects/ObjectActions';
@@ -45,11 +46,17 @@ export default function WorkObjectScreen() {
 
   const registry = useTypeRegistry();
   const { objects } = useSpaceObjects();
-  const { ancestors, get, rename, archive } = objects;
+  const { ancestors, get, rename, archive, loaded } = objects;
   const trail = ancestors(id);
   const node = get(id);
   const parent = trail.at(-1);
   const editor = node ? registry.descriptor(node.type).editor : 'page';
+
+  // A cross-space public object: the index is loaded but the node isn't there because
+  // it lives in a space the user hasn't joined.  Show an honest notice instead of
+  // silently rendering a blank editor.  Once the full public-content renderer lands
+  // (the planned follow-up) this guard can be removed or repurposed.
+  const isCrossSpacePublic = loaded && !node;
   const [toolbar, setToolbar] = useState<ReactNode>(null);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/work'));
@@ -110,6 +117,25 @@ export default function WorkObjectScreen() {
         </ErrorBoundary>
       </Stage>
     );
+
+  if (isCrossSpacePublic) {
+    return (
+      <StackScreen
+        scroll
+        header={
+          <AppBar title={label || 'Object'} onBack={goBack} />
+        }
+      >
+        <Stage maxWidth={layout.editorMaxWidth} style={styles.stage}>
+          <View style={{ alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.md }}>
+            <Txt variant="body" tone="inkFaint" style={{ textAlign: 'center' }}>
+              This public object lives in a space you haven{"'"}t joined — in-app preview is coming soon.
+            </Txt>
+          </View>
+        </Stage>
+      </StackScreen>
+    );
+  }
 
   return (
     <StackScreen

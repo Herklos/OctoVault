@@ -81,9 +81,10 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   // and the route opens with `focusTitle=1` so the hero mounts editing — naming
   // the thing you just made is the cheapest action, not three taps deep.
   const createAndOpen = useCallback((type: ObjectType, parentId?: ID, access: VisibilityAccess = 'space') => {
-    if (access === 'invite') {
+    if (access !== 'space') {
+      // invite → encrypted; public → plaintext (public+enc:true is invalid in the model)
       setCreating(true);
-      createWithAccess({ type, title: '', parentId }, { access: 'invite', enc: true })
+      createWithAccess({ type, title: '', parentId }, { access, enc: access === 'invite' })
         .then((id) => {
           if (!id) return;
           if (parentId) expand([parentId]);

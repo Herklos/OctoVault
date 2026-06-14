@@ -66,11 +66,13 @@ export function CreateTypeMenu({
           <Segmented<VisibilityOpt>
             options={VISIBILITY_OPTIONS}
             value={access}
-            onChange={(v) => { if (v !== 'public') setAccess(v); }}
+            onChange={setAccess}
           />
           <Txt variant="caption" tone="inkFaint">
             {access === 'invite'
               ? 'Title hidden from shared index — still encrypted for all members.'
+              : access === 'public'
+              ? 'Visible to anyone — appears in the public directory. Not encrypted.'
               : 'Visible to all space members.'}
           </Txt>
         </View>
