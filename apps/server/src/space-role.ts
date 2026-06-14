@@ -20,7 +20,7 @@ import type { ObjectStore, RoleEnricher } from "@drakkar.software/starfish-serve
 export const SPACE_OWNER_ROLE = "space:owner";
 export const SPACE_MEMBER_ROLE = "space:member";
 
-/** Owner + member roster recorded in a space's room-registry doc. */
+/** Owner + member roster recorded in a space's access doc. */
 function spaceAccessFromRegistry(raw: string): { owner: string | null; members: string[] } {
   try {
     const doc = JSON.parse(raw) as Record<string, unknown>;

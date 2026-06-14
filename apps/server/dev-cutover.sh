@@ -11,11 +11,13 @@
 # client, so wiping is the correct dev action. NEVER run on production.
 #
 # Usage: bash apps/server/dev-cutover.sh [DATA_DIR]
-#   DATA_DIR defaults to ./apps/server/data
+#   DATA_DIR defaults to $STARFISH_DATA_DIR, then ./apps/server/data
+#   (matching the same env var the server reads so you can't accidentally
+#   wipe a different directory than the one the server is using)
 
 set -euo pipefail
 
-DATA_DIR="${1:-$(dirname "$0")/data}"
+DATA_DIR="${1:-${STARFISH_DATA_DIR:-$(dirname "$0")/data}}"
 
 echo "[dev-cutover] Targeting data dir: $DATA_DIR"
 

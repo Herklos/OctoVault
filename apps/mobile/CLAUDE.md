@@ -55,7 +55,7 @@ Non-negotiable. Follow these for every change:
   `use-theme`, `use-responsive`, `use-hover`, `use-app-fonts`, `haptics`, `types`.
 - `src/lib/starfish/` — the encrypted sync layer: `client` + `config` (server URL,
   auth signing), `identity`/`pairing` (seed → keys, device pairing), keyring +
-  `members`/`pubspace` (E2EE + public spaces), `registry`/`paths`, the
+  `members` (E2EE, per-node access), `registry`/`paths`, the
   `wal/*` adapters, `storage` (secure-store).
 - `src/theme.ts` — design tokens (the single source of truth).
 

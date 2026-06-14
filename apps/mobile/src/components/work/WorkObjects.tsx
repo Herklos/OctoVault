@@ -337,8 +337,10 @@ function FootMenu({ onCreateType, disabled }: FootMenuProps) {
   const registry = useTypeRegistry();
   const [open, setOpen] = useState(false);
   const ref = useRef<ViewType>(null);
-  // Secondary types = creatable workTree types that aren't the primary (page).
-  const secondaryTypes = registry.creatableTypes().filter((d) => d.workTree && d.editor !== 'file' && d.type !== 'page');
+  // All workTree-creatable non-file types, including page — so the visibility
+  // selector in the FootMenu is reachable for pages too. The primary "+ New page"
+  // button remains for quick space-visible creation without opening the menu.
+  const secondaryTypes = registry.creatableTypes().filter((d) => d.workTree && d.editor !== 'file');
 
   return (
     <>
@@ -360,7 +362,6 @@ function FootMenu({ onCreateType, disabled }: FootMenuProps) {
         disabled={disabled}
         types={secondaryTypes}
         title="Create"
-        hideVisibility
       />
     </>
   );

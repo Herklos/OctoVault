@@ -27,7 +27,7 @@ client push ─▶ Starfish server (apps/server, Hono :8787)
                • proxies only the authorized topics upstream
                    │
                    ▼
-            OctoVault clients (fetch SSE → unread counts / live messages)
+            OctoVault clients (fetch SSE → unread counts / live node updates)
 ```
 
 Three deployables: **Starfish server** (`:8787`), **NATS** (`:4222`),
@@ -114,9 +114,13 @@ silently dropped (no-op queue).
    ```
    Expect a `data: {"topic":"octovault-octovault-object-changed-sp-<id>", ...}` frame.
 
-3. In the app (two tabs / identities): send a message to a room you are not
-   viewing → the unread badge increments; your own open room does not increment;
-   counts survive a reload.
+3. In the app (two tabs / identities): edit a node in a space you are **not**
+   currently viewing → the space's unread/updated state increments; your own
+   active space does not increment; state survives a reload.
+
+   > **Note:** public nodes (`access: 'public'`) are readable by non-members via
+   > sync but do **not** receive SSE change-events. The `/events` proxy requires
+   > `space:member` for every space — there is no public open-gating.
 
 4. `pnpm typecheck` clean.
 

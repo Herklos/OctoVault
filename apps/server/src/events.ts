@@ -57,6 +57,33 @@ export function buildWhistlersTopic(spaceId: string): string {
   return `${WHISTLERS_NAMESPACE}-${sanitizeTopic(`octovault.object.changed.${spaceId}`)}`;
 }
 
+/**
+ * Resolve which Whistlers topics an authenticated identity may subscribe to.
+ *
+ * For each candidate spaceId the enricher is consulted; only spaces where the
+ * identity holds `space:member` are admitted. The result is the ready-to-proxy
+ * topic list, including the firehose-prevention sentinel `["__none__"]` when
+ * no space is authorized (avoids forwarding all events to the caller).
+ *
+ * Exported for unit testing — lets us cover the membership gate + sentinel
+ * without exercising the full cap-cert auth stack.
+ */
+export async function authorizeTopics(
+  identity: string,
+  candidates: string[],
+  enricher: RoleEnricher,
+): Promise<string[]> {
+  const authorized: string[] = [];
+  for (const spaceId of candidates) {
+    const roles = await enricher({ identity, roles: [] }, { spaceId });
+    if (roles.includes(SPACE_MEMBER_ROLE)) authorized.push(spaceId);
+  }
+  const topics = authorized.map((s) => buildWhistlersTopic(s));
+  // ★ Firehose-prevention invariant: never return an empty array — Whistlers with
+  // no ?topic= streams the global firehose. Substitute a never-matching sentinel.
+  return topics.length > 0 ? topics : ["__none__"];
+}
+
 function parseCapHeader(authHeader: string): CapCert | null {
   if (!authHeader.startsWith("Cap ")) return null;
   const b64 = authHeader.slice("Cap ".length).trim();
@@ -164,23 +191,9 @@ export function createEventsRoute(opts: EventsRouteOptions): Hono {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    // 3. Authorize each candidate against `spaces/{id}/_access` membership.
-    //    All spaces require membership — there is no space-level public concept.
-    const authorized: string[] = [];
-    for (const spaceId of candidates) {
-      const roles = await enricher({ identity, roles: [] }, { spaceId });
-      if (roles.includes(SPACE_MEMBER_ROLE)) authorized.push(spaceId);
-    }
-
-    // 4. Map to sanitized destinationTopics server-side (never trust the client).
-    //    Delegates to buildWhistlersTopic so this path stays in sync with the
-    //    exported helper (and its tests) — a single rename point for the subject.
-    const topics = authorized.map((s) => buildWhistlersTopic(s));
-
-    // 5. ★ Firehose-prevention invariant.
-    //    An empty topic list would make Whistlers stream the global firehose.
-    //    Substitute a never-matching sentinel instead.
-    const safeTopics = topics.length > 0 ? topics : ["__none__"];
+    // 3–5. Authorize candidates against membership, map to Whistlers topics,
+    //      and apply the firehose-prevention sentinel — all in one tested helper.
+    const safeTopics = await authorizeTopics(identity, candidates, enricher);
 
     // 6. Proxy the upstream Whistlers SSE stream.
     //    Propagate the client's abort signal so disconnecting the browser closes
