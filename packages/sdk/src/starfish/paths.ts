@@ -79,7 +79,13 @@ export type { PublicObjectDirEntry } from '@drakkar.software/octospaces-sdk';
 // ── Local path-name helpers (not yet in octospaces-sdk public API) ──────────
 // Derived from the same naming convention used internally by octospaces-sdk.
 
-/** spaceId prefix from a `{spaceId}-{objectId}`-style room ID. */
+/**
+ * spaceId prefix from a `{spaceId}-{objectId}`-style room ID.
+ *
+ * Assumes spaceId contains exactly one hyphen segment (e.g. `"sp-abc123"`).
+ * Incorrect for multi-segment spaceIds — verify the format before changing
+ * the slice count.
+ */
 export function spaceIdFromRoomId(roomId: string): string {
   return roomId.split('-').slice(0, 2).join('-');
 }

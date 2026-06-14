@@ -146,6 +146,9 @@ async function authenticateEventsRequest(
     pathAndQuery = u.pathname + u.search;
     host = u.host;
   } catch {
+    // Reverse proxy forwarded a path-only URL — host defaults to "" which
+    // changes the signed message and will cause verifyRequestSignature to fail.
+    console.warn("[OctoVault] /events: failed to parse request URL", c.req.url);
     pathAndQuery = c.req.url;
     host = "";
   }
@@ -194,6 +197,11 @@ export function createEventsRoute(opts: EventsRouteOptions): Hono {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    // Reject empty candidate lists early — a long-lived SSE connection that would
+    // only proxy __none__ wastes a server fd and an upstream Whistlers connection.
+    if (candidates.length === 0) {
+      return c.json({ error: "spaces param required" }, 400);
+    }
 
     // 3–5. Authorize candidates against membership, map to Whistlers topics,
     //      and apply the firehose-prevention sentinel — all in one tested helper.

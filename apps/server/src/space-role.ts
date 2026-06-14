@@ -56,7 +56,7 @@ export function makeSpaceRoleEnricher(store: ObjectStore): RoleEnricher {
     // Unparseable / owner-less doc ⇒ keep TOFU open (recoverable DoS).
     if (owner === null) return [SPACE_OWNER_ROLE, SPACE_MEMBER_ROLE];
     if (owner === auth.identity) return [SPACE_OWNER_ROLE, SPACE_MEMBER_ROLE];
-    if (members.includes(auth.identity)) return [SPACE_MEMBER_ROLE];
+    if (new Set(members).has(auth.identity)) return [SPACE_MEMBER_ROLE];
     return [];
   };
 }
@@ -84,7 +84,7 @@ export function makeSpaceReadEnricher(store: ObjectStore): RoleEnricher {
     const { owner, members } = spaceAccessFromRegistry(raw);
     if (owner === null) return [];
     if (owner === auth.identity) return [SPACE_OWNER_ROLE, SPACE_MEMBER_ROLE];
-    if (members.includes(auth.identity)) return [SPACE_MEMBER_ROLE];
+    if (new Set(members).has(auth.identity)) return [SPACE_MEMBER_ROLE];
     return [];
   };
 }

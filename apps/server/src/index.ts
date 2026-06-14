@@ -22,6 +22,7 @@ import { makeSpaceRoleEnricher, makeSpaceReadEnricher } from "./space-role.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA_DIR = process.env.STARFISH_DATA_DIR ?? "./data";
+const HOSTNAME = process.env.HOST ?? "0.0.0.0";
 
 // Comma-separated allowlist (e.g. "https://app.example.com,https://staging.example.com").
 // When empty (dev default) any origin is echoed; when set, only listed origins are allowed.
@@ -35,6 +36,14 @@ if (CORS_ALLOW.length === 0 && process.env.NODE_ENV === "production") {
     "[OctoVault] SECURITY: STARFISH_CORS_ORIGINS is unset in production — CORS echoes any " +
       "Origin and any requested headers. Set it to your app's origin allowlist " +
       "(e.g. https://app.example.com) so a hostile page can't drive this API.",
+  );
+}
+
+if (!process.env.WHISTLERS_INTERNAL_URL && process.env.NODE_ENV === "production") {
+  console.warn(
+    "[OctoVault] WHISTLERS_INTERNAL_URL is unset — SSE change-events will proxy to " +
+      "http://localhost:8080/events. Set WHISTLERS_INTERNAL_URL to the internal Whistlers " +
+      "address so the /events endpoint reaches the correct host in production.",
   );
 }
 
@@ -148,6 +157,6 @@ createGracefulShutdown({
   },
 });
 
-serve({ fetch: app.fetch, port: PORT, hostname: "0.0.0.0" }, (info) => {
-  console.log(`OctoVault Starfish server listening on http://0.0.0.0:${info.port} (data: ${DATA_DIR})`);
+serve({ fetch: app.fetch, port: PORT, hostname: HOSTNAME }, (info) => {
+  console.log(`OctoVault Starfish server listening on http://${HOSTNAME}:${info.port} (data: ${DATA_DIR})`);
 });

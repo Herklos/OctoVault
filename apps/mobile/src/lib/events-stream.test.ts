@@ -48,6 +48,18 @@ describe('parseSseFrames', () => {
     expect(e1).toEqual([]);
     expect(e2).toEqual(['start']);
   });
+
+  it('joins multiple data: lines within one frame with newline (SSE spec)', () => {
+    const chunk = 'data: line1\ndata: line2\n\n';
+    const { events } = parseSseFrames(chunk, '');
+    expect(events).toEqual(['line1\nline2']);
+  });
+
+  it('skips frames with no data: line', () => {
+    const chunk = 'id: 123\nevent: ping\n\n';
+    const { events } = parseSseFrames(chunk, '');
+    expect(events).toEqual([]);
+  });
 });
 
 // ── extractChangedIds ─────────────────────────────────────────────────────────

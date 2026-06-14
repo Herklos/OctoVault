@@ -117,6 +117,9 @@ export interface Palette {
   noteInk: string;
 
   // ── Overlays ─────────────────────────────────────────────────────────────
+  /** Drop-shadow base color — drives `shadows.sm/md/lg` (cross-platform elevation).
+   *  Light: warm near-black; dark: pure black (shadows read on elevated surfaces). */
+  shadow: string;
   /** Full-bleed scrim behind modals / camera overlays. */
   scrim: string;
   overlay: string;
@@ -192,6 +195,7 @@ const light: Palette = {
   note: '#fff2b0',
   noteInk: '#4a3a10',
 
+  shadow: '#241f14',
   scrim: 'rgba(27,26,23,0.50)',
   overlay: 'rgba(27,26,23,0.32)',
   onScrim: '#fffdf8',
@@ -262,6 +266,7 @@ const dark: Palette = {
   note: '#3a3416',
   noteInk: '#e9d98a',
 
+  shadow: '#000000',
   scrim: 'rgba(8,7,5,0.66)',
   overlay: 'rgba(8,7,5,0.45)',
   onScrim: '#fffdf8',
@@ -387,7 +392,15 @@ export const radii = {
   pill: 999,
 } as const;
 
-/** Cross-platform elevation presets (react-native-web maps these to boxShadow). */
+/**
+ * Cross-platform elevation presets (react-native-web maps these to boxShadow).
+ *
+ * These are LIGHT-SCHEME static constants — safe for use in `StyleSheet.create()`
+ * which requires compile-time values. For scheme-aware inline styles, use
+ * `dropShadow(colors.shadow, …)` instead. The `resolveOctoSpacesTheme` adapter
+ * overrides `shadowColor` per-scheme so shared UI components always pick up the
+ * correct tint.
+ */
 export const shadows = {
   none: {},
   sm: {
@@ -420,6 +433,26 @@ export const shadows = {
     elevation: 8,
   },
 } as const;
+
+/**
+ * Scheme-aware drop shadow — use in dynamic (inline) styles where you have access
+ * to the active palette. Pass `colors.shadow` from `useTheme()`.
+ */
+export function dropShadow(
+  color: string,
+  opacity: number,
+  radius: number,
+  yOffset: number,
+  elevation: number,
+) {
+  return {
+    shadowColor: color,
+    shadowOpacity: opacity,
+    shadowRadius: radius,
+    shadowOffset: { width: 0, height: yOffset },
+    elevation,
+  } as const;
+}
 
 /**
  * Accent-tinted glow keyed to the active scheme's `glow` color. Dark surfaces
@@ -796,10 +829,13 @@ export function resolveOctoSpacesTheme(scheme: ColorScheme): OctoSpacesTheme {
 
     shadows: {
       none: shadows.none,
-      sm: shadows.sm,
-      md: shadows.md,
-      lg: shadows.lg,
-      accentGlow: shadows.accentGlow,
+      // Override shadowColor per-scheme so octospaces-ui components pick up the
+      // right tint (light: warm near-black; dark: pure black).
+      sm: { ...shadows.sm, shadowColor: p.shadow },
+      md: { ...shadows.md, shadowColor: p.shadow },
+      lg: { ...shadows.lg, shadowColor: p.shadow },
+      // accentGlow must use the scheme's glow rather than the hardcoded light-accent.
+      accentGlow: glowShadow(p.glow, 0.22, 16),
     },
 
     layout: { ...layout },

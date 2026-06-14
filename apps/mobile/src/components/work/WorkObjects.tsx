@@ -146,6 +146,10 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
     moveUp: (node) => nudge(node, -1),
     moveDown: (node) => nudge(node, 1),
     duplicate: (node) => {
+      // `create()` defaults to {enc:true, access:'space'} — the duplicate is always
+      // space-visible regardless of the source node's access. By design: non-space
+      // nodes (invite) require a server round-trip via createWithAccess, and public
+      // creation is not yet enabled.
       const id = create({ type: node.type, title: node.title, emoji: node.emoji, parentId: node.parentId });
       // Fractional order slots the copy right under its source (sort ties on id).
       if (id) reorder({ [id]: node.order + 0.5 });

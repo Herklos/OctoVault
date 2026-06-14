@@ -16,8 +16,7 @@ import { Txt } from '@/components/ui/Txt';
 
 export type VisibilityAccess = 'space' | 'invite' | 'public';
 
-type VisibilityOpt = VisibilityAccess;
-const VISIBILITY_OPTIONS: SegmentedOption<VisibilityOpt>[] = [
+const VISIBILITY_OPTIONS: SegmentedOption<VisibilityAccess>[] = [
   { value: 'space',  label: 'Space' },
   { value: 'invite', label: 'Invite' },
   { value: 'public', label: 'Public', disabled: true, hint: 'Coming soon — public objects will appear in Discover.' },
@@ -66,7 +65,7 @@ export function CreateTypeMenu({
       {!hideVisibility ? (
         <View style={styles.visibility}>
           <Txt variant="micro" weight="bold" mono uppercase tone="inkFaint">Visibility</Txt>
-          <Segmented<VisibilityOpt>
+          <Segmented<VisibilityAccess>
             options={VISIBILITY_OPTIONS}
             value={access}
             onChange={setAccess}

@@ -17,11 +17,10 @@ export async function kvGet(key: string): Promise<string | null> {
 }
 
 export async function kvSet(key: string, value: string): Promise<void> {
-  try {
-    ls()?.setItem(key, value);
-  } catch {
-    /* ignore */
-  }
+  // Do NOT swallow write failures — localStorage.setItem throws QuotaExceededError
+  // when storage is full. Let it propagate so callers (attachment persist, member
+  // caps) know the write was dropped rather than silently losing data.
+  ls()?.setItem(key, value);
 }
 
 export async function kvRemove(key: string): Promise<void> {
