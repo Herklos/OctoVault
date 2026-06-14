@@ -13,6 +13,7 @@ import { useSpaceObjects } from './space-objects-context';
 export function useDatabase(dbNodeId: string, view: DatabaseView): DatabaseViewResult & {
   dbTitle: string;
   dbEmoji: string | undefined;
+  schema: ReturnType<typeof schemaOf>;
 } {
   const { objects } = useSpaceObjects();
   const dbNode = objects.get(dbNodeId);
@@ -33,6 +34,7 @@ export function useDatabase(dbNodeId: string, view: DatabaseView): DatabaseViewR
     ...result,
     dbTitle: dbNode?.title ?? 'Database',
     dbEmoji: dbNode?.emoji,
+    schema,
   };
 }
 

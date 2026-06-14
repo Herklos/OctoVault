@@ -85,6 +85,7 @@ const BUILTIN_DESCRIPTORS: Record<string, TypeDescriptor> = {
   page:     { contentKind: 'append', icon: 'file',   label: 'Page',     editor: 'page',     props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled' },
   board:    { contentKind: 'append', icon: 'work',   label: 'Board',    editor: 'board',    props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled Board' },
   database: { contentKind: 'none',   icon: 'list',   label: 'Database', editor: 'database', props: [],         creatable: true,  workTree: true,  findable: true,  defaultTitle: 'Untitled Database' },
+  record:   { contentKind: 'merge',  icon: 'layers', label: 'Record',   editor: 'record',   props: [],         creatable: false, workTree: false, findable: true,  defaultTitle: 'Untitled Record' },
   task:     { contentKind: 'append', icon: 'check',  label: 'Task',     editor: 'page',   props: TASK_PROPS, creatable: false, workTree: false, findable: false },
   file:     { contentKind: 'none',   icon: 'file',   label: 'File',     editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled File' },
   image:    { contentKind: 'none',   icon: 'image',  label: 'Image',    editor: 'file',   props: BLOB_PROPS, creatable: true,  workTree: false, findable: false, defaultTitle: 'Untitled Image' },

@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { colors as colorTokens, layout, radii, spacing } from '@/theme';
+import { radii, spacing } from '@/theme';
 import type { PropField, PropValue } from '@drakkar.software/octovault-sdk';
 import { schemaOf } from '@drakkar.software/octovault-sdk';
 import { useSpaceObjects } from '@/lib/space-objects-context';
@@ -31,6 +31,10 @@ import { Txt } from '@/components/ui/Txt';
 interface DatabaseViewProps {
   spaceId: string;
   objectId: string;
+}
+
+interface DatabaseSubViewProps extends DatabaseViewProps {
+  schema: PropField[];
 }
 
 // ── View switcher ─────────────────────────────────────────────────────────────
@@ -93,16 +97,11 @@ function CellValue({ field, value }: { field: PropField; value: PropValue }) {
 const COL_W = 160;
 const ROW_H = 40;
 
-function TableView({ spaceId, objectId }: DatabaseViewProps) {
+function TableView({ spaceId, objectId, schema }: DatabaseSubViewProps) {
   const { colors } = useTheme();
   const router = useRouter();
   const view = useMemo<DatabaseViewSpec>(() => ({ kind: 'table' }), []);
-  const { records, dbTitle } = useDatabase(objectId, view);
-  const { objects } = useSpaceObjects();
-  const dbNode = objects.get(objectId);
-  const schema = dbNode ? schemaOf(dbNode) : [];
-
-  if (!dbNode) return <EmptyState iconName="list" title="Database not found" />;
+  const { records } = useDatabase(objectId, view);
 
   const openRecord = (id: string) =>
     router.push({ pathname: '/work/object/[id]', params: { id, spaceId } });
@@ -158,14 +157,12 @@ function TableView({ spaceId, objectId }: DatabaseViewProps) {
 
 // ── Gallery view ──────────────────────────────────────────────────────────────
 
-function GalleryView({ spaceId, objectId }: DatabaseViewProps) {
+function GalleryView({ spaceId, objectId, schema: fullSchema }: DatabaseSubViewProps) {
   const { colors } = useTheme();
   const router = useRouter();
   const view = useMemo<DatabaseViewSpec>(() => ({ kind: 'gallery' }), []);
   const { records } = useDatabase(objectId, view);
-  const { objects } = useSpaceObjects();
-  const dbNode = objects.get(objectId);
-  const schema = (dbNode ? schemaOf(dbNode) : []).slice(0, 3);
+  const schema = fullSchema.slice(0, 3);
 
   const openRecord = (id: string) =>
     router.push({ pathname: '/work/object/[id]', params: { id, spaceId } });
@@ -224,6 +221,7 @@ export function DatabaseView({ spaceId, objectId }: DatabaseViewProps) {
   const router = useRouter();
   const { objects } = useSpaceObjects();
   const dbNode = objects.get(objectId);
+  const schema = useMemo(() => (dbNode ? schemaOf(dbNode) : []), [dbNode]);
 
   const addRecord = useCallback(() => {
     if (!dbNode) return;
@@ -256,8 +254,8 @@ export function DatabaseView({ spaceId, objectId }: DatabaseViewProps) {
 
       {/* Content */}
       {viewKind === 'table'
-        ? <TableView spaceId={spaceId} objectId={objectId} />
-        : <GalleryView spaceId={spaceId} objectId={objectId} />
+        ? <TableView spaceId={spaceId} objectId={objectId} schema={schema} />
+        : <GalleryView spaceId={spaceId} objectId={objectId} schema={schema} />
       }
     </View>
   );
