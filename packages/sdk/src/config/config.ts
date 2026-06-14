@@ -17,6 +17,10 @@ interface OctoVaultConfig {
   syncPrefix: string;
   eventsUrl: string;
   webBase: string;
+  /** Separate namespace for `user/{userId}/_spaces` reads/writes, enabling a
+   *  shared joined-space list across OctoVault and OctoChat. When set, both apps
+   *  must agree on the same value. Absent → uses `syncNamespace` (per-app silo). */
+  sharedSpacesNamespace?: string;
 }
 
 let _config: OctoVaultConfig = {
@@ -45,6 +49,7 @@ export function configureOctoVault(config: Partial<OctoVaultConfig>): void {
     syncNamespace: _config.syncNamespace,
     eventsUrl: _config.eventsUrl,
     webBase: _config.webBase,
+    ...(_config.sharedSpacesNamespace ? { sharedSpacesNamespace: _config.sharedSpacesNamespace } : {}),
   });
 }
 

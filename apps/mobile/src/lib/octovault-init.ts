@@ -23,12 +23,16 @@ const SYNC_PREFIX = SYNC_NAMESPACE ? `/v1/${SYNC_NAMESPACE}` : '';
 const EVENTS_URL = process.env.EXPO_PUBLIC_EVENTS_URL ?? `${SYNC_BASE}${SYNC_PREFIX}/events`;
 const WEB_BASE = (process.env.EXPO_PUBLIC_WEB_URL ?? '').replace(/\/+$/, '');
 
+const _sns = process.env.EXPO_PUBLIC_SHARED_SPACES_NAMESPACE?.trim() ?? '';
+const SHARED_SPACES_NAMESPACE = _sns || undefined;
+
 configureOctoVault({
   syncBase: SYNC_BASE,
   syncNamespace: SYNC_NAMESPACE,
   syncPrefix: SYNC_PREFIX,
   eventsUrl: EVENTS_URL,
   webBase: WEB_BASE,
+  ...(SHARED_SPACES_NAMESPACE ? { sharedSpacesNamespace: SHARED_SPACES_NAMESPACE } : {}),
 });
 
 configureKv({ get: kvGet, set: kvSet, remove: kvRemove });
