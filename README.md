@@ -33,7 +33,7 @@
 
 ## What you build with it
 
-**Spaces & folders** — organize by project, area, topic. Public/private with member key scopes.
+**Spaces & folders** — organize by project, area, topic. Per-node access: `space` (E2EE, all members), `invite` (E2EE, invited users only), or `public` (readable by anyone).
 
 **Pages** — Notion-style nested blocks. Text, headings, lists, todos, code, callouts, quotes. Drag to reorder, nest infinitely. Live sync across devices.
 
@@ -165,7 +165,8 @@ The app is built on Starfish, a **WAL/CRDT** sync engine:
 - **Boards** (`src/lib/board-model.ts`) use RGA lists for columns and cards,
   with per-card LWW registers for properties.
 - **Live sync** happens via REST pull + SSE firehose: a `/pull` fetches the
-  WAL op-log since your last cursor, and `/events` streams new ops in real time.
+  WAL op-log since your last cursor, and `/events` streams `octovault.object.changed`
+  notifications in real time via NATS → Whistlers.
 - **The object tree** (`src/lib/use-objects`) stays on Starfish's proven
   union-merge engine (spaces, pages, folders); WAL backs **page and board
   content only**.

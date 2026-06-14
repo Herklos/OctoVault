@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.4.0 — "Per-node access + Discover"
+
+Removes the pubspace (public-space) subsystem in favour of a **per-node access
+model**, adds a public object directory for anonymous discovery, wires the Discover
+tab, and fixes the SSE notification chain.
+
+### Architecture — per-node access model
+
+- **`access` flag per object**: every `ObjectNode` now carries `access: 'space' |
+  'invite' | 'public'` and `enc: boolean`. `'space'` (default) is visible to all
+  space members and E2EE; `'invite'` is E2EE and scoped to invited users only;
+  `'public'` strips the seal and is readable by anyone via the public directory.
+- **pubspace subsystem removed**: `pubspace.ts`, `pubspace-caps.ts`,
+  `createPublicSpace`, `isPublicSpaceId`, `clearPubspaceCaps` and the `psp-`
+  capability namespace are gone. Space-level public/private is replaced by per-node
+  access. The `publicPaths` option in `useMergeDoc` is deprecated (now ignored).
+- **SDK facade on `octospaces-sdk@0.4.3`**: `packages/sdk` re-exports from
+  `@drakkar.software/octospaces-sdk@0.4.3` instead of maintaining a parallel
+  implementation. App imports are unchanged.
+
+### Features
+
+- **Discover tab**: new `(tabs)/discover` route powered by
+  `@drakkar.software/octospaces-ui@0.2.1` (`<DiscoverScreen>`). Lists publicly
+  readable objects from any space that has opted in via `access: 'public'` nodes.
+- **Per-node visibility at creation**: the create menu now shows a `Space | Invite`
+  segmented selector for every object type (page, board, custom). Selecting "Invite"
+  creates the node with `access: 'invite', enc: true` via `createWithAccess` (fetches
+  the space registry, calls `createNode` server-side with the encrypted keyring).
+  "Public" is shown disabled — pending a full public-write flow.
+- **New `Segmented` component** (`src/components/ui/Segmented.tsx`): generic
+  radio-group with per-option `disabled` + tooltip-hint support, scale-press
+  animation, focus ring, and a 48 px minimum touch target.
+- **Public object directory** (`apps/server/src/projections.ts`): a server-side
+  projection folds every `objindex` write into `_index/objects/public`, extracting
+  non-archived public nodes into a directory any client can pull anonymously.
+
+### SSE chain — object events
+
+- NATS subject renamed `octovault.chat.changed.<spaceId>` →
+  `octovault.object.changed.<spaceId>`; Whistlers namespace changed to
+  `octovault-objects`. `queue.ts` and `events.ts` updated in lockstep.
+- **`authorizeTopics` helper** extracted from the SSE handler: gates every candidate
+  space behind a `space:member` role check and returns `['__none__']` when none pass,
+  preventing a zero-subscription firehose fallback. Covered by 4 new tests in
+  `events.test.ts`.
+
+---
+
 ## 0.3.0 — "Everything is an ObjectType"
 
 A complete unification of the content layer: pages, boards, tasks, files, images
