@@ -21,13 +21,14 @@ import type { ID, ObjectNode, PropValue } from '@drakkar.software/octovault-sdk'
 import { getMemberCap } from '@drakkar.software/octovault-sdk';
 import { useMergeDoc } from './use-merge-doc';
 import { useDocLiveSync } from './use-doc-live-sync';
+import { stripInviteIndexFields } from './object-index-utils';
 import { useSession } from './session-context';
 import { useSpaceRegistryActions } from './space-registry-context';
 
 /** The unified object-index hook for one space — a union-merged merge-doc (see
  *  {@link useMergeDoc}) exposing the repaired render tree plus the create/rename/move/
  *  archive/reorder mutations every Work + sidebar surface consumes. Purely additive
- *  today: room CONTENT and the legacy `_rooms` registry are untouched; this index is
+ *  today: room CONTENT and the legacy `_access` registry are untouched; this index is
  *  the new home for docs/projects (and, once consumers migrate, rooms). */
 export interface ObjectsHook {
   tree: ObjectTreeNode[];
@@ -97,8 +98,8 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   // that edits a doc/project pushes to the server through its OWN index store, so a
   // separately-mounted Work surface only sees the change on its next pull. Reuse the
   // shared {@link useDocLiveSync} to focus-pull (+ poll while SSE is down) the index.
-  // Note: index change events carry only `spaceId` and are dropped by parseRoomChange,
-  // so the SSE registerPull never fires for the index — focus-pull is what refreshes it.
+  // SSE events carry `spaceId` in their params — `useEventsStream` dispatches
+  // `dispatchDocChange(spaceId)`, which fires this store's registered pull live.
   // OPT-IN (`liveSync`): this calls useFocusEffect, which needs a router screen. The
   // index is also mounted in the desktop sidebar (outside a focus screen), so we must
   // NOT call the hook there — gated by a flag that is static per mount, keeping hook
@@ -120,11 +121,6 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   const applyNodes = useCallback(
     (reducer: (objects: ObjectNode[]) => ObjectNode[]) =>
       apply((d) => ({ ...d, objects: reducer((d.objects as ObjectNode[]) ?? []) })),
-    // TODO: add a prePushTransform in useMergeDoc to strip invite node title/emoji
-    // before the server push without affecting local state. Until then, invite node
-    // renames reach the plaintext index with the real title — this is acceptable for
-    // this milestone because invite creation goes through createWithAccess (server-side
-    // createNode which calls serializeForIndex), not the optimistic create path.
     [apply],
   );
 
@@ -143,8 +139,9 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
 
   const rename = useCallback((id: ID, patch: { title?: string; emoji?: string }) => {
     const now = stamp();
-    applyNodes((cur) => patchObject(cur, id, patch, now));
-  }, [stamp, applyNodes]);
+    const indexPatch = stripInviteIndexFields(id, patch, objects);
+    applyNodes((cur) => patchObject(cur, id, indexPatch, now));
+  }, [stamp, applyNodes, objects]);
 
   const move = useCallback((id: ID, parentId: ID | null) => {
     const now = stamp();

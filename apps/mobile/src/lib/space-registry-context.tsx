@@ -1,5 +1,5 @@
 /**
- * App-wide owner of every space's `_rooms` access record, mounted once near the root.
+ * App-wide owner of every space's `_access` record, mounted once near the root.
  * Before this, each consumer of a space's access record — the nav, a space screen,
  * the Composer's resolver, every ActivityFeed section, AND the space opener's
  * owner-check — called `readSpaceAccess` independently. This provider reads each
@@ -47,7 +47,7 @@ const PENDING: SpaceRegistryEntry = {
 };
 const IDLE: SpaceRegistryEntry = { ...PENDING, loading: false };
 
-// Offline cache of the plaintext `_rooms` access record (same sensitivity as the
+// Offline cache of the plaintext `_access` record (same sensitivity as the
 // drafts / outbox already in kv). Lets an offline read fall back to the last-synced
 // entry instead of wiping it. Keyed by identity so it never bleeds across accounts.
 const cacheKey = (userId: string, spaceId: string) => `octovault.registry-cache.${userId}.${spaceId}`;

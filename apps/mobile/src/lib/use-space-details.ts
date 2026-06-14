@@ -127,7 +127,7 @@ export function useSpaceDetails(spaceId: string): SpaceDetails {
   const isOwner = !!session && !!owner && owner === session.userId;
 
   // The serialization backbone: every save chains onto the previous one (success
-  // OR failure), so two read-modify-writes of `_rooms` can never interleave.
+  // OR failure), so two read-modify-writes of `_access` can never interleave.
   const persistQueue = useRef<Promise<void>>(Promise.resolve());
   const persist = useCallback(
     (nextName: string, nextImage: string | null): Promise<void> => {

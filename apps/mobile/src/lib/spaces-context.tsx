@@ -27,6 +27,7 @@ import { hydrateMutes } from '@drakkar.software/octovault-sdk';
 import { flushReadsNow, hydrateReads } from '@drakkar.software/octovault-sdk';
 import { useSession } from './session-context';
 import { getNavPrefs, hydrateNavPrefs, resetNavPrefs, setActiveSpacePref } from './use-nav-prefs';
+import { useEventsStream } from './use-events-stream';
 
 interface SpacesContextValue {
   /** The identity's spaces, WITHOUT the unread overlay (added in `useSpaces`). */
@@ -68,6 +69,10 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [activeId, setActiveIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Live-update stream: one SSE connection per session × space set. Keeps open
+  // docs refreshing without waiting for the 4 s poll fallback.
+  useEventsStream(session, spaces.map((s) => s.id));
 
   // A USER-initiated switch must survive the exiting detail route's param
   // re-sync: page/board screens force `setActiveId(theirSpace)` whenever it
