@@ -182,20 +182,15 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
     flags: { access: NodeAccess; enc: boolean },
   ): Promise<ID | null> => {
     if (!session) return null;
-    try {
-      // Always fetch the registry so enc:true nodes mint the keyring for ALL current
-      // members (not just the owner). getMemberCap short-circuit would skip this.
-      const reg = await ensureRegistry(spaceId);
-      const node = await createNode(session, spaceId, { ...input, ...flags }, reg ?? undefined);
-      // Optimistic local insert so the sidebar and open-screen see the new node
-      // immediately — pull() converges with the authoritative server state.
-      applyNodes((cur) => addObject(cur, { ...input, ...flags, id: node.id }, stamp()).nodes);
-      pull();
-      return node.id;
-    } catch (e) {
-      console.error('[useObjects] createWithAccess failed', e);
-      return null;
-    }
+    // Always fetch the registry so enc:true nodes mint the keyring for ALL current
+    // members (not just the owner). getMemberCap short-circuit would skip this.
+    const reg = await ensureRegistry(spaceId);
+    const node = await createNode(session, spaceId, { ...input, ...flags }, reg ?? undefined);
+    // Optimistic local insert so the sidebar and open-screen see the new node
+    // immediately — pull() converges with the authoritative server state.
+    applyNodes((cur) => addObject(cur, { ...input, ...flags, id: node.id }, stamp()).nodes);
+    pull();
+    return node.id;
   }, [session, spaceId, ensureRegistry, pull, stamp, applyNodes]);
 
   const setProps = useCallback((id: ID, patch: Record<string, PropValue>) => {

@@ -28,7 +28,7 @@ import { TaskPropsStrip } from '@/components/work/TaskPropsStrip';
 export default function WorkObjectScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { activeId, setActiveId } = useSpaces();
+  const { spaces, activeId, setActiveId } = useSpaces();
   const { id, spaceId: spaceParam, emoji, label, task, seed, focusTitle } = useLocalSearchParams<{
     id: string;
     spaceId?: string;
@@ -40,8 +40,10 @@ export default function WorkObjectScreen() {
   }>();
   const spaceId = spaceParam || activeId || '';
   useEffect(() => {
-    if (spaceId && spaceId !== activeId) setActiveId(spaceId);
-  }, [spaceId, activeId, setActiveId]);
+    // Only switch the active workspace to a space the user is a member of —
+    // cross-space public objects navigated directly must not corrupt the sidebar.
+    if (spaceId && spaceId !== activeId && spaces.some((s) => s.id === spaceId)) setActiveId(spaceId);
+  }, [spaceId, activeId, setActiveId, spaces]);
   useRecordVisit(spaceId, id);
 
   const registry = useTypeRegistry();

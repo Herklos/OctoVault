@@ -39,4 +39,10 @@ describe('stripInviteIndexFields', () => {
     const patch = { title: 'X', emoji: '📄' };
     expect(stripInviteIndexFields('n1', patch, nodes)).toEqual(patch);
   });
+
+  it('passes patch through for public nodes (only invite nodes are stripped)', () => {
+    const nodes = [node('n1', 'public')];
+    const patch = { title: 'Public Title', emoji: '🌐' };
+    expect(stripInviteIndexFields('n1', patch, nodes)).toEqual(patch);
+  });
 });

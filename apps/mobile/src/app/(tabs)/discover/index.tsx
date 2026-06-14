@@ -32,17 +32,21 @@
  *   - `reloadRef`   — lets `useFocusEffect` trigger a soft-refresh when returning to
  *                     the tab, keeping the list current without a full remount.
  */
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { DiscoverScreen } from '@drakkar.software/octospaces-ui';
 import type { DiscoverEntry } from '@drakkar.software/octospaces-ui';
 
 import { readObjectDirectory, routeForNode } from '@drakkar.software/octovault-sdk';
 import { Icon } from '@/components/ui/Icon';
+import { useSpaces } from '@/lib/use-spaces';
 import { useTypeRegistry } from '@/lib/type-registry-context';
 
 export default function DiscoverTab() {
   const registry = useTypeRegistry();
+  const { spaces } = useSpaces();
+  // Only show public objects from spaces the user is a member of.
+  const memberSpaceIds = useMemo(() => new Set(spaces.map((s) => s.id)), [spaces]);
   const reloadRef = useRef<(() => void) | null>(null);
 
   // Soft-refresh whenever the tab comes into focus (pull-to-refresh handles manual).
@@ -59,6 +63,11 @@ export default function DiscoverTab() {
     [registry],
   );
 
+  const loadEntries = useCallback(async () => {
+    const all = await readObjectDirectory();
+    return all.filter((e) => memberSpaceIds.has(e.spaceId));
+  }, [memberSpaceIds]);
+
   const onOpen = useCallback((entry: DiscoverEntry) => {
     router.push({
       pathname: routeForNode({ type: entry.type }),
@@ -73,7 +82,7 @@ export default function DiscoverTab() {
 
   return (
     <DiscoverScreen
-      loadEntries={readObjectDirectory}
+      loadEntries={loadEntries}
       renderIcon={renderIcon}
       onOpen={onOpen}
       title="Discover"

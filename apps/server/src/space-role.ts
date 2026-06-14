@@ -37,7 +37,9 @@ function spaceAccessFromRegistry(raw: string): { owner: string | null; members: 
   }
 }
 
-/** A RoleEnricher granting {@link SPACE_OWNER_ROLE} / {@link SPACE_MEMBER_ROLE}. */
+/** A RoleEnricher granting {@link SPACE_OWNER_ROLE} / {@link SPACE_MEMBER_ROLE}.
+ *  TOFU: when the space doesn't exist yet the first writer is allowed and becomes
+ *  owner. Use this for the sync router (collection gating). */
 export function makeSpaceRoleEnricher(store: ObjectStore): RoleEnricher {
   return async (auth, params) => {
     const spaceId = params.spaceId;
@@ -53,6 +55,34 @@ export function makeSpaceRoleEnricher(store: ObjectStore): RoleEnricher {
     const { owner, members } = spaceAccessFromRegistry(raw);
     // Unparseable / owner-less doc ⇒ keep TOFU open (recoverable DoS).
     if (owner === null) return [SPACE_OWNER_ROLE, SPACE_MEMBER_ROLE];
+    if (owner === auth.identity) return [SPACE_OWNER_ROLE, SPACE_MEMBER_ROLE];
+    if (members.includes(auth.identity)) return [SPACE_MEMBER_ROLE];
+    return [];
+  };
+}
+
+/**
+ * A RoleEnricher for read-only / SSE access — no TOFU.
+ *
+ * Unlike {@link makeSpaceRoleEnricher}, a non-existent or corrupt space
+ * access record yields `[]` (deny) rather than TOFU owner access. An
+ * authenticated user must not receive SSE events for a space they invented.
+ * Use this for the `/events` proxy.
+ */
+export function makeSpaceReadEnricher(store: ObjectStore): RoleEnricher {
+  return async (auth, params) => {
+    const spaceId = params.spaceId;
+    if (!spaceId || !auth.identity) return [];
+    let raw: string | null = null;
+    try {
+      raw = await store.getString(`spaces/${spaceId}/_access`);
+    } catch {
+      raw = null;
+    }
+    // No TOFU for reads: non-existent or corrupt space → deny.
+    if (!raw) return [];
+    const { owner, members } = spaceAccessFromRegistry(raw);
+    if (owner === null) return [];
     if (owner === auth.identity) return [SPACE_OWNER_ROLE, SPACE_MEMBER_ROLE];
     if (members.includes(auth.identity)) return [SPACE_MEMBER_ROLE];
     return [];

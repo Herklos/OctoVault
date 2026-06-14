@@ -75,8 +75,12 @@ export async function authorizeTopics(
 ): Promise<string[]> {
   const authorized: string[] = [];
   for (const spaceId of candidates) {
-    const roles = await enricher({ identity, roles: [] }, { spaceId });
-    if (roles.includes(SPACE_MEMBER_ROLE)) authorized.push(spaceId);
+    try {
+      const roles = await enricher({ identity, roles: [] }, { spaceId });
+      if (roles.includes(SPACE_MEMBER_ROLE)) authorized.push(spaceId);
+    } catch {
+      // Enricher failure (e.g. store unavailable) → treat as not-a-member.
+    }
   }
   const topics = authorized.map((s) => buildWhistlersTopic(s));
   // ★ Firehose-prevention invariant: never return an empty array — Whistlers with

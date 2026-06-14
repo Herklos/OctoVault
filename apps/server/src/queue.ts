@@ -29,8 +29,8 @@ export async function createNatsQueue(): Promise<{ queue: Queue; nc: NatsConnect
           params?: { spaceId?: string };
         };
         spaceId = msg.params?.spaceId;
-      } catch {
-        /* fall through — publish on the base subject */
+      } catch (e) {
+        console.warn("[OctoVault] Failed to parse NATS queuing payload — publishing on base subject", e);
       }
       nc.publish(spaceId ? `${subject}.${spaceId}` : subject, payload);
     },

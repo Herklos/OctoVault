@@ -18,7 +18,7 @@ import { config } from "./config.js";
 import { projections } from "./projections.js";
 import { createNatsQueue } from "./queue.js";
 import { createFileRevocationStore } from "./revocation-store.js";
-import { makeSpaceRoleEnricher } from "./space-role.js";
+import { makeSpaceRoleEnricher, makeSpaceReadEnricher } from "./space-role.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA_DIR = process.env.STARFISH_DATA_DIR ?? "./data";
@@ -89,10 +89,11 @@ const queuing = createQueuingServerPlugin({
   },
 });
 
-// The space enricher reads each space's `_access` record to synthesize
-// `space:owner` / `space:member`. Shared between the sync router (collection gating)
-// and the /events proxy (SSE membership validation).
+// Two role enrichers sharing the same store:
+//  - spaceEnricher: TOFU-aware (sync router — first write grants owner)
+//  - sseEnricher:   no TOFU (SSE proxy — non-existent space denies subscription)
 const spaceEnricher = makeSpaceRoleEnricher(store);
+const sseEnricher = makeSpaceReadEnricher(store);
 
 const syncRouter = createSyncRouter({
   store,
@@ -132,7 +133,7 @@ app.use("*", async (c, next) => {
 // Must be mounted BEFORE the sync router so /events is not swallowed by its catch-all.
 app.route(
   "/",
-  createEventsRoute({ enricher: spaceEnricher, nonceCache, revocationStore }),
+  createEventsRoute({ enricher: sseEnricher, nonceCache, revocationStore }),
 );
 
 // starfish-server is typed against the satellite workspace's hono copy; it's

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { RefObject } from 'react';
 import type { View as ViewType } from 'react-native';
 import { StyleSheet, View } from 'react-native';
@@ -57,6 +57,9 @@ export function CreateTypeMenu({
   const registry = useTypeRegistry();
   const items = types ?? registry.creatableTypes().filter((d) => d.workTree && d.editor !== 'file');
   const [access, setAccess] = useState<VisibilityAccess>('space');
+  // Reset to space-default when closed so a dismissed "Invite" selection doesn't
+  // persist to the next open (security: users expect the control to start neutral).
+  useEffect(() => { if (!visible) setAccess('space'); }, [visible]);
 
   const body = (
     <View>

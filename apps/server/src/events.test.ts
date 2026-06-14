@@ -77,4 +77,20 @@ describe("authorizeTopics", () => {
     expect(topics).toEqual([buildWhistlersTopic("sp-member")]);
     expect(topics).not.toContain(buildWhistlersTopic("sp-stranger"));
   });
+
+  it("returns __none__ when the enricher throws (store/network failure → safe fallback)", async () => {
+    const failingEnricher: RoleEnricher = async () => { throw new Error("store unavailable"); };
+    const topics = await authorizeTopics("user-1", ["sp-a", "sp-b"], failingEnricher);
+    expect(topics).toEqual(["__none__"]);
+  });
+
+  it("returns authorized topics even when enricher throws for some spaces", async () => {
+    let calls = 0;
+    const partialEnricher: RoleEnricher = async (_ctx, { spaceId }) => {
+      if (++calls === 1) throw new Error("transient");
+      return spaceId === "sp-ok" ? ["space:member"] : [];
+    };
+    const topics = await authorizeTopics("user-1", ["sp-fail", "sp-ok"], partialEnricher);
+    expect(topics).toEqual([buildWhistlersTopic("sp-ok")]);
+  });
 });
