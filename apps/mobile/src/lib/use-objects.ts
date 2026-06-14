@@ -131,8 +131,11 @@ export function useObjects(spaceId: string, opts: { enabled?: boolean; liveSync?
   const create = useCallback(
     (input: NewObjectInput): ID | null => {
       const now = stamp();
-      const built = addObject(objects, input, now);
-      const ok = applyNodes((cur) => addObject(cur, { ...input, id: built.node.id }, now).nodes);
+      // Default enc:true so WAL content nodes open their E2EE store (the space
+      // keyring is minted lazily on first owner-open via getNodeAccess).
+      const effectiveInput: NewObjectInput = { enc: true, ...input };
+      const built = addObject(objects, effectiveInput, now);
+      const ok = applyNodes((cur) => addObject(cur, { ...effectiveInput, id: built.node.id }, now).nodes);
       return ok ? built.node.id : null;
     },
     [objects, stamp, applyNodes],

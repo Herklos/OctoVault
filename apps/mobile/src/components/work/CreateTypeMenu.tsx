@@ -1,25 +1,40 @@
+import { useState } from 'react';
 import type { RefObject } from 'react';
 import type { View as ViewType } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { layout } from '@/theme';
+import { layout, spacing } from '@/theme';
 import type { CreatableTypeEntry } from '@drakkar.software/octovault-sdk';
 import { useTypeRegistry } from '@/lib/type-registry-context';
 import { useResponsive } from '@/lib/use-responsive';
 import type { ObjectType } from '@drakkar.software/octovault-sdk';
 import { Menu, MenuItem } from '@/components/ui/Menu';
 import { Popover } from '@/components/ui/Popover';
+import { Segmented, type SegmentedOption } from '@/components/ui/Segmented';
 import { Sheet } from '@/components/ui/Sheet';
+import { Txt } from '@/components/ui/Txt';
+
+export type VisibilityAccess = 'space' | 'invite';
+
+type VisibilityOpt = VisibilityAccess | 'public';
+const VISIBILITY_OPTIONS: SegmentedOption<VisibilityOpt>[] = [
+  { value: 'space',  label: 'Space' },
+  { value: 'invite', label: 'Invite' },
+  { value: 'public', label: 'Public', disabled: true, hint: 'Needs a public-capable doc type' },
+];
 
 interface CreateTypeMenuProps {
   visible: boolean;
   onClose: () => void;
   anchorRef: RefObject<ViewType | null>;
-  onCreate: (type: ObjectType) => void;
+  onCreate: (type: ObjectType, access: VisibilityAccess) => void;
   disabled?: boolean;
   /** Defaults to creatableTypes() with editor !== 'file' (file/image need a picker). */
   types?: CreatableTypeEntry[];
   /** Sheet header on narrow screens. */
   title?: string;
+  /** When true, the visibility selector is hidden (e.g. secondary-type sub-menus). */
+  hideVisibility?: boolean;
 }
 
 /**
@@ -36,23 +51,42 @@ export function CreateTypeMenu({
   disabled,
   types,
   title = 'Create',
+  hideVisibility = false,
 }: CreateTypeMenuProps) {
   const { isWide } = useResponsive();
   const registry = useTypeRegistry();
   const items = types ?? registry.creatableTypes().filter((d) => d.workTree && d.editor !== 'file');
+  const [access, setAccess] = useState<VisibilityAccess>('space');
 
   const body = (
-    <Menu>
-      {items.map((d) => (
-        <MenuItem
-          key={d.label}
-          icon={d.icon}
-          label={d.label}
-          disabled={disabled}
-          onPress={() => { onClose(); onCreate(d.type); }}
-        />
-      ))}
-    </Menu>
+    <View>
+      {!hideVisibility ? (
+        <View style={styles.visibility}>
+          <Txt variant="micro" weight="bold" mono uppercase tone="inkFaint">Visibility</Txt>
+          <Segmented<VisibilityOpt>
+            options={VISIBILITY_OPTIONS}
+            value={access}
+            onChange={(v) => { if (v !== 'public') setAccess(v); }}
+          />
+          <Txt variant="caption" tone="inkFaint">
+            {access === 'invite'
+              ? 'Title hidden from shared index — still encrypted for all members.'
+              : 'Visible to all space members.'}
+          </Txt>
+        </View>
+      ) : null}
+      <Menu>
+        {items.map((d) => (
+          <MenuItem
+            key={d.label}
+            icon={d.icon}
+            label={d.label}
+            disabled={disabled}
+            onPress={() => { onClose(); onCreate(d.type, access); }}
+          />
+        ))}
+      </Menu>
+    </View>
   );
 
   if (isWide) {
@@ -68,3 +102,7 @@ export function CreateTypeMenu({
     </Sheet>
   );
 }
+
+const styles = StyleSheet.create({
+  visibility: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs },
+});

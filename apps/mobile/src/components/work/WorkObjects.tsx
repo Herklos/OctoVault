@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { View as ViewType } from 'react-native';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -24,7 +24,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Txt } from '@/components/ui/Txt';
 import { ObjectTree, type ObjectTreeActions } from '@/components/objects/ObjectTree';
 
-import { CreateTypeMenu } from './CreateTypeMenu';
+import { CreateTypeMenu, type VisibilityAccess } from './CreateTypeMenu';
 import { WorkEmpty } from './WorkEmpty';
 
 interface WorkObjectsProps {
@@ -51,7 +51,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
   const toast = useToast();
   const registry = useTypeRegistry();
   const { objects } = useSpaceObjects();
-  const { nodes, allNodes, create, reorder, move, rename, archive, restore, ready, loaded } = objects;
+  const { nodes, allNodes, create, createWithAccess, reorder, move, rename, archive, restore, ready, loaded } = objects;
 
   // Workspace scope: pages + boards only. Nesting is via sub-pages (Notion/Anytype
   // style), not folders — any legacy folder node is filtered out and buildTree
@@ -75,10 +75,27 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
       params: { id: node.id, spaceId: spaceId ?? '', emoji: node.emoji ?? '', label: node.title },
     });
 
+  const [creating, setCreating] = useState(false);
+
   // Title-first creation: nodes are born UNTITLED (empty title, no forced emoji)
   // and the route opens with `focusTitle=1` so the hero mounts editing — naming
   // the thing you just made is the cheapest action, not three taps deep.
-  const createAndOpen = (type: ObjectType, parentId?: ID) => {
+  const createAndOpen = useCallback((type: ObjectType, parentId?: ID, access: VisibilityAccess = 'space') => {
+    if (access === 'invite') {
+      setCreating(true);
+      createWithAccess({ type, title: '', parentId }, { access: 'invite', enc: true })
+        .then((id) => {
+          if (!id) return;
+          if (parentId) expand([parentId]);
+          router.push({
+            pathname: '/work/object/[id]',
+            params: { id, spaceId: spaceId ?? '', label: 'Untitled', focusTitle: '1' },
+          });
+        })
+        .catch(() => toast.show({ message: 'Could not create — try again' }))
+        .finally(() => setCreating(false));
+      return;
+    }
     const id = create({ type, title: '', parentId });
     if (!id) return;
     if (parentId) expand([parentId]); // a child born under a collapsed parent must be visible
@@ -86,7 +103,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
       pathname: '/work/object/[id]',
       params: { id, spaceId: spaceId ?? '', label: 'Untitled', focusTitle: '1' },
     });
-  };
+  }, [create, createWithAccess, expand, router, spaceId, toast]);
   const newPage = (parentId?: ID) => createAndOpen('page', parentId);
   const newBoard = (parentId?: ID) => createAndOpen('board', parentId);
 
@@ -217,7 +234,7 @@ export function WorkObjects({ spaceId, hero, selectedId }: WorkObjectsProps) {
       <View style={styles.footer}>
         <View style={styles.footRow}>
           <CreateControl label="New page" iconName="plus" onPress={() => newPage()} disabled={!ready} grow />
-          <FootMenu onCreateType={(type) => createAndOpen(type)} disabled={!ready} />
+          <FootMenu onCreateType={(type, access) => createAndOpen(type, undefined, access)} disabled={!ready || creating} />
         </View>
         {agentsRow}
         {archivedRow}
@@ -309,7 +326,7 @@ function RecentRow({ node, ts, onPress }: { node: ObjectNode; ts: number; onPres
 }
 
 interface FootMenuProps {
-  onCreateType: (type: ObjectType) => void;
+  onCreateType: (type: ObjectType, access: VisibilityAccess) => void;
   disabled?: boolean;
 }
 
@@ -339,10 +356,11 @@ function FootMenu({ onCreateType, disabled }: FootMenuProps) {
         visible={open}
         onClose={() => setOpen(false)}
         anchorRef={ref}
-        onCreate={(type) => { setOpen(false); onCreateType(type); }}
+        onCreate={(type, access) => { setOpen(false); onCreateType(type, access); }}
         disabled={disabled}
         types={secondaryTypes}
         title="Create"
+        hideVisibility
       />
     </>
   );

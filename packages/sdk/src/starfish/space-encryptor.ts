@@ -20,6 +20,7 @@ export {
   openEncryptor,
   buildEncryptor,
   ownerTrustedAdders,
+  ownerEnsureKeyring,
 } from '@drakkar.software/octospaces-sdk';
 export type { NodeAccessHandle } from '@drakkar.software/octospaces-sdk';
 

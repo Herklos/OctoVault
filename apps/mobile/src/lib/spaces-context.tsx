@@ -21,7 +21,7 @@ import { router, usePathname } from 'expo-router';
 
 import type { Space } from '@drakkar.software/octovault-sdk';
 
-import { createSpace as createSpaceDoc, onSpaceMeta, readSpaces, reorderSpaces as reorderSpacesDoc } from '@drakkar.software/octovault-sdk';
+import { createSpace as createSpaceDoc, onSpaceMeta, readSpaces, reorderSpaces as reorderSpacesDoc, ownerEnsureKeyring, keyringPull, keyringPush, ownerTrustedAdders } from '@drakkar.software/octovault-sdk';
 import { consumePrimedSpaces } from '@drakkar.software/octovault-sdk';
 import { hydrateMutes } from '@drakkar.software/octovault-sdk';
 import { flushReadsNow, hydrateReads } from '@drakkar.software/octovault-sdk';
@@ -204,6 +204,15 @@ export function SpacesProvider({ children }: { children: ReactNode }) {
     async (name: string): Promise<Space | null> => {
       if (!session) return null;
       const space = await createSpaceDoc(session, name);
+      // Mint the space keyring immediately so the first invite always adds the
+      // recipient KEM (createSpaceInviteLink silently skips when keyring is missing).
+      await ownerEnsureKeyring(
+        session.chatClient,
+        session.keys,
+        keyringPull(space.id),
+        keyringPush(space.id),
+        ownerTrustedAdders(session),
+      ).catch(() => {});
       await refresh();
       setActiveId(space.id);
       return space;
