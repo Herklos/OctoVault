@@ -14,13 +14,13 @@ import { Segmented, type SegmentedOption } from '@/components/ui/Segmented';
 import { Sheet } from '@/components/ui/Sheet';
 import { Txt } from '@/components/ui/Txt';
 
-export type VisibilityAccess = 'space' | 'invite';
+export type VisibilityAccess = 'space' | 'invite' | 'public';
 
-type VisibilityOpt = VisibilityAccess | 'public';
+type VisibilityOpt = VisibilityAccess;
 const VISIBILITY_OPTIONS: SegmentedOption<VisibilityOpt>[] = [
   { value: 'space',  label: 'Space' },
   { value: 'invite', label: 'Invite' },
-  { value: 'public', label: 'Public', disabled: true, hint: 'Needs a public-capable doc type' },
+  { value: 'public', label: 'Public' },
 ];
 
 interface CreateTypeMenuProps {

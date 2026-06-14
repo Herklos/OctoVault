@@ -12,8 +12,10 @@ import { FilesystemObjectStore } from "@drakkar.software/starfish-server/node";
 import { identitiesServerPlugin } from "@drakkar.software/starfish-identities";
 import { sharingServerPlugin } from "@drakkar.software/starfish-sharing";
 import { createQueuingServerPlugin } from "@drakkar.software/starfish-queuing";
+import { createProjectionServerPlugin } from "@drakkar.software/starfish-projection";
 
 import { config } from "./config.js";
+import { projections } from "./projections.js";
 import { createNatsQueue } from "./queue.js";
 import { createFileRevocationStore } from "./revocation-store.js";
 import { makeSpaceRoleEnricher } from "./space-role.js";
@@ -96,7 +98,7 @@ const syncRouter = createSyncRouter({
   config,
   roleResolver,
   roleEnricher: spaceEnricher,
-  plugins: [queuing],
+  plugins: [createProjectionServerPlugin({ store, projections }), queuing],
 });
 
 await saveConfig(store, config);

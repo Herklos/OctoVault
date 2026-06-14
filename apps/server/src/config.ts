@@ -193,6 +193,24 @@ export const config: SyncConfig = {
       maxBodyBytes: 131_072,
       allowedMimeTypes: JSON_ONLY,
     },
+    // GLOBAL PUBLIC OBJECT DIRECTORY: a server-maintained list document indexing every
+    // public node (`access:'public'`) across all spaces, written ONLY by the
+    // `starfish-projection` plugin (see projections.ts). On each `objindex` write the
+    // projection upserts that space's `{ nodes:[{id,title,type,emoji?,updatedAt}], ts }`
+    // or removes the entry when the space has no public nodes. Anonymous callers may pull
+    // it to discover public content. `pullOnly` rejects all client writes.
+    // Keep in sync with objectDirName in @drakkar.software/octospaces-sdk (paths.ts)
+    // AND drakkar_sync/apps/octovault/collections.py.
+    {
+      name: "objectindex",
+      storagePath: "_index/objects/{shard}",
+      readRoles: ["public"],
+      writeRoles: [],
+      pullOnly: true,
+      encryption: "none",
+      maxBodyBytes: 262_144,
+      allowedMimeTypes: JSON_ONLY,
+    },
     // Anonymous rendezvous slot for QR device pairing.
     {
       name: "pairing",

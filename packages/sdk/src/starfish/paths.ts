@@ -67,11 +67,14 @@ export {
   // ── Global object directory (server-maintained projection) ─────────────────
   objectDirName,
   objectDirPull,
+  readObjectDirectory,
+  parseObjectDirectoryDoc,
 
   // ── Utilities ──────────────────────────────────────────────────────────────
   userIdFromEdPub,
   bytesToHex,
 } from '@drakkar.software/octospaces-sdk';
+export type { PublicObjectDirEntry } from '@drakkar.software/octospaces-sdk';
 
 // ── Local path-name helpers (not yet in octospaces-sdk public API) ──────────
 // Derived from the same naming convention used internally by octospaces-sdk.
