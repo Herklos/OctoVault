@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import type { Encryptor, StarfishClient } from '@drakkar.software/starfish-client';
 
 import { getMemberCap } from '@drakkar.software/octovault-sdk';
-import { getSpaceEncryptor, getNodeAccess, getSpaceClient } from '@drakkar.software/octovault-sdk';
+import { getNodeAccess, getSpaceClient, buildEncryptor, ownerTrustedAdders, keyringPull } from '@drakkar.software/octovault-sdk';
 import type { NodeAccess } from '@drakkar.software/octovault-sdk';
 import { useSpaceRegistryActions } from './space-registry-context';
 import { useSession } from './session-context';
@@ -83,7 +83,9 @@ export function useSpaceOpen(opts: {
         } else {
           // Space-wide E2EE (typeindex, or any call without a node): space keyring.
           const reg = getMemberCap(spaceId) ? null : await ensureRegistry(spaceId);
-          const { encryptor: enc, client: docClient } = await getSpaceEncryptor(spaceId, session, reg);
+          const docClient = getSpaceClient(spaceId, session);
+          const trustedAdders = reg?.owner ? [reg.owner] : ownerTrustedAdders(session);
+          const enc = await buildEncryptor(docClient, session.keys, keyringPull(spaceId), trustedAdders);
           if (!cancelled) {
             setEncryptor(enc);
             setClient(docClient);
@@ -103,6 +105,3 @@ export function useSpaceOpen(opts: {
 
   return { encryptor, client, opening, openError, offline, reload };
 }
-
-/** @deprecated Use {@link useSpaceOpen} */
-export const useRoomOpen = useSpaceOpen;

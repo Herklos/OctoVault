@@ -78,6 +78,3 @@ export function useDocLiveSync(opts: {
   }, [ready, sseUp]);
 }
 
-/** @deprecated Use {@link useDocLiveSync} */
-export const useRoomLiveSync = (opts: Parameters<typeof useDocLiveSync>[0] & { roomId?: string }) =>
-  useDocLiveSync({ ...opts, docId: opts.roomId ?? opts.docId });

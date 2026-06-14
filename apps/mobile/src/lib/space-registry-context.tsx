@@ -229,7 +229,3 @@ export function useSpaceRegistryActions(): SpaceRegistryActions {
   return useRegistryActions();
 }
 
-/** @deprecated Use {@link SpaceRegistryProvider} */
-export const RoomsRegistryProvider = SpaceRegistryProvider;
-/** @deprecated Use {@link useSpaceRegistryActions} */
-export const useRoomsRegistryActions = useSpaceRegistryActions;

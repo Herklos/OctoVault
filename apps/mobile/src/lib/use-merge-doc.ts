@@ -34,8 +34,6 @@ export interface MergeDocOptions {
   nodeId?: string;
   /** When true, always use null encryptor (space-wide plaintext docs like objindex). */
   plaintext?: boolean;
-  /** @deprecated pubspace removed — ignored. */
-  publicPaths?: (ownerId: string) => DocPaths;
 }
 
 export interface MergeDocResult {

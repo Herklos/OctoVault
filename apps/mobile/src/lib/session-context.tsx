@@ -12,7 +12,7 @@ import {
   type LinkedIdentity,
   type Session,
 } from '@drakkar.software/octovault-sdk';
-import { clearMemberCaps } from '@drakkar.software/octovault-sdk';
+import { clearSpaceAccessStore } from '@drakkar.software/octovault-sdk';
 import { recoverSpaceAccess } from '@drakkar.software/octovault-sdk';
 import { readSpaces } from '@drakkar.software/octovault-sdk';
 import { hydrateMutes, resetMutes } from '@drakkar.software/octovault-sdk';
@@ -125,7 +125,7 @@ const yieldToPaint = () => new Promise((r) => setTimeout(r, 0));
 // caps reload from disk on the next hydrate; SSE/push/unread/room stores key on the
 // session userId and self-reset via their own effect cleanups.
 function resetAccountScopedState(): void {
-  clearMemberCaps();
+  clearSpaceAccessStore();
   clearAttachmentCache();
   clearPseudoCache();
   clearNodeAccessCache();
