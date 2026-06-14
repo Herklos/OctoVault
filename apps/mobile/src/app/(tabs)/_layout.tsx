@@ -61,7 +61,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="work"     options={{ title: 'Vault',    tabBarIcon: tabIcon('work')    }} />
       <Tabs.Screen name="agents"   options={{ title: 'Agents',   tabBarIcon: tabIcon('agents')  }} />
       <Tabs.Screen name="notes"    options={{ title: 'Notes',    tabBarIcon: tabIcon('book')    }} />
-      <Tabs.Screen name="discover" options={{ title: 'Discover', tabBarIcon: tabIcon('globe')   }} />
       <Tabs.Screen name="search"   options={{ title: 'Search',   tabBarIcon: tabIcon('search')  }} />
     </Tabs>
   );

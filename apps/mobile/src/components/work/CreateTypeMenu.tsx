@@ -19,7 +19,7 @@ export type VisibilityAccess = 'space' | 'invite' | 'public';
 const VISIBILITY_OPTIONS: SegmentedOption<VisibilityAccess>[] = [
   { value: 'space',  label: 'Space' },
   { value: 'invite', label: 'Invite' },
-  { value: 'public', label: 'Public', disabled: true, hint: 'Coming soon — public objects will appear in Discover.' },
+  { value: 'public', label: 'Public', disabled: true, hint: 'Coming soon — public objects will appear in Search.' },
 ];
 
 interface CreateTypeMenuProps {
